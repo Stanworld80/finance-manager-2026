@@ -45,3 +45,21 @@ FinanceManager2026 est une application intelligente de gestion de finances perso
 - **Phase 2 (Core) :** Auth, CRUD Transactions basique.
 - **Phase 3 (IA) :** Connexion Vertex AI, Auto-catégorisation.
 - **Phase 4 (Release) :** Tests Lab, Déploiement Web public.
+
+## 6. Environnement de Développement (Flavor: DEV)
+L'application doit disposer d'une variante de build "Development" qui inclut un accès privilégié à un module d'Administration/Playground.
+
+### A. Accès
+- Accessible uniquement dans la version `dev`.
+- Bouton flottant ou entrée dans le menu latéral, visible seulement si `Environment.isDev == true`.
+
+### B. Fonctionnalités du Dashboard Admin
+1. **Design System Playground :**
+   - Page affichant tous les composants UI (Boutons, Cartes, Inputs, Typographie) pour valider le rendu visuel.
+   - Test des modes Clair/Sombre.
+2. **API Lab (Backend PoC) :**
+   - Interface brute pour tester les Cloud Functions (ex: déclencher une analyse Gemini sur un texte arbitraire).
+   - Visualiseur de logs Firestore en temps réel.
+3. **Gestion des données :**
+   - Bouton "Reset Data" pour vider le compte de test.
+   - Bouton "Seed Data" pour injecter des fausses transactions.

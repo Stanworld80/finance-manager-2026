@@ -7,14 +7,17 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Environment.init(AppFlavor.prod);
+  Environment.init(AppFlavor.dev);
 
+  // Initialize Firebase (Assuming firebase_options.dart is generated later,
+  // skipping for now or adding a placeholder if user hasn't generated it yet.
+  // We will wrap in try-catch to allow running without firebase initially for UI tests if needed)
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e) {
-    print("Firebase init failed: $e");
+    print("Firebase init failed (expected if not configured): $e");
   }
 
   runApp(const ProviderScope(child: FinanceManagerApp()));
