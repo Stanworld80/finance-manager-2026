@@ -34,8 +34,9 @@ The project uses Flutter Flavors to separate environments:
 - **Build Script**: `build_deploy.ps1` (PowerShell) handling:
     - Version Bumping (`pubspec.yaml`).
     - Testing (`flutter test`).
-    - Building (Web & Android APK/AAB).
+    - Building (Web & Android APK/AAB) - *Flavor logic fixed for Web*.
     - Deployment (Firebase Hosting & App Distribution).
+    - **Note**: Auto-copies `google-services.json` based on environment.
 - **Commands**:
     - Deploy Staging: `./build_deploy.ps1 -Environment dev`
     - Deploy Prod: `./build_deploy.ps1 -Environment prod`
@@ -43,12 +44,19 @@ The project uses Flutter Flavors to separate environments:
 ## Key Directories
 - `lib/core/`: Shared utilities, theme, environment config.
 - `lib/features/`: Feature-based modules (clean architecture).
+- `lib/features/auth/`: **New** Authentication logic (AuthGate, Router redirection).
 - `lib/features/admin/`: Developer tools and playground (Dev only).
 - `.github/`: Context and documentation for AI assistants.
 
-## Current Status (Jan 2026)
-- Infrastructure initialized.
-- Multi-environment setup complete (Firebase projects linked).
-- Package renamed to `fr.stanislasselleinformatique`.
-- Basic scaffold and navigation implemented.
-- CI/CD script `build_deploy.ps1` operational.
+## Current Status (Jan 30 2026)
+- **Infrastructure**: Multi-environment setup (Staging/Prod) complete and verified.
+- **Deployment**:
+    - **Web Staging**: Deployed and accessible (Auth enabled).
+    - **Android Staging**: APK builds and App Distribution enabled in script.
+- **Features**:
+    - **Auth**: Implemented `AuthGate` with `firebase_ui_auth`. Routes protected via GoRouter redirection.
+    - **Navigation**: Basic routing set up.
+- **Next Steps**:
+    1.  Create Data Models (Budget, Transaction).
+    2.  Implement "Wow" Design System.
+    3.  Connect to Gemini for Receipt Parsing.
