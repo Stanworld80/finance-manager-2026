@@ -50,8 +50,8 @@ class ProdFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDummyProdKey',
-    appId: '1:599792752048:web:dummyid',
+    apiKey: 'AIzaSyBQV07vOBMj0Vr3gFvB_QQQ0R34erPrkcQ',
+    appId: '1:599792752048:web:4eff741470f9fb75c07275',
     messagingSenderId: '599792752048',
     projectId: 'finance-manager-2026',
     authDomain: 'finance-manager-2026.firebaseapp.com',
@@ -59,10 +59,11 @@ class ProdFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDummyProdKeyAndroid',
-    appId: '1:599792752048:android:dummyid',
+    apiKey: 'AIzaSyCtZWvMbFkYTmGXkcbCeHe7lFbP3a71c0I',
+    appId: '1:599792752048:android:0c9d7449fce60754c07275',
     messagingSenderId: '599792752048',
     projectId: 'finance-manager-2026',
     storageBucket: 'finance-manager-2026.firebasestorage.app',
   );
+
 }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "420654277416",
+    "project_id": "finance-manager-2026-stg",
+    "storage_bucket": "finance-manager-2026-stg.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:420654277416:android:4b750e6abdb68a7150661d",
+        "android_client_info": {
+          "package_name": "fr.stanislasselleinformatique.finance_manager_2026.stg"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHsYPhSSLqSAfUw_U5aci8rLKgFsQD5qo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

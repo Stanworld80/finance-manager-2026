@@ -36,19 +36,21 @@ $ErrorActionPreference = "Stop"
 
 # --- Configuration ---
 $Config = @{
-    dev = @{
-        ProjectId = "finance-manager-2026-stg"
-        AndroidAppId = "1:420654277416:android:0c9d7449fce60754c07275" # Staging App ID
-        DartDefines = "APP_ENV=dev"
-        Flavor = "dev"
-        EntryPoint = "lib/main_dev.dart"
+    dev  = @{
+        ProjectId          = "finance-manager-2026-stg"
+        AndroidAppId       = "1:420654277416:android:4b750e6abdb68a7150661d" # Verified Staging App ID
+        DartDefines        = "APP_ENV=dev"
+        Flavor             = "dev"
+        EntryPoint         = "lib/main_dev.dart"
+        GoogleServicesPath = "android/app/google-services.staging.json"
     }
     prod = @{
-        ProjectId = "finance-manager-2026"
-        AndroidAppId = "1:599792752048:android:0c9d7449fce60754c07275" # Prod App ID
-        DartDefines = "APP_ENV=prod"
-        Flavor = "prod"
-        EntryPoint = "lib/main.dart"
+        ProjectId          = "finance-manager-2026"
+        AndroidAppId       = "1:599792752048:android:0c9d7449fce60754c07275" # Verified Prod App ID
+        DartDefines        = "APP_ENV=prod"
+        Flavor             = "prod"
+        EntryPoint         = "lib/main.dart"
+        GoogleServicesPath = "android/app/google-services.prod.json"
     }
 }
 
@@ -91,16 +93,30 @@ if ($Environment -eq "prod" -or (-not $BypassTest)) {
     Write-Host "-> Step 3: Running Tests..." -ForegroundColor Yellow
     flutter test
     if ($LASTEXITCODE -ne 0) { throw "Tests failed." }
-} else {
+}
+else {
     Write-Host "-> Step 3: Tests Skipped." -ForegroundColor Gray
+}
+
+# 3.b Configure Android Google Services
+if ($Platform -eq "android" -or $Platform -eq "all") {
+    $EnvConfig = $Config[$Environment]
+    if (Test-Path $EnvConfig.GoogleServicesPath) {
+        Write-Host "-> Configuring Android for $($Environment)..." -ForegroundColor Yellow
+        Copy-Item -Path $EnvConfig.GoogleServicesPath -Destination "android/app/google-services.json" -Force
+        Write-Host "   Copied $($EnvConfig.GoogleServicesPath) to android/app/google-services.json"
+    }
+    else {
+        Write-Warning "Google Services file not found at $($EnvConfig.GoogleServicesPath)"
+    }
 }
 
 # 4. Build
 Write-Host "-> Step 4: Building..." -ForegroundColor Yellow
 $EnvConfig = $Config[$Environment]
-$BuildArgs = @(
+# Common Args
+$CommonArgs = @(
     "--$BuildMode",
-    "--flavor", $EnvConfig.Flavor,
     "-t", $EnvConfig.EntryPoint,
     "--dart-define", $EnvConfig.DartDefines,
     "--build-name", $VersionName,
@@ -109,16 +125,24 @@ $BuildArgs = @(
 
 if ($Platform -eq "web" -or $Platform -eq "all") {
     Write-Host "   Building Web..."
-    flutter build web @BuildArgs
+    # Web does not support --flavor
+    flutter build web @CommonArgs
+    if ($LASTEXITCODE -ne 0) { throw "Web Build Failed" }
 }
 
 if ($Platform -eq "android" -or $Platform -eq "all") {
+    # Android needs --flavor
+    $AndroidArgs = $CommonArgs + @("--flavor", $EnvConfig.Flavor)
+    
     if ($BuildMode -eq "release") {
         Write-Host "   Building Android AppBundle..."
-        flutter build appbundle @BuildArgs
-    } else {
+        flutter build appbundle @AndroidArgs
+        if ($LASTEXITCODE -ne 0) { throw "Android AAB Build Failed" }
+    }
+    else {
         Write-Host "   Building Android APK..."
-        flutter build apk @BuildArgs
+        flutter build apk @AndroidArgs
+        if ($LASTEXITCODE -ne 0) { throw "Android APK Build Failed" }
     }
 }
 
@@ -149,12 +173,13 @@ if ($Platform -eq "android" -or $Platform -eq "all") {
     if ($BuildMode -eq "debug") {
         $ApkPath = "build/app/outputs/flutter-apk/app-$($EnvConfig.Flavor)-$BuildMode.apk"
         if (Test-Path $ApkPath) {
-             Write-Host "   Uploading APK to App Distribution..."
-             # Uncomment below to enable if App ID is correct and tools are installed
-             # firebase appdistribution:distribute "$ApkPath" --app $EnvConfig.AndroidAppId --release-notes "Ver $NewVersion" --groups "testers"
-             Write-Host "   (Firebase App Distribution command commmented out for safety until App ID verification)"
+            Write-Host "   Uploading APK to App Distribution..."
+            # Uncomment below to enable if App ID is correct and tools are installed
+            # firebase appdistribution:distribute "$ApkPath" --app $EnvConfig.AndroidAppId --release-notes "Ver $NewVersion" --groups "testers"
+            Write-Host "   (Firebase App Distribution command commmented out for safety until App ID verification)"
         }
-    } else {
+    }
+    else {
         Write-Host "   Release build: Manual upload to Play Store suggested for AAB."
     }
 }

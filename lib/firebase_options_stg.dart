@@ -50,8 +50,8 @@ class StagingFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDummyStagingKey',
-    appId: '1:420654277416:web:dummyid',
+    apiKey: 'AIzaSyDy_HaJb5b-Fm_nsAnN8xiyefvFGf6gVNg',
+    appId: '1:420654277416:web:05b73beebdf0ff0d50661d',
     messagingSenderId: '420654277416',
     projectId: 'finance-manager-2026-stg',
     authDomain: 'finance-manager-2026-stg.firebaseapp.com',
@@ -59,10 +59,11 @@ class StagingFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDummyStagingKeyAndroid',
-    appId: '1:420654277416:android:dummyid',
+    apiKey: 'AIzaSyCHsYPhSSLqSAfUw_U5aci8rLKgFsQD5qo',
+    appId: '1:420654277416:android:4b750e6abdb68a7150661d',
     messagingSenderId: '420654277416',
     projectId: 'finance-manager-2026-stg',
     storageBucket: 'finance-manager-2026-stg.firebasestorage.app',
   );
+
 }
