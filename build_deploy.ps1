@@ -174,9 +174,7 @@ if ($Platform -eq "android" -or $Platform -eq "all") {
         $ApkPath = "build/app/outputs/flutter-apk/app-$($EnvConfig.Flavor)-$BuildMode.apk"
         if (Test-Path $ApkPath) {
             Write-Host "   Uploading APK to App Distribution..."
-            # Uncomment below to enable if App ID is correct and tools are installed
-            # firebase appdistribution:distribute "$ApkPath" --app $EnvConfig.AndroidAppId --release-notes "Ver $NewVersion" --groups "testers"
-            Write-Host "   (Firebase App Distribution command commmented out for safety until App ID verification)"
+            firebase appdistribution:distribute "$ApkPath" --app $EnvConfig.AndroidAppId --release-notes "Ver $NewVersion" --groups "testers"
         }
     }
     else {
