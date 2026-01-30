@@ -14,7 +14,7 @@ import 'package:flutter/foundation.dart'
 ///   options: DefaultFirebaseOptions.currentPlatform,
 /// );
 /// ```
-class DefaultFirebaseOptions {
+class ProdFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
       return web;
@@ -50,18 +50,18 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDummyKeyForWebConfigPending',
-    appId: '1:123456789:web:dummyid',
-    messagingSenderId: '123456789',
+    apiKey: 'AIzaSyDummyProdKey',
+    appId: '1:599792752048:web:dummyid',
+    messagingSenderId: '599792752048',
     projectId: 'finance-manager-2026',
     authDomain: 'finance-manager-2026.firebaseapp.com',
     storageBucket: 'finance-manager-2026.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDummyKeyForAndroidConfigPending',
-    appId: '1:123456789:android:dummyid',
-    messagingSenderId: '123456789',
+    apiKey: 'AIzaSyDummyProdKeyAndroid',
+    appId: '1:599792752048:android:dummyid',
+    messagingSenderId: '599792752048',
     projectId: 'finance-manager-2026',
     storageBucket: 'finance-manager-2026.firebasestorage.app',
   );

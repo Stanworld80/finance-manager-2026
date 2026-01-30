@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.finance_manager_2026"
+    namespace = "fr.stanislasselleinformatique.finance_manager_2026"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.finance_manager_2026"
+        applicationId = "fr.stanislasselleinformatique.finance_manager_2026"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -35,6 +35,19 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    flavorDimensions += "env"
+    productFlavors {
+        create("dev") {
+            dimension = "env"
+            applicationIdSuffix = ".stg"
+            resValue("string", "app_name", "FM 2026 (Dev)")
+        }
+        create("prod") {
+            dimension = "env"
+            resValue("string", "app_name", "Finance Manager 2026")
         }
     }
 }

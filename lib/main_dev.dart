@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'app.dart';
 import 'core/environment.dart';
-import 'firebase_options.dart';
+import 'firebase_options_stg.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,7 +14,7 @@ void main() async {
   // We will wrap in try-catch to allow running without firebase initially for UI tests if needed)
   try {
     await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
+      options: StagingFirebaseOptions.currentPlatform,
     );
   } catch (e) {
     print("Firebase init failed (expected if not configured): $e");
