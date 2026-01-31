@@ -11,28 +11,136 @@ FinanceManager2026 est une application intelligente de gestion de finances perso
 ## 3. Fonctionnalités Clés (MVP)
 
 ### A. Authentification & Onboarding
-- Connexion sécurisée via Compte Google (Google Auth).
+- **Authentification Hybride :** Connexion via Compte Google (Google Auth) OU Email / Mot de passe.
 - Configuration initiale (Devise par défaut, solde initial).
 
 ### B. Gestion des Transactions (Le Cœur)
+#### 1. Acquisition des Données (Entrées Réelles)
+- **Saisie Manuelle :** Formulaire optimisé pour une saisie rapide.
+- **Import de Fichiers :** Support des exports bancaires (CSV, PDF, OFX) issus des sites de banques.
+- **Synchronisation Bancaire (Bank Sync) :**
+  - Connexion sécurisée aux banques réelles (API Open Banking / DSP2).
+  - Cibles prioritaires : **Crédit Agricole**, **La Banque Postale**, **PayPal**.
+  - Objectif : Comparer les soldes théoriques (app) avec la réalité bancaire et synchroniser les transactions manquantes.
+  - Fonctionnalité "Live Watcher" pour détecter les nouveaux mouvements.
+- **Connexion Commerçants (Factures) :**
+  - Intégration API fournisseurs (Amazon, EDF, Opérateurs, etc.) pour récupérer les factures et le détail des commandes.
+
+#### 2. Manipulation & Visualisation
 - **Vue Liste :** Affichage chronologique des dépenses/revenus.
 - **CRUD :** Créer, Lire, Mettre à jour, Supprimer une transaction.
 - **Champs :** Montant, Date, Tiers (Payee), Catégorie, Note, Photo du justificatif.
 - **Filtres :** Par date, par catégorie, par compte.
 
-### C. Tableaux de Bord (Dashboard)
-- Solde actuel global et par compte.
-- Graphique : Dépenses vs Revenus sur le mois en cours (Pie chart / Bar chart).
-- "Reste à vivre" estimé.
+### C. Tableaux de Bord & Analyse (Analytics)
+- **Vue Synthétique (Dashboard) :** Solde global, par compte, et "Reste à vivre" instantané.
+- **Rapports Historiques (Bilans) :**
+  - Comparatif mensuel/annuel des entrées/sorties.
+  - Ventilation par catégorie sur des périodes personnalisées.
+- **Analyse Prédictive :**
+  - Identification des tendances de dépenses (ex: augmentation progressive des courses).
+  - Projection des soldes futurs basés sur l'historique et le récurrent.
 
 ### D. Intégration IA (Gemini Features)
 - **Auto-catégorisation :** À la saisie d'un libellé (ex: "Carrefour"), l'IA propose la catégorie ("Alimentation") et une icône.
 - **Analyse de reçu :** L'utilisateur prend une photo d'un ticket, Gemini extrait le montant, la date et le commerçant.
 - **Assistant "Coach Financier" :** Chat interface pour poser des questions ("Combien ai-je dépensé en restaurants le mois dernier ?").
 
-### E. Planification
-- Gestion des opérations récurrentes (loyers, abonnements).
-- Projection du solde à fin de mois.
+### E. Planification & Projets de Vie
+- **Gestion des Récurrences & Échéanciers :**
+  - Définition précise des revenus et dépenses fixes (Loyer, Impôts, Abonnements, Salaires).
+  - Paramétrage flexible : Date de début, Date de fin, Fréquence (Mensuel, Annuel, Hebdomadaire, Personnalisé).
+  - Génération automatique des transactions futures dans la vue prévisionnelle.
+- **Dépenses Futures Ponctuelles :**
+  - Programmation de transactions unitaires futures connues (ex: "Révision voiture dans 3 mois").
+- **Projets de Financement (Épargne Ciblée) :**
+  - Création de "Cagnottes" ou objectifs d'épargne (ex: "Voyage Japon", "Achat Maison").
+  - Suivi de la progression vers l'objectif (Montant cible, Date butoir).
+  - *Lien avec Comptes Virtuels :* Un projet peut être un Compte Virtuel dédié qu'on alimente progressivement.
+
+### F. Système Budgétaire (Comptes Virtuels)
+Ce système implémente une gestion par "enveloppes" directement liée aux comptes réels.
+
+#### 1. Concepts & Structure
+- **Typologie des Comptes Réels :**
+  - **Comptes Internes :** Comptes dont l'utilisateur est propriétaire ou gestionnaire (Comptes courants, Livrets, PayPal).
+  - **Comptes Externes :** Représentent les tiers (Commerçants, Amis, Employeurs).
+  - **Compte "Externe" Générique :** Tiers par défaut pour les transactions sans contrepartie nommée précise.
+
+- **Compte Virtuel (Budget) :** Subdivision logique d'un Compte Réel Interne.
+  - **Règle d'Or (Équation de Solde) :**
+    `Solde Réel Actuel = Somme(Comptes Virtuels Disponibles) - Somme(Solde Engagé)`
+
+#### 2. Typologie des Transactions & Cycle de Vie
+L'application gère des statuts et des étapes précises pour chaque flux.
+
+**Types de Transactions :**
+1.  **Débit :** Sortie d'argent d'un compte interne vers un compte externe.
+2.  **Crédit :** Entrée d'argent depuis un compte externe vers un compte interne.
+3.  **Provision :** Transfert technique d'une enveloppe budgétaire vers l'enveloppe "Solde Engagé" pour couvrir (sécuriser) une dépense à venir.
+4.  **Transfert :** Mouvement de fonds d'une enveloppe à une autre (réallocation).
+
+**Workflow & Étapes (Le Flux) :**
+Représente l'avancement temporel et l'exécution bancaire.
+- **Prévu :** Transaction anticipée (récurrence ou planification).
+- **A Programmer :** Action requise de l'utilisateur (virement à faire).
+- **Programmé :** L'ordre de virement est passé.
+- **En Cours :** Transaction visible côté banque mais non finalisée (pending).
+- **Effectué :** Transaction validée et débitée/créditée réellement.
+
+**Gestion Avancée des Dates (Temporalité) :**
+Pour gérer les délais bancaires (décalage opération/valeur, chèques, cartes à débit différé), chaque transaction porte plusieurs dates clés :
+- **Date d'Opération (Transaction Date) :** Date de l'achat ou de l'initiation de l'ordre.
+- **Date de Valeur (Value Date) :** Date effective de prise en compte par la banque pour le calcul des intérêts/soldes.
+- **Date d'Apparition (Visibility Date) :** Moment où la ligne apparaît sur le relevé en ligne (souvent en "En Cours").
+- **Date de Pointage/Synchro :** Date de validation finale par rapprochement bancaire.
+- **Date de Provision :** Moment où l'enveloppe budgétaire a été affectée.
+
+**Statuts Budgétaires (Le Contrôle) :**
+Représente l'état de couverture de la transaction.
+- **A Provisionner :** Dépense prévue mais l'enveloppe cible n'a pas encore les fonds.
+- **Provisionné :** Les fonds sont sécurisés dans "Solde Engagé".
+- **A Distribuer :** Pour un Crédit (Revenu) arrivé dans le sas, attendant d'être ventilé.
+- **A Transférer :** Fonds en attente de mouvement.
+- **A Corriger / Corrigé :** Gestion des erreurs de rapprochement.
+
+#### 3. Typologie des Comptes Virtuels
+
+1.  **Compte "Libre" (Système) :**
+    - Créé automatiquement pour chaque Compte Réel.
+    - Reçoit tout le solde non attribué à des budgets spécifiques.
+    - Sert de tampon de sécurité.
+2.  **Comptes Budgétaires (Utilisateur) :**
+    - Ex: "Alimentation", "Logement", "Loisirs".
+    - Représentent le "Reste à dépenser" pour cette catégorie.
+3.  **Compte "Solde Engagé" (Système) :**
+    - Compte technique recevant la contrepartie des dépenses réelles.
+    - Une dépense réelle diminue le solde réel mais ne modifie pas le total des fonds virtuels, elle déplace juste des fonds d'un budget vers "Engagé".
+4.  **Zone "À Distribuer" (Flux) :**
+    - Sas d'entrée temporaire pour les revenus entrants avant qu'ils ne soient alloués.
+
+#### 4. Workflows
+- **Traitement des Revenus (Entrées) :**
+  - Une rentrée d'argent sur le Compte Réel arrive dans la zone "À Distribuer".
+  - **Action :** L'utilisateur répartit ce montant (manuellement ou via Templates automatiques) vers les différents Comptes Virtuels ("Libre", "Loyer", etc.).
+  
+- **Traitement des Dépenses (Sorties & Provisionnement) :**
+  - Une dépense sur le Compte Réel doit être "Provisionnée" (avant ou après l'acte d'achat).
+  - **Action :** Provisionner consiste à créer une transaction virtuelle :
+    `Débit: Compte Virtuel (ex: "Alimentation")` -> `Crédit: Compte Virtuel "Solde Engagé"`.
+  - Cela diminue le disponible du budget concerné.
+
+- **Consultation :**
+  - L'application permet de voir les soldes "Réels" (Banque), "Actuels" (Dans les enveloppes), et "Prévisionnels" (Basés sur les budgets restants).
+
+### G. Automatisation & Actions Bancaires
+- **Smart Matching (Réconciliation) :**
+  - L'algorithme détecte automatiquement si une transaction bancaire importée correspond à une dépense planifiée ou récurrente pour éviter les doublons.
+- **Moteur de Suggestions (Auto-Pilot) :**
+  - Proposition automatique de virements de répartition lors de la réception d'un salaire (selon règles définies).
+  - Alerte et proposition de rééquilibrage si un compte va passer à découvert alors qu'un autre a des fonds.
+- **Initiation de Paiement (DSP2 / PISP) :**
+  - Capacité technique de demander l'exécution d'un virement inter-comptes réels directement depuis l'interface (nécessite validation forte côté banque).
 
 ## 4. Exigences Non-Fonctionnelles
 - **Performance :** Lancement de l'app en < 2 secondes.

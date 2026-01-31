@@ -1,43 +1,49 @@
 {
-    "hosting": {
-        "public": "build/web",
-        "ignore": [
-            "firebase.json",
-            "**/.*",
-            "**/node_modules/**"
-        ],
-        "rewrites": [
-            {
-                "source": "**",
-                "destination": "/index.html"
-            }
-        ]
-    },
-    "flutter": {
-        "platforms": {
-            "android": {
-                "default": {
-                    "projectId": "finance-manager-2026",
-                    "appId": "1:599792752048:android:0c9d7449fce60754c07275",
-                    "fileOutput": "android/app/google-services.json"
-                }
-            },
-            "dart": {
-                "lib/firebase_options_stg.dart": {
-                    "projectId": "finance-manager-2026-stg",
-                    "configurations": {
-                        "android": "1:420654277416:android:4b750e6abdb68a7150661d",
-                        "web": "1:420654277416:web:05b73beebdf0ff0d50661d"
-                    }
-                },
-                "lib/firebase_options_prod.dart": {
-                    "projectId": "finance-manager-2026",
-                    "configurations": {
-                        "android": "1:599792752048:android:0c9d7449fce60754c07275",
-                        "web": "1:599792752048:web:4eff741470f9fb75c07275"
-                    }
-                }
-            }
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "finance-manager-2026",
+          "appId": "1:599792752048:android:0c9d7449fce60754c07275",
+          "fileOutput": "android/app/google-services.json"
         }
+      },
+      "dart": {
+        "lib/firebase_options_stg.dart": {
+          "projectId": "finance-manager-2026-stg",
+          "configurations": {
+            "android": "1:420654277416:android:4b750e6abdb68a7150661d",
+            "web": "1:420654277416:web:05b73beebdf0ff0d50661d"
+          }
+        },
+        "lib/firebase_options_prod.dart": {
+          "projectId": "finance-manager-2026",
+          "configurations": {
+            "android": "1:599792752048:android:0c9d7449fce60754c07275",
+            "web": "1:599792752048:web:4eff741470f9fb75c07275"
+          }
+        }
+      }
     }
+  },
+  "firestore": {
+    "database": "(default)",
+    "location": "nam5",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
 }
