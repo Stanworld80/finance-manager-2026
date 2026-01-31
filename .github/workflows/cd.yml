@@ -3,7 +3,7 @@ name: Deployment (Staging)
 on:
   push:
     branches:
-      - main
+      - master
     paths-ignore:
       - '**.md'
       - '.ai-context.md'
