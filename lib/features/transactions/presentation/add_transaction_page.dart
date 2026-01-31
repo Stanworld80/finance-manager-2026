@@ -22,7 +22,10 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
   DateTime _date = DateTime.now();
 
   RealAccount? _selectedRealAccount;
-  VirtualAccount? _selectedVirtualAccount;
+  VirtualAccount?
+  _selectedVirtualAccount; // Used for Debit/Credit (Source/Target)
+  VirtualAccount? _transferSourceAccount; // Used for Transfer (From)
+  VirtualAccount? _transferTargetAccount; // Used for Transfer (To)
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +41,6 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
             );
           }
 
-          // Auto-select first if null
           if (_selectedRealAccount == null && realAccounts.isNotEmpty) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               setState(() {
@@ -53,7 +55,6 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
               key: _formKey,
               child: Column(
                 children: [
-                  // Type Segmented Control
                   SegmentedButton<TransactionType>(
                     segments: const [
                       ButtonSegment(
@@ -66,19 +67,24 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                         label: Text("Revenu"),
                         icon: Icon(Icons.arrow_upward),
                       ),
+                      ButtonSegment(
+                        value: TransactionType.transfer,
+                        label: Text("Transfert"),
+                        icon: Icon(Icons.swap_horiz),
+                      ),
                     ],
                     selected: {_type},
                     onSelectionChanged: (Set<TransactionType> newSelection) {
                       setState(() {
                         _type = newSelection.first;
-                        _selectedVirtualAccount =
-                            null; // Reset sub-dropdown to avoid value mismatch
+                        _selectedVirtualAccount = null;
+                        _transferSourceAccount = null;
+                        _transferTargetAccount = null;
                       });
                     },
                   ),
                   const SizedBox(height: 16),
 
-                  // Amount
                   TextFormField(
                     decoration: const InputDecoration(
                       labelText: "Montant",
@@ -97,11 +103,10 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Label
                   TextFormField(
                     decoration: const InputDecoration(
                       labelText: "Libellé",
-                      hintText: "Ex: Courses, Salaire...",
+                      hintText: "Ex: Courses, Salaire, Epargne...",
                       border: OutlineInputBorder(),
                     ),
                     validator: (value) =>
@@ -110,7 +115,6 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Real Account Dropdown
                   DropdownButtonFormField<RealAccount>(
                     initialValue: _selectedRealAccount,
                     decoration: const InputDecoration(
@@ -125,14 +129,15 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                     onChanged: (val) {
                       setState(() {
                         _selectedRealAccount = val;
-                        _selectedVirtualAccount = null; // Reset sub-dropdown
+                        _selectedVirtualAccount = null;
+                        _transferSourceAccount = null;
+                        _transferTargetAccount = null;
                       });
                     },
                     validator: (val) => val == null ? "Requis" : null,
                   ),
                   const SizedBox(height: 16),
 
-                  // Virtual Account Dropdown (Dependent)
                   if (_selectedRealAccount != null)
                     Consumer(
                       builder: (context, ref, child) {
@@ -142,14 +147,59 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                         final virtualsAsync = ref.watch(provider);
                         return virtualsAsync.when(
                           data: (virtuals) {
-                            // Determine available accounts based on Type
-                            // If Expense (Debit): Show User Budgets + Free (Source of funds)
-                            // If Income (Credit): Show Flow (Destination) or Free?
-                            // SPECS says Income -> "À Distribuer" (Flow).
+                            if (_type == TransactionType.transfer) {
+                              return Column(
+                                children: [
+                                  DropdownButtonFormField<VirtualAccount>(
+                                    decoration: const InputDecoration(
+                                      labelText: "Depuis (Source)",
+                                    ),
+                                    items: virtuals
+                                        .map(
+                                          (v) => DropdownMenuItem(
+                                            value: v,
+                                            child: Text(v.name),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: (val) => setState(
+                                      () => _transferSourceAccount = val,
+                                    ),
+                                    validator: (val) =>
+                                        _type == TransactionType.transfer &&
+                                            val == null
+                                        ? "Requis"
+                                        : null,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  DropdownButtonFormField<VirtualAccount>(
+                                    decoration: const InputDecoration(
+                                      labelText: "Vers (Destination)",
+                                    ),
+                                    items: virtuals
+                                        .map(
+                                          (v) => DropdownMenuItem(
+                                            value: v,
+                                            child: Text(v.name),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: (val) => setState(
+                                      () => _transferTargetAccount = val,
+                                    ),
+                                    validator: (val) =>
+                                        _type == TransactionType.transfer &&
+                                            val == null
+                                        ? "Requis"
+                                        : null,
+                                  ),
+                                ],
+                              );
+                            }
 
+                            // Standard Debit/Credit Logic
                             List<VirtualAccount> options = [];
                             if (_type == TransactionType.credit) {
-                              // Prefer 'Flow' type
                               options = virtuals
                                   .where(
                                     (v) =>
@@ -157,11 +207,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                                         VirtualAccountType.flowToDistribute,
                                   )
                                   .toList();
-                              if (options.isEmpty) {
-                                options = virtuals; // Fallback
-                              }
+                              if (options.isEmpty) options = virtuals;
                             } else {
-                              // Expense: Budgets + Free
                               options = virtuals
                                   .where(
                                     (v) =>
@@ -172,39 +219,30 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                                   .toList();
                             }
 
-                            // Ensure selected value is valid for the current list
-                            // We use where checking for ID/Equality.
-                            // Since we don't have == override, we rely on identity.
-                            // If the list refreshed, we might lose selection if not careful.
-                            // Ideally, we shouldn't rely on 'contains' if checks identity unless objects are cached.
-                            // But for clearing invalid types:
-
-                            VirtualAccount? currentValue =
-                                _selectedVirtualAccount;
-                            if (currentValue != null &&
-                                !options.contains(currentValue)) {
-                              currentValue = null;
-                            }
-
                             return DropdownButtonFormField<VirtualAccount>(
                               key: ValueKey(
-                                "$_type-${_selectedRealAccount?.id}",
-                              ), // Force rebuild on type change
-                              initialValue: currentValue,
+                                "$_type-${_selectedRealAccount!.id}",
+                              ),
                               decoration: InputDecoration(
                                 labelText: _type == TransactionType.credit
                                     ? "Vers (Enveloppe)"
                                     : "Depuis (Enveloppe)",
                               ),
-                              items: options.map((v) {
-                                return DropdownMenuItem(
-                                  value: v,
-                                  child: Text(v.name),
-                                );
-                              }).toList(),
+                              items: options
+                                  .map(
+                                    (v) => DropdownMenuItem(
+                                      value: v,
+                                      child: Text(v.name),
+                                    ),
+                                  )
+                                  .toList(),
                               onChanged: (val) =>
                                   setState(() => _selectedVirtualAccount = val),
-                              validator: (val) => val == null ? "Requis" : null,
+                              validator: (val) =>
+                                  _type != TransactionType.transfer &&
+                                      val == null
+                                  ? "Requis"
+                                  : null,
                             );
                           },
                           loading: () => const LinearProgressIndicator(),
@@ -215,7 +253,6 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
 
                   const SizedBox(height: 24),
 
-                  // Date Picker (Basic)
                   ListTile(
                     title: const Text("Date"),
                     subtitle: Text("${_date.toLocal()}".split(' ')[0]),
@@ -257,21 +294,34 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
       _formKey.currentState!.save();
 
       try {
-        await ref
-            .read(transactionServiceProvider)
-            .addTransaction(
-              amount: _amount!,
-              type: _type,
-              label: _label,
-              date: _date,
-              realAccount: _selectedRealAccount!,
-              targetVirtualAccount: _selectedVirtualAccount!,
-            );
+        if (_type == TransactionType.transfer) {
+          await ref
+              .read(transactionServiceProvider)
+              .addTransfer(
+                amount: _amount!,
+                label: _label,
+                date: _date,
+                realAccount: _selectedRealAccount!,
+                sourceVirtualAccount: _transferSourceAccount!,
+                targetVirtualAccount: _transferTargetAccount!,
+              );
+        } else {
+          await ref
+              .read(transactionServiceProvider)
+              .addTransaction(
+                amount: _amount!,
+                type: _type,
+                label: _label,
+                date: _date,
+                realAccount: _selectedRealAccount!,
+                targetVirtualAccount: _selectedVirtualAccount!,
+              );
+        }
 
         if (mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text("Transaction ajoutée")));
+          ).showSnackBar(const SnackBar(content: Text("Opération effectuée")));
           context.pop();
         }
       } catch (e) {

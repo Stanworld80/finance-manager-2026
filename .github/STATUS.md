@@ -22,8 +22,8 @@ Date: 2026-01-31
 - **Staging URL**: [https://finance-manager-2026-stg.web.app](https://finance-manager-2026-stg.web.app)
 
 ## Next Steps
-- [ ] **Transaction Detail**: View more details about a transaction.
-- [ ] **Virtual Splits**: UI for multi-budget splitting.
+- [x] **Transaction Detail**: View more details about a transaction.
+- [ ] **Virtual Splits**: UI for multi-budget splitting (Work in Progress).
 - [ ] **Refinement**: Implement a more premium look and feel for cards and buttons.
 - [ ] **Production Deployment**: Deploy to the main production project once validated.
 

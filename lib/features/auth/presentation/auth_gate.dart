@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../data/auth_providers.dart';
+import '../../../../core/providers.dart';
 
 // Google Web Client ID for Staging
 const _googleClientId =

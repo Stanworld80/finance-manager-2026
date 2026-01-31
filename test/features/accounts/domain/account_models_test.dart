@@ -35,6 +35,7 @@ void main() {
         balance: 150.0,
         initialBalance: 10.0,
         bankName: 'Test Bank',
+        type: RealAccountType.internal,
       );
 
       final map = account.toMap();
@@ -46,6 +47,7 @@ void main() {
         'balance': 150.0,
         'initialBalance': 10.0,
         'bankName': 'Test Bank',
+        'type': 'internal',
       });
     });
 
@@ -57,6 +59,7 @@ void main() {
         'balance': 200.0,
         'initialBalance': 20.0,
         'bankName': 'Bank B',
+        'type': 'external',
       };
 
       final account = RealAccount.fromMap(map);
@@ -67,6 +70,7 @@ void main() {
       expect(account.balance, 200.0);
       expect(account.initialBalance, 20.0);
       expect(account.bankName, 'Bank B');
+      expect(account.type, RealAccountType.external);
     });
 
     test('fromMap handles missing optional fields', () {

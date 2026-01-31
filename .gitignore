@@ -43,3 +43,17 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Node dependencies (Firebase CLI etc)
+node_modules/
+package-lock.json
+package.json
+
+# Local env
+.env
+*.env
+
+# Windows build artifacts
+windows/flutter/ephemeral/
+windows/flutter/generated/
+/build_windows/

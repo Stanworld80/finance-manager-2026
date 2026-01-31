@@ -90,4 +90,53 @@ class TransactionService {
     final repository = ref.read(transactionRepositoryProvider);
     await repository.deleteTransaction(user.uid, transaction);
   }
+
+  /// Adds an internal transfer between two virtual accounts (envelopes).
+  /// This does not affect the Real Account balance (amount = 0).
+  /// It creates two splits: -Amount from Source, +Amount to Target.
+  Future<void> addTransfer({
+    required double amount,
+    required String label,
+    required DateTime date,
+    required RealAccount realAccount,
+    required VirtualAccount sourceVirtualAccount,
+    required VirtualAccount targetVirtualAccount,
+  }) async {
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) throw Exception("User not authenticated");
+
+    if (sourceVirtualAccount.realAccountId != realAccount.id ||
+        targetVirtualAccount.realAccountId != realAccount.id) {
+      throw Exception(
+        "Les transferts ne sont possibles qu'entre enveloppes d'un même compte bancaire pour le moment.",
+      );
+    }
+
+    final repository = ref.read(transactionRepositoryProvider);
+    final uuid = const Uuid();
+
+    final transaction = TransactionModel(
+      id: uuid.v4(),
+      ownerId: user.uid,
+      realAccountId: realAccount.id,
+      amount: 0.0, // Internal transfer -> No change in real balance
+      type: TransactionType.transfer,
+      transactionDate: date,
+      label: label,
+      status: TransactionStatus.none,
+      step: TransactionStep.completed,
+      splits: [
+        TransactionSplit(
+          virtualAccountId: sourceVirtualAccount.id,
+          amount: -amount.abs(),
+        ),
+        TransactionSplit(
+          virtualAccountId: targetVirtualAccount.id,
+          amount: amount.abs(),
+        ),
+      ],
+    );
+
+    await repository.createTransaction(user.uid, transaction);
+  }
 }

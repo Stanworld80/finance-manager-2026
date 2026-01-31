@@ -108,13 +108,29 @@ class TransactionRepository {
         .collection('users')
         .doc(userId)
         .collection('transactions')
-        .orderBy('date', descending: true)
+        .orderBy('transactionDate', descending: true)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
               .map((doc) => TransactionModel.fromMap(doc.data()))
               .toList(),
         );
+  }
+
+  Stream<TransactionModel?> watchTransaction(
+    String userId,
+    String transactionId,
+  ) {
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('transactions')
+        .doc(transactionId)
+        .snapshots()
+        .map((doc) {
+          if (!doc.exists) return null;
+          return TransactionModel.fromMap(doc.data()!);
+        });
   }
 }
 

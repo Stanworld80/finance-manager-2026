@@ -29,7 +29,8 @@ param(
 
     [switch]$NoDeploy,
     [switch]$NoClean,
-    [switch]$BypassTest
+    [switch]$BypassTest,
+    [switch]$NoGit
 )
 
 $ErrorActionPreference = "Stop"
@@ -152,12 +153,17 @@ if ($NoDeploy) {
 }
 
 # 5. Git Operations
-Write-Host "-> Step 5: Git Operations..." -ForegroundColor Yellow
-git add pubspec.yaml
-git commit -m "chore: bump version to $NewVersion"
-git push
-git tag -a "v$NewVersion" -m "Release $NewVersion ($Environment)"
-git push origin "v$NewVersion"
+if (-not $NoGit) {
+    Write-Host "-> Step 5: Git Operations..." -ForegroundColor Yellow
+    git add pubspec.yaml
+    git commit -m "chore: bump version to $NewVersion"
+    git push
+    git tag -a "v$NewVersion" -m "Release $NewVersion ($Environment)"
+    git push origin "v$NewVersion"
+}
+else {
+    Write-Host "-> Step 5: Git Operations Skipped (-NoGit)." -ForegroundColor Gray
+}
 
 # 6. Deploy
 Write-Host "-> Step 6: Deploying..." -ForegroundColor Yellow

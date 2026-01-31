@@ -30,6 +30,7 @@ FinanceManager2026 est une application intelligente de gestion de finances perso
 - **Vue Liste :** Affichage chronologique des dépenses/revenus.
 - **CRUD :** Créer, Lire, Mettre à jour, Supprimer une transaction.
 - **Champs :** Montant, Date, Tiers (Payee), Catégorie, Note, Photo du justificatif.
+- **Ventilation (Splits) :** Possibilité d'affecter une dépense unique à plusieurs enveloppes budgétaires (ex: Ticket de supermarché = 50€ Alimentation + 20€ Maison).
 - **Filtres :** Par date, par catégorie, par compte.
 
 ### C. Tableaux de Bord & Analyse (Analytics)
@@ -141,6 +142,10 @@ Représente l'état de couverture de la transaction.
   - Alerte et proposition de rééquilibrage si un compte va passer à découvert alors qu'un autre a des fonds.
 - **Initiation de Paiement (DSP2 / PISP) :**
   - Capacité technique de demander l'exécution d'un virement inter-comptes réels directement depuis l'interface (nécessite validation forte côté banque).
+
+### H. Gestion Technique & Sécurité
+- **Atomicité :** Toutes les opérations modifiant les soldes (Réel ou Virtuel) doivent être exécutées dans une Transaction Firestore pour garantir la cohérence comptable (Double-Entry).
+- **Suppression Logique :** La suppression d'une transaction doit inverser exactement ses écritures comptables (Remboursement des enveloppes).
 
 ## 4. Exigences Non-Fonctionnelles
 - **Performance :** Lancement de l'app en < 2 secondes.

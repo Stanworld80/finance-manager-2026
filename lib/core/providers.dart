@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'data/seed_service.dart';
 
 part 'providers.g.dart';
 
@@ -12,4 +13,9 @@ FirebaseFirestore firestore(FirestoreRef ref) {
 @Riverpod(keepAlive: true)
 FirebaseAuth firebaseAuth(FirebaseAuthRef ref) {
   return FirebaseAuth.instance;
+}
+
+@Riverpod(keepAlive: true)
+SeedService seedService(SeedServiceRef ref) {
+  return SeedService(ref.watch(firestoreProvider));
 }

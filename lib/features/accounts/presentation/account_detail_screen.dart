@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../accounts/data/account_providers.dart';
 import '../../accounts/domain/account_models.dart';
 import '../../accounts/application/account_service.dart';
+import '../../../core/presentation/ui_utils.dart';
 
 class AccountDetailScreen extends ConsumerWidget {
   final String accountId;
@@ -77,6 +78,7 @@ class AccountDetailScreen extends ConsumerWidget {
               const Divider(height: 1),
 
               // Virtual Accounts List
+              // Virtual Accounts List
               Expanded(
                 child: virtualAccountsAsync.when(
                   data: (virtuals) {
@@ -86,22 +88,81 @@ class AccountDetailScreen extends ConsumerWidget {
                       );
                     }
 
-                    // Sort: Income -> User -> System
-                    // Or customized logic.
-                    // For now, simple list.
-                    return ListView.builder(
-                      itemCount: virtuals.length,
+                    // Sort Logic:
+                    // 1. FlowToDistribute (Income)
+                    // 2. SystemFree (Libre)
+                    // 3. SystemCommitted (Fixed)
+                    // 4. UserBudget (Envelopes)
+                    final sortedVirtuals = List<VirtualAccount>.from(virtuals);
+                    sortedVirtuals.sort((a, b) {
+                      final priorityA = _getPriority(a.type);
+                      final priorityB = _getPriority(b.type);
+                      if (priorityA != priorityB)
+                        return priorityA.compareTo(priorityB);
+                      return a.name.compareTo(b.name);
+                    });
+
+                    return ListView.separated(
+                      padding: const EdgeInsets.all(8),
+                      itemCount: sortedVirtuals.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
-                        final v = virtuals[index];
-                        return ListTile(
-                          leading: CircleAvatar(
-                            child: Icon(_getIconForType(v.type)),
+                        final v = sortedVirtuals[index];
+                        final color = UiUtils.getVirtualAccountColor(v.type);
+                        final icon = UiUtils.getVirtualAccountIcon(v.type);
+
+                        return Card(
+                          elevation: 1,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: color.withOpacity(0.3)),
                           ),
-                          title: Text(v.name),
-                          subtitle: Text(_getLabelForType(v.type)),
-                          trailing: Text(
-                            "${v.balance.toStringAsFixed(2)} €",
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: color.withOpacity(0.1),
+                              child: Icon(icon, color: color),
+                            ),
+                            title: Text(
+                              v.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Text(
+                              _getLabelForType(v.type),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  "${v.balance.toStringAsFixed(2)} €",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: v.balance < 0
+                                        ? Colors.red
+                                        : Colors.black87,
+                                  ),
+                                ),
+                                if (v.type ==
+                                    VirtualAccountType.userBudget) ...[
+                                  const SizedBox(width: 4),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      size: 20,
+                                    ),
+                                    color: Colors.grey,
+                                    onPressed: () =>
+                                        _confirmDeleteEnvelope(context, ref, v),
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
                         );
                       },
@@ -126,18 +187,68 @@ class AccountDetailScreen extends ConsumerWidget {
     );
   }
 
-  IconData _getIconForType(VirtualAccountType type) {
+  int _getPriority(VirtualAccountType type) {
     switch (type) {
-      case VirtualAccountType.systemFree:
-        return Icons.savings_outlined;
-      case VirtualAccountType.systemCommitted:
-        return Icons.lock_clock_outlined;
       case VirtualAccountType.flowToDistribute:
-        return Icons.input;
+        return 1;
+      case VirtualAccountType.systemFree:
+        return 2;
+      case VirtualAccountType.systemCommitted:
+        return 3;
       case VirtualAccountType.userBudget:
-        return Icons.folder_open;
+        return 4;
     }
   }
+
+  Future<void> _confirmDeleteEnvelope(
+    BuildContext context,
+    WidgetRef ref,
+    VirtualAccount v,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text("Supprimer ${v.name} ?"),
+        content: Text(
+          "Le solde restant (${v.balance.toStringAsFixed(2)} €) sera reversé dans le compte 'Libre'.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Annuler"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Supprimer"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await ref.read(accountServiceProvider).deleteVirtualAccount(v);
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Enveloppe supprimée")));
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Erreur: $e")));
+        }
+      }
+    }
+  }
+
+  // _getIconForType IS REPLACED BY UiUtils
+  // _getLabelForType is kept for text
 
   String _getLabelForType(VirtualAccountType type) {
     switch (type) {

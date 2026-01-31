@@ -122,4 +122,62 @@ class AccountService {
 
     await repository.createVirtualAccount(user.uid, virtualAccount);
   }
+
+  /// Deletes a user-created virtual account.
+  /// Remaining balance is moved to the "Libre" (systemFree) account.
+  Future<void> deleteVirtualAccount(VirtualAccount virtualAccount) async {
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) throw Exception("User not authenticated");
+
+    // 1. Prevent deleting system accounts
+    if (virtualAccount.type != VirtualAccountType.userBudget) {
+      throw Exception("Impossible de supprimer un compte système.");
+    }
+
+    final repository = ref.read(accountRepositoryProvider);
+
+    // 2. Find the "Libre" account for this Real Account
+    // We assume the repository has a way to fetch by RealAccountId,
+    // or we fetch all and filter. Since we don't have a direct query in the interface shown,
+    // we'll rely on fetching all virtual accounts for the user (cached or stream)
+    // or we assume the UI passes the list or we add a fetch method.
+    // For MVP efficiency, let's fetch all (usually small number).
+    final allVirtualAccounts = await repository
+        .getVirtualAccountsStream(user.uid)
+        .first;
+
+    final freeAccount = allVirtualAccounts.firstWhere(
+      (acc) =>
+          acc.realAccountId == virtualAccount.realAccountId &&
+          acc.type == VirtualAccountType.systemFree,
+      orElse: () => throw Exception("Compte Libre introuvable."),
+    );
+
+    // 3. Move Balance to Free Account
+    // If the deleted account has 100€, we add 100€ to Libre.
+    // If it has -50€, we subtract 50€ from Libre.
+    if (virtualAccount.balance != 0) {
+      final newFreeBalance = freeAccount.balance + virtualAccount.balance;
+
+      // Update Free Account locally
+      final updatedFreeAccount = VirtualAccount(
+        id: freeAccount.id,
+        realAccountId: freeAccount.realAccountId,
+        name: freeAccount.name,
+        balance: newFreeBalance,
+        type: freeAccount.type,
+        icon: freeAccount.icon,
+      );
+
+      // Save Free Account
+      await repository.updateVirtualAccount(user.uid, updatedFreeAccount);
+    }
+
+    // 4. Delete the target account
+    await repository.deleteVirtualAccountWithIds(
+      user.uid,
+      virtualAccount.realAccountId,
+      virtualAccount.id,
+    );
+  }
 }
