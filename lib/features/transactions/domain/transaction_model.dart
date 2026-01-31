@@ -117,19 +117,37 @@ class TransactionModel {
   }
 
   factory TransactionModel.fromMap(Map<String, dynamic> map) {
+    // 1. Handle Type Migration (expense/income -> debit/credit)
+    String typeStr = (map['type'] as String?) ?? 'debit';
+    if (typeStr == 'expense') typeStr = 'debit';
+    if (typeStr == 'income') typeStr = 'credit';
+
+    final type = TransactionType.values.firstWhere(
+      (e) => e.name == typeStr,
+      orElse: () => TransactionType.debit,
+    );
+
+    // 2. Handle Date Migration (date -> transactionDate)
+    String? transactionDateStr = map['transactionDate'] as String?;
+    if (transactionDateStr == null) {
+      // Fallback to legacy 'date' if available
+      transactionDateStr = map['date'] as String?;
+    }
+    // Default to 'now' if absolutely nothing found to prevent crash
+    final transactionDate = transactionDateStr != null
+        ? DateTime.parse(transactionDateStr)
+        : DateTime.now();
+
     return TransactionModel(
-      id: map['id'] as String,
-      ownerId: map['ownerId'] as String,
-      realAccountId: map['realAccountId'] as String,
-      amount: (map['amount'] as num).toDouble(),
+      id: map['id']?.toString() ?? '',
+      ownerId: map['ownerId']?.toString() ?? '',
+      realAccountId: map['realAccountId']?.toString() ?? '',
+      amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
       label: map['label'] as String?,
       note: map['note'] as String?,
       payee: map['payee'] as String?,
       category: map['category'] as String?,
-      type: TransactionType.values.firstWhere(
-        (e) => e.name == map['type'],
-        orElse: () => TransactionType.debit,
-      ),
+      type: type,
       status: TransactionStatus.values.firstWhere(
         (e) => e.name == map['status'],
         orElse: () => TransactionStatus.none,
@@ -139,18 +157,18 @@ class TransactionModel {
         orElse: () => TransactionStep.completed,
       ),
       externalEntityId: map['externalEntityId'] as String?,
-      transactionDate: DateTime.parse(map['transactionDate'] as String),
+      transactionDate: transactionDate,
       valueDate: map['valueDate'] != null
-          ? DateTime.parse(map['valueDate'] as String)
+          ? DateTime.tryParse(map['valueDate'] as String)
           : null,
       visibilityDate: map['visibilityDate'] != null
-          ? DateTime.parse(map['visibilityDate'] as String)
+          ? DateTime.tryParse(map['visibilityDate'] as String)
           : null,
       syncDate: map['syncDate'] != null
-          ? DateTime.parse(map['syncDate'] as String)
+          ? DateTime.tryParse(map['syncDate'] as String)
           : null,
       provisionDate: map['provisionDate'] != null
-          ? DateTime.parse(map['provisionDate'] as String)
+          ? DateTime.tryParse(map['provisionDate'] as String)
           : null,
       splits: List<TransactionSplit>.from(
         (map['splits'] as List<dynamic>? ?? []).map<TransactionSplit>(

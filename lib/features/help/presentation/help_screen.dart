@@ -37,28 +37,40 @@ class HelpScreen extends StatelessWidget {
               "Une transaction passe par plusieurs états pour coller à la réalité bancaire :",
             ),
             const SizedBox(height: 8),
-            _buildStep("Prévu", "La dépense est connue mais pas encore faite."),
-            _buildStep("A Programmer", "Vous devez faire le virement."),
-            _buildStep("Programmé", "L'ordre est donné à la banque."),
+            _buildStep(
+              "Prévu",
+              "La dépense est connue mais pas encore faite.",
+              context,
+            ),
+            _buildStep(
+              "A Programmer",
+              "Vous devez faire le virement.",
+              context,
+            ),
+            _buildStep("Programmé", "L'ordre est donné à la banque.", context),
             _buildStep(
               "En Cours",
               "Visible sur le site de la banque (souvent en grisé).",
+              context,
             ),
-            _buildStep("Effectué", "Débité définitivement."),
+            _buildStep("Effectué", "Débité définitivement.", context),
 
             const SizedBox(height: 24),
             _buildSectionTitle(context, "3. Les Dates Clés"),
             _buildDateDef(
               "Date d'Opération",
               "Le jour où vous faites l'achat.",
+              context,
             ),
             _buildDateDef(
               "Date de Valeur",
               "La date prise en compte pour les agios/intérêts.",
+              context,
             ),
             _buildDateDef(
               "Date de Vision",
               "Quand vous l'avez vue sur votre relevé.",
+              context,
             ),
 
             const SizedBox(height: 32),
@@ -98,18 +110,25 @@ class HelpScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStep(String name, String desc) {
+  Widget _buildStep(String name, String desc, BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.arrow_right, size: 20, color: Colors.grey),
+          Icon(
+            Icons.arrow_right,
+            size: 20,
+            color: Theme.of(context).colorScheme.primary,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: RichText(
               text: TextSpan(
-                style: const TextStyle(color: Colors.black87, fontSize: 14),
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                  fontSize: 14,
+                ),
                 children: [
                   TextSpan(
                     text: "$name : ",
@@ -125,12 +144,16 @@ class HelpScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDateDef(String name, String desc) {
+  Widget _buildDateDef(String name, String desc, BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
-          const Icon(Icons.date_range, size: 16, color: Colors.blueGrey),
+          Icon(
+            Icons.date_range,
+            size: 16,
+            color: Theme.of(context).colorScheme.tertiary,
+          ),
           const SizedBox(width: 8),
           Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
           const Text(" : "),
