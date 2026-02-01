@@ -21,6 +21,8 @@ import 'features/transactions/presentation/transaction_detail_screen.dart';
 import 'features/bank_sync/presentation/link_bank_screen.dart';
 import 'features/help/presentation/help_screen.dart';
 import 'features/accounts/presentation/account_detail_screen.dart';
+import 'features/projects/presentation/projects_dashboard_screen.dart';
+import 'features/projects/presentation/project_detail_screen.dart';
 
 import 'core/providers.dart';
 
@@ -74,6 +76,17 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/account/:id',
             builder: (context, state) =>
                 AccountDetailScreen(accountId: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/projects',
+            builder: (context, state) => const ProjectsDashboardScreen(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (context, state) =>
+                    ProjectDetailScreen(projectId: state.pathParameters['id']!),
+              ),
+            ],
           ),
           GoRoute(
             path: '/admin',

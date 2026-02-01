@@ -6,6 +6,7 @@ import '../../accounts/data/account_providers.dart';
 import '../../transactions/data/transaction_providers.dart';
 import '../../accounts/domain/account_models.dart';
 import '../../../core/presentation/ui_utils.dart';
+import '../../../core/presentation/dashed_line.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -158,7 +159,7 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                   itemCount: accounts.length,
                   itemBuilder: (context, index) =>
-                      _buildAccountCard(context, accounts[index]),
+                      _buildAccountCard(context, ref, accounts[index]),
                 )
               else
                 SizedBox(
@@ -168,7 +169,7 @@ class DashboardScreen extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: accounts.length,
                     itemBuilder: (context, index) =>
-                        _buildAccountCard(context, accounts[index]),
+                        _buildAccountCard(context, ref, accounts[index]),
                   ),
                 ),
 
@@ -180,7 +181,7 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ),
 
-              _buildTransactionList(ref),
+              _buildTransactionList(ref, isDesktop),
               const SizedBox(height: 100), // Padding for FAB/BottomNav
             ],
           );
@@ -202,15 +203,19 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAccountCard(BuildContext context, RealAccount account) {
+  Widget _buildAccountCard(
+    BuildContext context,
+    WidgetRef ref,
+    RealAccount account,
+  ) {
     return GestureDetector(
       onTap: () => context.push('/account/${account.id}'),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: Theme.of(context).dividerColor),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.03),
@@ -222,14 +227,36 @@ class DashboardScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              account.name,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              overflow: TextOverflow.ellipsis,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    account.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () =>
+                      _showRenameRealAccountDialog(context, ref, account),
+                  child: Icon(
+                    Icons.edit,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
             Text(
               account.bankName ?? "Banque",
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
             ),
             const Spacer(),
             Text(
@@ -246,7 +273,45 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTransactionList(WidgetRef ref) {
+  // ... _buildTransactionList ...
+
+  void _showRenameRealAccountDialog(
+    BuildContext context,
+    WidgetRef ref,
+    RealAccount account,
+  ) {
+    final nameController = TextEditingController(text: account.name);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Renommer le compte"),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(labelText: "Nouveau nom"),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Annuler"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.isNotEmpty) {
+                await ref
+                    .read(accountServiceProvider)
+                    .renameRealAccount(account, nameController.text);
+                if (ctx.mounted) Navigator.pop(ctx);
+              }
+            },
+            child: const Text("Enregistrer"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransactionList(WidgetRef ref, bool isDesktop) {
     return Consumer(
       builder: (context, ref, child) {
         final transactionsAsync = ref.watch(recentTransactionsProvider);
@@ -277,7 +342,10 @@ class DashboardScreen extends ConsumerWidget {
                   if (dateStr != prevDateStr) showHeader = true;
                 }
 
-                final color = UiUtils.getTransactionColor(tx.type);
+                final color = UiUtils.getTransactionColor(
+                  tx.type,
+                  brightness: Theme.of(context).brightness,
+                );
                 final icon = UiUtils.getTransactionIcon(tx.type);
 
                 return Column(
@@ -289,7 +357,9 @@ class DashboardScreen extends ConsumerWidget {
                         child: Text(
                           dateStr,
                           style: TextStyle(
-                            color: Colors.grey.shade600,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),
@@ -300,23 +370,64 @@ class DashboardScreen extends ConsumerWidget {
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: Colors.grey.shade200),
+                        side: BorderSide(color: Theme.of(context).dividerColor),
                       ),
-                      child: ListTile(
+                      child: InkWell(
                         onTap: () => context.push('/transaction/${tx.id}'),
-                        leading: CircleAvatar(
-                          backgroundColor: color.withOpacity(0.1),
-                          child: Icon(icon, color: color),
-                        ),
-                        title: Text(
-                          tx.label ?? "Transaction",
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        trailing: Text(
-                          "${tx.amount > 0 ? '+' : ''}${tx.amount.toStringAsFixed(2)} €",
-                          style: TextStyle(
-                            color: color,
-                            fontWeight: FontWeight.bold,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(
+                            12.0,
+                          ), // Use Padding instead of ListTile for custom layout
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                backgroundColor: color.withOpacity(0.1),
+                                child: Icon(icon, color: color),
+                              ),
+                              const SizedBox(width: 16),
+                              if (isDesktop) ...[
+                                Text(
+                                  tx.label ?? "Transaction",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: DashedLine(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Text(
+                                  "${tx.amount > 0 ? '+' : ''}${tx.amount.toStringAsFixed(2)} €",
+                                  style: TextStyle(
+                                    color: color,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ] else ...[
+                                Expanded(
+                                  child: Text(
+                                    tx.label ?? "Transaction",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Text(
+                                  "${tx.amount > 0 ? '+' : ''}${tx.amount.toStringAsFixed(2)} €",
+                                  style: TextStyle(
+                                    color: color,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       ),

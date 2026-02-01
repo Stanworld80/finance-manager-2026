@@ -5,16 +5,20 @@ import '../../features/transactions/domain/transaction_model.dart';
 class UiUtils {
   // --- Virtual Account (Envelope) Styles ---
 
-  static Color getVirtualAccountColor(VirtualAccountType type) {
+  static Color getVirtualAccountColor(
+    VirtualAccountType type, {
+    Brightness brightness = Brightness.light,
+  }) {
+    final isDark = brightness == Brightness.dark;
     switch (type) {
       case VirtualAccountType.systemFree:
-        return Colors.green.shade600; // Available/Free
+        return isDark ? Colors.green.shade300 : Colors.green.shade700;
       case VirtualAccountType.flowToDistribute:
-        return Colors.orange.shade600; // Intake/Pending
+        return isDark ? Colors.orange.shade300 : Colors.orange.shade800;
       case VirtualAccountType.systemCommitted:
-        return Colors.blueGrey.shade600; // Fixed/Committed
+        return isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700;
       case VirtualAccountType.userBudget:
-        return Colors.blue.shade600; // User Discretionary
+        return isDark ? Colors.blue.shade300 : Colors.blue.shade700;
     }
   }
 
@@ -35,17 +39,18 @@ class UiUtils {
 
   static Color getTransactionColor(
     TransactionType type, {
-    bool isExpense = true,
+    Brightness brightness = Brightness.light,
   }) {
+    final isDark = brightness == Brightness.dark;
     switch (type) {
       case TransactionType.debit:
-        return Colors.red.shade600;
+        return isDark ? Colors.red.shade300 : Colors.red.shade700;
       case TransactionType.credit:
-        return Colors.green.shade600;
+        return isDark ? Colors.green.shade300 : Colors.green.shade700;
       case TransactionType.transfer:
-        return Colors.indigo.shade400;
+        return isDark ? Colors.indigo.shade300 : Colors.indigo.shade600;
       case TransactionType.provision:
-        return Colors.teal.shade600;
+        return isDark ? Colors.teal.shade300 : Colors.teal.shade700;
     }
   }
 
@@ -58,24 +63,27 @@ class UiUtils {
       case TransactionType.transfer:
         return Icons.swap_horiz;
       case TransactionType.provision:
-        return Icons
-            .inventory_2_outlined; // Or something implying internal move
+        return Icons.inventory_2_outlined;
     }
   }
 
-  static Color getStatusColor(TransactionStatus status) {
+  static Color getStatusColor(
+    TransactionStatus status, {
+    Brightness brightness = Brightness.light,
+  }) {
+    final isDark = brightness == Brightness.dark;
     switch (status) {
       case TransactionStatus.toCorrect:
-        return Colors.redAccent;
+        return isDark ? Colors.red.shade300 : Colors.redAccent;
       case TransactionStatus.toDistribute:
-        return Colors.orangeAccent;
+        return isDark ? Colors.orange.shade300 : Colors.orangeAccent;
       case TransactionStatus.provisioned:
-        return Colors.blueAccent;
+        return isDark ? Colors.blue.shade300 : Colors.blueAccent;
       case TransactionStatus.transferred:
-        return Colors.grey;
+        return isDark ? Colors.grey.shade400 : Colors.grey;
       case TransactionStatus.none:
       default:
-        return Colors.grey.shade400;
+        return isDark ? Colors.grey.shade600 : Colors.grey.shade400;
     }
   }
 }

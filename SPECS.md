@@ -59,6 +59,14 @@ FinanceManager2026 est une application intelligente de gestion de finances perso
   - Suivi de la progression vers l'objectif (Montant cible, Date butoir).
   - *Lien avec Comptes Virtuels :* Un projet peut être un Compte Virtuel dédié qu'on alimente progressivement.
 
+#### 4. Projets Financiers Complexes (Événements)
+- **Concept :** Gestion d'un micro-budget pour un événement spécifique (Mariage, Fête, Rénovation).
+- **Structure :** Une "Super-Enveloppe" ou un groupe d'enveloppes.
+- **Fonctionnalités :**
+  - **Budget Prévisionnel :** Liste des postes de dépenses (Décoration, Salle, Traiteur) et des revenus (Cagnotte, Apport).
+  - **Suivi Réalisé vs Prévisionnel :** Écart en temps réel.
+  - **Flux dédiés :** Entrées et sorties taguées pour ce projet.
+
 ### F. Système Budgétaire (Comptes Virtuels)
 Ce système implémente une gestion par "enveloppes" directement liée aux comptes réels.
 
@@ -69,8 +77,11 @@ Ce système implémente une gestion par "enveloppes" directement liée aux compt
   - **Compte "Externe" Générique :** Tiers par défaut pour les transactions sans contrepartie nommée précise.
 
 - **Compte Virtuel (Budget) :** Subdivision logique d'un Compte Réel Interne.
-  - **Règle d'Or (Équation de Solde) :**
-    `Solde Réel Actuel = Somme(Comptes Virtuels Disponibles) - Somme(Solde Engagé)`
+  - **Règle d'Or (Double Entrée) :** Toute transaction est un mouvement de fonds entre deux pôles (Origine -> Destination). La somme des variations de solde de tous les comptes impliqués dans une transaction doit toujours être égale à zéro.
+  - **Équation de Solde :** `Solde Réel Actuel = Somme(Comptes Virtuels du compte)`.
+  - **Comptes Systèmes :**
+    - `external-adjustment` : Utilisé comme contrepartie pour les corrections de solde (origines inconnues).
+    - `external-pole` : Représente le monde extérieur pour les dépenses (Debit) et revenus (Credit).
 
 #### 2. Typologie des Transactions & Cycle de Vie
 L'application gère des statuts et des étapes précises pour chaque flux.
@@ -144,8 +155,9 @@ Représente l'état de couverture de la transaction.
   - Capacité technique de demander l'exécution d'un virement inter-comptes réels directement depuis l'interface (nécessite validation forte côté banque).
 
 ### H. Gestion Technique & Sécurité
-- **Atomicité :** Toutes les opérations modifiant les soldes (Réel ou Virtuel) doivent être exécutées dans une Transaction Firestore pour garantir la cohérence comptable (Double-Entry).
-- **Suppression Logique :** La suppression d'une transaction doit inverser exactement ses écritures comptables (Remboursement des enveloppes).
+- **Atomicité & Double-Entrée :** Toutes les opérations modifiant les soldes (Réel ou Virtuel) doivent être exécutées dans une Transaction Firestore. Chaque mouvement (Split) doit être équilibré par une contrepartie (From/To), garantissant qu'aucune valeur ne se perd ou ne se crée ex-nihilo.
+- **Traçabilité des Ajustements :** Les écarts de rapprochement ne sont pas de simples "updates" de solde, mais des transactions vers le compte système `external-adjustment`.
+- **Suppression Logique :** La suppression d'une transaction doit inverser exactement ses écritures comptables.
 
 ## 4. Exigences Non-Fonctionnelles
 - **Performance :** Lancement de l'app en < 2 secondes.

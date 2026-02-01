@@ -108,7 +108,10 @@ class AccountDetailScreen extends ConsumerWidget {
                       separatorBuilder: (_, __) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final v = sortedVirtuals[index];
-                        final color = UiUtils.getVirtualAccountColor(v.type);
+                        final color = UiUtils.getVirtualAccountColor(
+                          v.type,
+                          brightness: Theme.of(context).brightness,
+                        );
                         final icon = UiUtils.getVirtualAccountIcon(v.type);
 
                         return Card(
@@ -132,7 +135,9 @@ class AccountDetailScreen extends ConsumerWidget {
                               _getLabelForType(v.type),
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                             ),
                             trailing: Row(
@@ -144,13 +149,22 @@ class AccountDetailScreen extends ConsumerWidget {
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
                                     color: v.balance < 0
-                                        ? Colors.red
-                                        : Colors.black87,
+                                        ? Colors.red.shade400
+                                        : null,
                                   ),
                                 ),
                                 if (v.type ==
                                     VirtualAccountType.userBudget) ...[
                                   const SizedBox(width: 4),
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, size: 20),
+                                    color: Colors.grey,
+                                    onPressed: () => _showRenameEnvelopeDialog(
+                                      context,
+                                      ref,
+                                      v,
+                                    ),
+                                  ),
                                   IconButton(
                                     icon: const Icon(
                                       Icons.delete_outline,
@@ -183,6 +197,44 @@ class AccountDetailScreen extends ConsumerWidget {
         onPressed: () => _showAddEnvelopeDialog(context, ref, accountId),
         icon: const Icon(Icons.create_new_folder),
         label: const Text("Nouvelle Enveloppe"),
+      ),
+    );
+  }
+
+  // ... (existing helper methods)
+
+  void _showRenameEnvelopeDialog(
+    BuildContext context,
+    WidgetRef ref,
+    VirtualAccount account,
+  ) {
+    final nameController = TextEditingController(text: account.name);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Renommer l'enveloppe"),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(labelText: "Nouveau nom"),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Annuler"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.isNotEmpty) {
+                await ref
+                    .read(accountServiceProvider)
+                    .renameVirtualAccount(account, nameController.text);
+                if (ctx.mounted) Navigator.pop(ctx);
+              }
+            },
+            child: const Text("Enregistrer"),
+          ),
+        ],
       ),
     );
   }

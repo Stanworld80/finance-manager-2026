@@ -24,11 +24,23 @@ enum TransactionStep {
   completed, // Finalized
 }
 
+class SystemAccounts {
+  static const String external = 'system:external';
+  static const String externalAdjustment = 'system:external-adjustment';
+
+  static bool isSystem(String id) => id.startsWith('system:');
+}
+
 class TransactionSplit {
+  /// The ID of the virtual account affected.
+  /// Can be a real UUID or a system ID (e.g. 'system:external').
   final String virtualAccountId;
-  final double amount; // Negative for debit, Positive for credit
+  final double
+  amount; // Negative for debit (Source), Positive for credit (Target)
 
   TransactionSplit({required this.virtualAccountId, required this.amount});
+
+  bool get isSystem => SystemAccounts.isSystem(virtualAccountId);
 
   Map<String, dynamic> toMap() {
     return {'virtualAccountId': virtualAccountId, 'amount': amount};
@@ -92,6 +104,21 @@ class TransactionModel {
     this.provisionDate,
     this.splits = const [],
   });
+
+  /// A transaction is balanced if the sum of all splits is 0.
+  /// This is the core principle of double-entry accounting.
+  bool get isBalanced {
+    if (splits.isEmpty) return false;
+    final sum = splits.fold(0.0, (prev, element) => prev + element.amount);
+    return (sum.abs() < 0.001);
+  }
+
+  /// Calculates the total movement for a specific account in this transaction.
+  double getImpactFor(String virtualAccountId) {
+    return splits
+        .where((s) => s.virtualAccountId == virtualAccountId)
+        .fold(0.0, (prev, s) => prev + s.amount);
+  }
 
   Map<String, dynamic> toMap() {
     return {

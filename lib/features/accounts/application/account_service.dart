@@ -143,7 +143,7 @@ class AccountService {
     // or we assume the UI passes the list or we add a fetch method.
     // For MVP efficiency, let's fetch all (usually small number).
     final allVirtualAccounts = await repository
-        .getVirtualAccountsStream(user.uid)
+        .watchAllVirtualAccounts(user.uid)
         .first;
 
     final freeAccount = allVirtualAccounts.firstWhere(
@@ -179,5 +179,50 @@ class AccountService {
       virtualAccount.realAccountId,
       virtualAccount.id,
     );
+  }
+
+  Future<void> renameRealAccount(RealAccount account, String newName) async {
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) throw Exception("User not authenticated");
+
+    final repository = ref.read(accountRepositoryProvider);
+
+    final updatedAccount = RealAccount(
+      id: account.id,
+      ownerId: account.ownerId,
+      name: newName,
+      bankName: account.bankName,
+      initialBalance: account.initialBalance,
+      balance: account.balance,
+      type: account.type,
+    );
+
+    await repository.updateRealAccount(user.uid, updatedAccount);
+  }
+
+  Future<void> renameVirtualAccount(
+    VirtualAccount account,
+    String newName,
+  ) async {
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) throw Exception("User not authenticated");
+
+    // Validate system accounts renaming?
+    // Maybe we allow renaming system accounts for now, or block it.
+    // The spec "manipulation & visualisation" implies flexibility.
+    // I won't block it unless strict rule.
+
+    final repository = ref.read(accountRepositoryProvider);
+
+    final updatedAccount = VirtualAccount(
+      id: account.id,
+      realAccountId: account.realAccountId,
+      name: newName,
+      balance: account.balance,
+      type: account.type,
+      icon: account.icon,
+    );
+
+    await repository.updateVirtualAccount(user.uid, updatedAccount);
   }
 }

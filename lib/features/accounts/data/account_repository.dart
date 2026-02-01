@@ -21,6 +21,15 @@ class AccountRepository {
         .set(account.toMap());
   }
 
+  Future<void> updateRealAccount(String userId, RealAccount account) async {
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('real_accounts')
+        .doc(account.id)
+        .update(account.toMap());
+  }
+
   Stream<List<RealAccount>> watchRealAccounts(String userId) {
     return _firestore
         .collection('users')
@@ -115,28 +124,15 @@ class AccountRepository {
   // To implement `getVirtualAccountsStream(userId)` which returns ALL virtual accounts:
   // Since they are subcollections, we need collectionGroup or iterate real accounts.
   // CollectionGroup 'virtual_accounts' is best.
-  Stream<List<VirtualAccount>> getVirtualAccountsStream(String userId) {
-    return _firestore
-        .collectionGroup('virtual_accounts')
-        // Filter by owner is tricky with collectionGroup unless we save ownerId on VirtualAccount too.
-        // Or we iterate real accounts.
-        // Given the structure /users/{uid}/real_accounts/{rid}/virtual_accounts/{vid}
-        // collectionGroup queries ALL virtual_accounts in the DB.
-        // We MUST check the path or have ownerId in the doc.
-        // VirtualAccount model does NOT have ownerId.
-        // Alternative: Fetch all real accounts, then merge streams.
-        // Or just implement a helper that normally we watch per RealAccount.
-        .snapshots()
-        .map((snapshot) {
-          // Client-side filtering by parent path to ensure it belongs to user
-          // path: users/userId/...
-          return snapshot.docs
-              .where((doc) {
-                return doc.reference.path.contains('users/$userId/');
-              })
-              .map((doc) => VirtualAccount.fromMap(doc.data()))
-              .toList();
-        });
+  Stream<List<VirtualAccount>> watchAllVirtualAccounts(String userId) {
+    return _firestore.collectionGroup('virtual_accounts').snapshots().map((
+      snapshot,
+    ) {
+      return snapshot.docs
+          .where((doc) => doc.reference.path.contains('users/$userId/'))
+          .map((doc) => VirtualAccount.fromMap(doc.data()))
+          .toList();
+    });
   }
 
   // Fixing the delete method signature conflict from my thought process

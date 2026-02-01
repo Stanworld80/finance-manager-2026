@@ -23,16 +23,26 @@ class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: seedColor,
-        brightness: brightness,
-      ),
+      colorScheme:
+          ColorScheme.fromSeed(
+            seedColor: seedColor,
+            brightness: brightness,
+          ).copyWith(
+            // Ensure high contrast for secondary text in dark mode
+            onSurfaceVariant: brightness == Brightness.dark
+                ? Colors.grey.shade300
+                : Colors.grey.shade700,
+          ),
       // Enhance with aesthetics
       appBarTheme: AppBarTheme(
         centerTitle: true,
         backgroundColor: brightness == Brightness.dark
             ? null
             : ColorScheme.fromSeed(seedColor: seedColor).primaryContainer,
+      ),
+      textTheme: const TextTheme(
+        bodySmall: TextStyle(letterSpacing: 0.4),
+        labelSmall: TextStyle(letterSpacing: 0.5),
       ),
     );
   }

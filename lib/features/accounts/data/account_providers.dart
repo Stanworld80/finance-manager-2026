@@ -23,3 +23,10 @@ Stream<List<VirtualAccount>> virtualAccounts(
       .watch(accountRepositoryProvider)
       .watchVirtualAccounts(user.uid, realAccountId);
 }
+
+@riverpod
+Stream<List<VirtualAccount>> allVirtualAccounts(AllVirtualAccountsRef ref) {
+  final user = ref.watch(firebaseAuthProvider).currentUser;
+  if (user == null) return Stream.value([]);
+  return ref.watch(accountRepositoryProvider).watchAllVirtualAccounts(user.uid);
+}

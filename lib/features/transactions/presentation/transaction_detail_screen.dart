@@ -17,7 +17,7 @@ class TransactionDetailScreen extends ConsumerWidget {
     final transactionAsync = ref.watch(transactionByIdProvider(transactionId));
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Détails de la transaction'),
         backgroundColor: Colors.transparent,
@@ -52,7 +52,10 @@ class TransactionDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildContent(BuildContext context, TransactionModel tx) {
-    final color = UiUtils.getTransactionColor(tx.type);
+    final color = UiUtils.getTransactionColor(
+      tx.type,
+      brightness: Theme.of(context).brightness,
+    );
     final icon = UiUtils.getTransactionIcon(tx.type);
     final dateStr = DateFormat(
       'dd MMM yyyy à HH:mm',
@@ -199,9 +202,10 @@ class TransactionDetailScreen extends ConsumerWidget {
                 final split = tx.splits[index];
                 return Card(
                   elevation: 0,
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Theme.of(context).dividerColor),
                   ),
                   child: ListTile(
                     leading: const Icon(Icons.pie_chart_outline),
@@ -235,21 +239,30 @@ class TransactionDetailScreen extends ConsumerWidget {
   }) {
     return Card(
       elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: Theme.of(context).cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Theme.of(context).dividerColor),
+      ),
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        leading: Icon(icon, color: Colors.grey.shade600),
+        leading: Icon(
+          icon,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
         title: Text(
           title,
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 13,
+          ),
         ),
         subtitle: Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,
-            color: Colors.black87,
+            color: Theme.of(context).textTheme.titleMedium?.color,
           ),
         ),
       ),

@@ -48,6 +48,9 @@ class TransactionRepository {
 
       // 3. Update Virtual Accounts (Splits)
       for (var split in transaction.splits) {
+        // Skip system poles (they don't have a backing document in Firestore)
+        if (SystemAccounts.isSystem(split.virtualAccountId)) continue;
+
         final virtualAccountRef = _firestore
             .collection('users')
             .doc(userId)
@@ -88,6 +91,8 @@ class TransactionRepository {
       tx.update(realAccountRef, {'balance': FieldValue.increment(realImpact)});
 
       for (var split in transaction.splits) {
+        if (SystemAccounts.isSystem(split.virtualAccountId)) continue;
+
         final virtualAccountRef = _firestore
             .collection('users')
             .doc(userId)
