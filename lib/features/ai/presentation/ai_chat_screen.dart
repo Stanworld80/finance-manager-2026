@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:finance_manager_2026/features/ai/application/ai_service.dart';
 
 class AiChatScreen extends ConsumerStatefulWidget {
   const AiChatScreen({super.key});
@@ -12,55 +13,41 @@ class AiChatScreen extends ConsumerStatefulWidget {
 class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final List<Map<String, String>> _messages = [
-    {
-      'role': 'assistant',
-      'content':
-          'Bonjour ! Je suis votre coach financier. Comment puis-je vous aider aujourd\'hui ?',
-    },
-  ];
-  bool _isLoading = false;
 
   void _sendMessage() {
-    if (_controller.text.isEmpty) return;
+    final text = _controller.text;
+    if (text.isEmpty) return;
 
-    setState(() {
-      _messages.add({'role': 'user', 'content': _controller.text});
-      _isLoading = true;
-    });
+    ref.read(aiServiceProvider.notifier).sendMessage(text);
     _controller.clear();
 
-    // Fake response for now (Cycle 8)
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        setState(() {
-          _messages.add({
-            'role': 'assistant',
-            'content':
-                'Désolé, je ne suis pas encore connecté à mon cerveau (Cycle 9). Mais je vous écoute !',
-          });
-          _isLoading = false;
-        });
-        _scrollToBottom();
-      }
-    });
-    _scrollToBottom();
+    // Slight delay to allow state update before scrolling
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
   void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final aiState = ref.watch(aiServiceProvider);
+    final messages = aiState.messages;
+    final isLoading = aiState.isLoading;
+
+    ref.listen(aiServiceProvider, (previous, next) {
+      if (next.messages.length > (previous?.messages.length ?? 0)) {
+        // Wait for list view to render new item
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+      }
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Coach Financier'),
@@ -75,19 +62,15 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
+              itemCount: messages.length,
               itemBuilder: (context, index) {
-                final message = _messages[index];
-                final isUser = message['role'] == 'user';
-                return _buildMessageBubble(
-                  context,
-                  message['content']!,
-                  isUser,
-                );
+                final message = messages[index];
+                final isUser = message.role == 'user';
+                return _buildMessageBubble(context, message.content, isUser);
               },
             ),
           ),
-          if (_isLoading)
+          if (isLoading)
             const Padding(
               padding: EdgeInsets.all(8.0),
               child: LinearProgressIndicator(),
