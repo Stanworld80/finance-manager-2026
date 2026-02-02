@@ -26,6 +26,12 @@ class AppShell extends ConsumerWidget {
         ],
       ),
       bottomNavigationBar: !isDesktop ? _buildBottomNav(context) : null,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => context.push('/ai'),
+        tooltip: 'Coach Financier',
+        backgroundColor: Theme.of(context).primaryColor,
+        child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+      ),
     );
   }
 

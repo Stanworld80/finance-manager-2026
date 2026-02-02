@@ -24,6 +24,7 @@ import 'features/projects/presentation/projects_dashboard_screen.dart';
 import 'features/projects/presentation/project_detail_screen.dart';
 import 'features/transactions/presentation/recurring_transactions_screen.dart';
 import 'features/transactions/presentation/add_recurring_transaction_page.dart';
+import 'features/ai/presentation/ai_chat_screen.dart';
 
 import 'core/providers.dart';
 
@@ -126,6 +127,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/preferences',
             builder: (context, state) => const PreferencesScreen(),
+          ),
+          GoRoute(
+            path: '/ai',
+            builder: (context, state) => const AiChatScreen(),
           ),
         ],
       ),
