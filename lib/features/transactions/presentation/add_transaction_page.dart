@@ -48,6 +48,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
   TransactionType _type = TransactionType.debit;
   double? _amount;
   String _label = "";
+  String? _note;
   DateTime _date = DateTime.now();
 
   SelectableAccount? _origin;
@@ -233,6 +234,16 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                       validator: (value) =>
                           (value == null || value.isEmpty) ? "Requis" : null,
                       onSaved: (value) => _label = value!,
+                    ),
+                    const SizedBox(height: 16),
+
+                    TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: "Commentaire",
+                        hintText: "Ajouter une note...",
+                        border: OutlineInputBorder(),
+                      ),
+                      onSaved: (value) => _note = value,
                     ),
                     const SizedBox(height: 16),
 
@@ -453,6 +464,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
           await service.addTransfer(
             amount: _amount!,
             label: _label,
+            note: _note,
             date: _date,
             sourceVirtualAccount: _origin!.virtualAccount!,
             targetVirtualAccount: _destination!.virtualAccount!,
@@ -481,6 +493,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
             totalAmount: _amount!,
             type: _type,
             label: _label,
+            note: _note,
             date: _date,
             realAccount: await _getRealAccount(realAccount.realAccountId),
             splits: splits,
@@ -494,6 +507,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
             amount: _amount!,
             type: _type,
             label: _label,
+            note: _note,
             date: _date,
             realAccount: await _getRealAccount(vAccount.realAccountId),
             targetVirtualAccount: vAccount,

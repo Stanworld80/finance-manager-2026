@@ -74,9 +74,12 @@ Ce système implémente une gestion par "enveloppes" directement liée aux compt
 - **Typologie des Comptes Réels :**
   - **Comptes Internes :** Comptes dont l'utilisateur est propriétaire ou gestionnaire (Comptes courants, Livrets, PayPal).
   - **Comptes Externes :** Représentent les tiers (Commerçants, Amis, Employeurs).
-  - **Compte "Externe" Générique :** Tiers par défaut pour les transactions sans contrepartie nommée précise.
-
-- **Compte Virtuel (Budget) :** Subdivision logique d'un Compte Réel Interne.
+  - **Compte Réel** : Identifie un compte bancaire physique. Contient :
+    - Nom personnalisé (ex: "Compte Courant Bourso")
+    - Nom de la banque (ex: "Boursorama")
+    - Solde initial et solde actuel
+    - Métadonnées (optionnelles) : IBAN, BIC, SWIFT, Numéro de compte, Nom officiel, Date d'ouverture.
+- **Compte Virtuel (Enveloppe)** : Subdivision logique d'un compte réel Interne.
   - **Règle d'Or (Double Entrée) :** Toute transaction est un mouvement de fonds entre deux pôles (Origine -> Destination). La somme des variations de solde de tous les comptes impliqués dans une transaction doit toujours être égale à zéro.
   - **Équation de Solde :** `Solde Réel Actuel = Somme(Comptes Virtuels du compte)`.
   - **Comptes Systèmes :**

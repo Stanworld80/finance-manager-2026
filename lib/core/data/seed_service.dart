@@ -33,6 +33,7 @@ class SeedService {
     final freeAccountId = _uuid.v4();
     final freeAccount = VirtualAccount(
       id: freeAccountId,
+      userId: userId,
       realAccountId: realAccountId,
       name: 'Libre',
       balance: 5000.0,
@@ -42,6 +43,7 @@ class SeedService {
     final committedAccountId = _uuid.v4();
     final committedAccount = VirtualAccount(
       id: committedAccountId,
+      userId: userId,
       realAccountId: realAccountId,
       name: 'Engagé',
       balance: 0.0,
@@ -51,6 +53,7 @@ class SeedService {
     final foodAccountId = _uuid.v4();
     final foodAccount = VirtualAccount(
       id: foodAccountId,
+      userId: userId,
       realAccountId: realAccountId,
       name: 'Alimentation',
       balance: 0.0,

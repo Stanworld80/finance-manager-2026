@@ -329,8 +329,7 @@ class TransactionService {
         ],
       );
 
-      await repository.createTransaction(user.uid, txSource);
-      await repository.createTransaction(user.uid, txTarget);
+      await repository.createTransactions(user.uid, [txSource, txTarget]);
     }
   }
 }

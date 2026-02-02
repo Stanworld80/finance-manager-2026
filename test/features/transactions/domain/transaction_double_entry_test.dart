@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:finance_manager_2026/features/transactions/domain/transaction_model.dart';
-import 'package:uuid/uuid.dart';
 
 void main() {
   group('TransactionModel Double-Entry Tests', () {

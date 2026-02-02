@@ -22,7 +22,13 @@ class ProjectsDashboardScreen extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.event_note, size: 64, color: Colors.grey.shade300),
+                  Icon(
+                    Icons.event_note,
+                    size: 64,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     "Aucun projet pour le moment",

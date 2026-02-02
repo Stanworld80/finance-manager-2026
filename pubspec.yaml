@@ -46,6 +46,7 @@ dependencies:
   firebase_ui_oauth_google: ^2.0.1
   shared_preferences: ^2.5.4
 
+  intl: any
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -66,6 +67,7 @@ dev_dependencies:
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
+  firebase_auth_platform_interface: any
 flutter:
 
   # The following line ensures that the Material Icons font is

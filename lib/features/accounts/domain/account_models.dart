@@ -27,6 +27,14 @@ class RealAccount {
   final double balance; // Current calculated balance
   final RealAccountType type;
 
+  // Metadata expansion
+  final DateTime? openingDate;
+  final String? accountNumber;
+  final String? officialName;
+  final String? iban;
+  final String? bic;
+  final String? swift;
+
   RealAccount({
     required this.id,
     required this.ownerId,
@@ -35,6 +43,12 @@ class RealAccount {
     this.initialBalance = 0.0,
     required this.balance,
     this.type = RealAccountType.internal,
+    this.openingDate,
+    this.accountNumber,
+    this.officialName,
+    this.iban,
+    this.bic,
+    this.swift,
   });
 
   Map<String, dynamic> toMap() {
@@ -46,6 +60,12 @@ class RealAccount {
       'initialBalance': initialBalance,
       'balance': balance,
       'type': type.name,
+      'openingDate': openingDate?.toIso8601String(),
+      'accountNumber': accountNumber,
+      'officialName': officialName,
+      'iban': iban,
+      'bic': bic,
+      'swift': swift,
     };
   }
 
@@ -61,12 +81,21 @@ class RealAccount {
         (e) => e.name == map['type'],
         orElse: () => RealAccountType.internal,
       ),
+      openingDate: map['openingDate'] != null
+          ? DateTime.parse(map['openingDate'] as String)
+          : null,
+      accountNumber: map['accountNumber'] as String?,
+      officialName: map['officialName'] as String?,
+      iban: map['iban'] as String?,
+      bic: map['bic'] as String?,
+      swift: map['swift'] as String?,
     );
   }
 }
 
 class VirtualAccount {
   final String id;
+  final String userId; // Added for easy CG queries
   final String realAccountId;
   final String name;
   final double balance;
@@ -75,6 +104,7 @@ class VirtualAccount {
 
   VirtualAccount({
     required this.id,
+    required this.userId,
     required this.realAccountId,
     required this.name,
     required this.balance,
@@ -85,6 +115,7 @@ class VirtualAccount {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'userId': userId,
       'realAccountId': realAccountId,
       'name': name,
       'balance': balance,
@@ -96,6 +127,7 @@ class VirtualAccount {
   factory VirtualAccount.fromMap(Map<String, dynamic> map) {
     return VirtualAccount(
       id: map['id'] as String,
+      userId: map['userId'] as String? ?? '', // Handle legacy docs if any
       realAccountId: map['realAccountId'] as String,
       name: map['name'] as String,
       balance: (map['balance'] as num?)?.toDouble() ?? 0.0,

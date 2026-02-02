@@ -15,55 +15,62 @@ class TransactionRepository {
     TransactionModel transaction,
   ) async {
     return _firestore.runTransaction((tx) async {
-      // 1. Reference the Transaction Doc (Global collection for easy "All Transactions" query)
-      final txRef = _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('transactions')
-          .doc(transaction.id);
+      await _applyTransaction(tx, userId, transaction);
+    });
+  }
 
-      tx.set(txRef, transaction.toMap());
+  Future<void> createTransactions(
+    String userId,
+    List<TransactionModel> transactions,
+  ) async {
+    return _firestore.runTransaction((tx) async {
+      for (final transaction in transactions) {
+        await _applyTransaction(tx, userId, transaction);
+      }
+    });
+  }
 
-      // 2. Update Real Account Balance
-      // (This assumes the Real Movement is 'amount'. Expenses are typically negative or handled by Type)
-      // If type is Expense, amount is usually stored positive in DB but subtracted?
-      // Let's assume the Model stores signed amount or we rely on Type.
-      // For simplicity in this implementation, I assume 'amount' is signed.
-      // (e.g. -10 for expense, +100 for income).
-      double realImpact = transaction.amount;
-      // If the model stores +10 for expense, we need to invert.
-      // Let's check Logic: Users usually enter "10", app saves "-10" or type "Expense".
-      // I will assume the Service/Controller handles the sign logic before creating the Model,
-      // OR the Model has helper helpers.
-      // Let's assume 'amount' is the raw value to add to balance.
+  Future<void> _applyTransaction(
+    Transaction tx,
+    String userId,
+    TransactionModel transaction,
+  ) async {
+    // 1. Reference the Transaction Doc
+    final txRef = _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('transactions')
+        .doc(transaction.id);
 
-      final realAccountRef = _firestore
+    tx.set(txRef, transaction.toMap());
+
+    // 2. Update Real Account Balance
+    double realImpact = transaction.amount;
+
+    final realAccountRef = _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('real_accounts')
+        .doc(transaction.realAccountId);
+
+    tx.update(realAccountRef, {'balance': FieldValue.increment(realImpact)});
+
+    // 3. Update Virtual Accounts (Splits)
+    for (var split in transaction.splits) {
+      if (SystemAccounts.isSystem(split.virtualAccountId)) continue;
+
+      final virtualAccountRef = _firestore
           .collection('users')
           .doc(userId)
           .collection('real_accounts')
-          .doc(transaction.realAccountId);
+          .doc(transaction.realAccountId)
+          .collection('virtual_accounts')
+          .doc(split.virtualAccountId);
 
-      // Increment is atomic
-      tx.update(realAccountRef, {'balance': FieldValue.increment(realImpact)});
-
-      // 3. Update Virtual Accounts (Splits)
-      for (var split in transaction.splits) {
-        // Skip system poles (they don't have a backing document in Firestore)
-        if (SystemAccounts.isSystem(split.virtualAccountId)) continue;
-
-        final virtualAccountRef = _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('real_accounts')
-            .doc(transaction.realAccountId)
-            .collection('virtual_accounts')
-            .doc(split.virtualAccountId);
-
-        tx.update(virtualAccountRef, {
-          'balance': FieldValue.increment(split.amount),
-        });
-      }
-    });
+      tx.update(virtualAccountRef, {
+        'balance': FieldValue.increment(split.amount),
+      });
+    }
   }
 
   Future<void> deleteTransaction(

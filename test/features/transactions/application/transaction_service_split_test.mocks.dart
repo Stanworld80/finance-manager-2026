@@ -101,6 +101,18 @@ class MockTransactionRepository extends _i1.Mock
           as _i6.Future<void>);
 
   @override
+  _i6.Future<void> createTransactions(
+    String? userId,
+    List<_i7.TransactionModel>? transactions,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#createTransactions, [userId, transactions]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
   _i6.Future<void> deleteTransaction(
     String? userId,
     _i7.TransactionModel? transaction,

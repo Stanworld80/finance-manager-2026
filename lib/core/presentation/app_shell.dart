@@ -1,8 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../providers.dart';
 
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerWidget {
   final Widget child;
   final String currentLocation;
 
@@ -13,13 +15,13 @@ class AppShell extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDesktop = MediaQuery.of(context).size.width > 900;
 
     return Scaffold(
       body: Row(
         children: [
-          if (isDesktop) _buildSidebar(context),
+          if (isDesktop) _buildSidebar(context, ref),
           Expanded(child: child),
         ],
       ),
@@ -27,7 +29,7 @@ class AppShell extends StatelessWidget {
     );
   }
 
-  Widget _buildSidebar(BuildContext context) {
+  Widget _buildSidebar(BuildContext context, WidgetRef ref) {
     return Container(
       width: 250,
       decoration: BoxDecoration(
@@ -68,6 +70,12 @@ class AppShell extends StatelessWidget {
                   onTap: () {}, // Future feature
                 ),
                 _SidebarItem(
+                  icon: Icons.calendar_month_outlined,
+                  label: 'Échéanciers',
+                  isSelected: currentLocation == '/recurring',
+                  onTap: () => context.go('/recurring'),
+                ),
+                _SidebarItem(
                   icon: Icons.admin_panel_settings_outlined,
                   label: 'Admin',
                   isSelected: currentLocation.contains('/admin'),
@@ -79,6 +87,13 @@ class AppShell extends StatelessWidget {
                   label: 'Paramètres',
                   isSelected: currentLocation == '/preferences',
                   onTap: () => context.go('/preferences'),
+                ),
+                const Divider(color: Colors.white10),
+                _SidebarItem(
+                  icon: Icons.logout,
+                  label: 'Déconnexion',
+                  isSelected: false,
+                  onTap: () => ref.read(firebaseAuthProvider).signOut(),
                 ),
                 const SizedBox(height: 20),
               ],

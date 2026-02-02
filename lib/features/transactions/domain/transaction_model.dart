@@ -156,10 +156,7 @@ class TransactionModel {
 
     // 2. Handle Date Migration (date -> transactionDate)
     String? transactionDateStr = map['transactionDate'] as String?;
-    if (transactionDateStr == null) {
-      // Fallback to legacy 'date' if available
-      transactionDateStr = map['date'] as String?;
-    }
+    transactionDateStr ??= map['date'] as String?;
     // Default to 'now' if absolutely nothing found to prevent crash
     final transactionDate = transactionDateStr != null
         ? DateTime.parse(transactionDateStr)

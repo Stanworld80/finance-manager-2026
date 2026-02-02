@@ -213,8 +213,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       floatingActionButton: !isDesktop
           ? FloatingActionButton(
               onPressed: () => context.push('/add-transaction'),
-              child: const Icon(Icons.add),
               tooltip: "Nouvelle transaction",
+              child: const Icon(Icons.add),
             )
           : FloatingActionButton.extended(
               onPressed: () => context.push('/add-transaction'),
@@ -485,7 +485,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<RealAccount>(
-                    value: selectedAccount,
+                    initialValue: selectedAccount,
                     items: accounts
                         .map(
                           (acc) => DropdownMenuItem(

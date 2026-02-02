@@ -45,6 +45,7 @@ void main() {
     );
     final envelope1 = VirtualAccount(
       id: 'virt_1',
+      userId: 'user_123',
       realAccountId: 'real_1',
       name: 'Food',
       type: VirtualAccountType.userBudget,
@@ -52,6 +53,7 @@ void main() {
     );
     final envelope2 = VirtualAccount(
       id: 'virt_2',
+      userId: 'user_123',
       realAccountId: 'real_1',
       name: 'Home',
       type: VirtualAccountType.userBudget,
@@ -107,6 +109,7 @@ void main() {
     );
     final envelope1 = VirtualAccount(
       id: 'virt_1',
+      userId: 'user_123',
       realAccountId: 'real_1',
       name: 'Food',
       type: VirtualAccountType.userBudget,

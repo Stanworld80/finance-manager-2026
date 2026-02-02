@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers.dart';
+import '../../../accounts/application/account_service.dart';
 
 class DataManagementPage extends ConsumerStatefulWidget {
   const DataManagementPage({super.key});
@@ -42,6 +43,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
   Widget build(BuildContext context) {
     final user = ref.watch(firebaseAuthProvider).currentUser;
     final seed = ref.watch(seedServiceProvider);
+    final accountService = ref.watch(accountServiceProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Data Management')),
@@ -60,6 +62,33 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                           ),
                     icon: const Icon(Icons.cloud_upload),
                     label: const Text('Seed Test Data'),
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: user == null
+                        ? null
+                        : () async {
+                            _handleAction(() async {
+                              final stats = await accountService.repairData();
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      '${stats['totalAccounts']} comptes analysés, '
+                                      '${stats['repaired']} enveloppes réparées, '
+                                      '${stats['created']} créées',
+                                    ),
+                                    duration: const Duration(seconds: 5),
+                                  ),
+                                );
+                              }
+                            }, 'Migration terminée');
+                          },
+                    icon: const Icon(Icons.build),
+                    label: const Text('Repair Virtual Accounts (userId)'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.orange.shade700,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   OutlinedButton.icon(

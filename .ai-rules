@@ -1,0 +1,23 @@
+# Project Context: Finance Manager 2026
+- **Framework:** Flutter (Latest Stable)
+- **Backend:** Firebase (Auth, Firestore, Hosting)
+- **Target:** Web (Chrome) & Android
+- **State Management:** Riverpod (using riverpod_annotation)
+
+# Coding Philosophy (Vibe Coding)
+- **Code Style:** Strict linting, prefer `const` constructors.
+- **Accounting:** Absolute adherence to Double-Entry principles. Every transaction must be balanced.
+- **Error Handling:** No empty catch blocks. Use a global ErrorHandler or robust UI feedback.
+- **Null Safety:** Strict.
+- **Comments:** Only for complex business logic, code must be self-documenting.
+
+# Testing Strategy (The QA Mandate)
+- **Unit Tests:** Business logic (Use `mocktail` or `mockito`).
+- **Integration Tests (Web):** Use `integration_test` with `chromedriver`.
+- **Constraint:** ALWAYS ensure tests pass on Web (`flutter test --platform chrome`) before finalizing a feature.
+- **Emulators:** Use Firebase Emulators for development and testing.
+
+# Workflow Rules
+- **Infrastructure:** Before running web tests, ensure Firebase Emulators and Chromedriver are running.
+- **Atomicity:** All balance-modifying operations MUST be atomic (Firestore Transactions).
+- **Flaky Tests:** Use `pumpUntilFound(Finder finder)` pattern instead of `pumpAndSettle` where appropriate.

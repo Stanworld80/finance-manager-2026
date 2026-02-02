@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:uuid/uuid.dart';
 import '../../../../core/providers.dart';
 import '../domain/account_models.dart';
 
@@ -55,6 +56,15 @@ class AccountRepository {
       return RealAccount.fromMap(doc.data()!);
     }
     return null;
+  }
+
+  Future<List<RealAccount>> getRealAccounts(String userId) async {
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('real_accounts')
+        .get();
+    return snapshot.docs.map((doc) => RealAccount.fromMap(doc.data())).toList();
   }
 
   // --- Virtual Accounts ---
@@ -123,16 +133,17 @@ class AccountRepository {
 
   // To implement `getVirtualAccountsStream(userId)` which returns ALL virtual accounts:
   // Since they are subcollections, we need collectionGroup or iterate real accounts.
-  // CollectionGroup 'virtual_accounts' is best.
+  // collectionGroup 'virtual_accounts' is best.
   Stream<List<VirtualAccount>> watchAllVirtualAccounts(String userId) {
-    return _firestore.collectionGroup('virtual_accounts').snapshots().map((
-      snapshot,
-    ) {
-      return snapshot.docs
-          .where((doc) => doc.reference.path.contains('users/$userId/'))
-          .map((doc) => VirtualAccount.fromMap(doc.data()))
-          .toList();
-    });
+    return _firestore
+        .collectionGroup('virtual_accounts')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => VirtualAccount.fromMap(doc.data()))
+              .toList();
+        });
   }
 
   // Fixing the delete method signature conflict from my thought process
@@ -159,6 +170,121 @@ class AccountRepository {
         .collection('virtual_accounts')
         .doc(virtualAccountId)
         .delete();
+  }
+
+  /// Repairs virtual accounts by ensuring they have the correct `userId`.
+  /// Also creates missing system virtual accounts if they don't exist.
+  /// This is necessary for collectionGroup queries to work correctly.
+  Future<Map<String, int>> repairVirtualAccounts(String userId) async {
+    int repairedCount = 0;
+    int createdCount = 0;
+    int totalVirtuals = 0;
+
+    final realAccounts = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('real_accounts')
+        .get();
+
+    for (var realDoc in realAccounts.docs) {
+      final realAccountId = realDoc.id;
+      final virtuals = await realDoc.reference
+          .collection('virtual_accounts')
+          .get();
+
+      totalVirtuals += virtuals.docs.length;
+
+      // Check if system accounts exist
+      bool hasLibre = false;
+      bool hasCommitted = false;
+      bool hasFlow = false;
+
+      for (var vDoc in virtuals.docs) {
+        final data = vDoc.data();
+        final type = data['type'] as String?;
+
+        if (type == 'systemFree') hasLibre = true;
+        if (type == 'systemCommitted') hasCommitted = true;
+        if (type == 'flowToDistribute') hasFlow = true;
+
+        // Fix userId if missing or empty
+        if (data['userId'] == null ||
+            data['userId'] == '' ||
+            data['userId'] != userId) {
+          await vDoc.reference.update({'userId': userId});
+          repairedCount++;
+        }
+      }
+
+      // Create missing system accounts
+      if (!hasLibre) {
+        await _createSystemVirtualAccount(
+          userId,
+          realAccountId,
+          'Libre',
+          'systemFree',
+          'savings',
+          realDoc.data()['initialBalance']?.toDouble() ?? 0.0,
+        );
+        createdCount++;
+      }
+      if (!hasCommitted) {
+        await _createSystemVirtualAccount(
+          userId,
+          realAccountId,
+          'Solde Engagé',
+          'systemCommitted',
+          'lock_clock',
+          0.0,
+        );
+        createdCount++;
+      }
+      if (!hasFlow) {
+        await _createSystemVirtualAccount(
+          userId,
+          realAccountId,
+          'À Distribuer',
+          'flowToDistribute',
+          'input',
+          0.0,
+        );
+        createdCount++;
+      }
+    }
+
+    return {
+      'repaired': repairedCount,
+      'created': createdCount,
+      'totalAccounts': realAccounts.docs.length,
+      'totalVirtuals': totalVirtuals,
+    };
+  }
+
+  Future<void> _createSystemVirtualAccount(
+    String userId,
+    String realAccountId,
+    String name,
+    String type,
+    String icon,
+    double balance,
+  ) async {
+    final id = const Uuid().v4();
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('real_accounts')
+        .doc(realAccountId)
+        .collection('virtual_accounts')
+        .doc(id)
+        .set({
+          'id': id,
+          'userId': userId,
+          'realAccountId': realAccountId,
+          'name': name,
+          'type': type,
+          'icon': icon,
+          'balance': balance,
+        });
   }
 }
 

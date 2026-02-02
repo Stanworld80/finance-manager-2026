@@ -30,7 +30,9 @@ class AppTheme {
           ).copyWith(
             // Ensure high contrast for secondary text in dark mode
             onSurfaceVariant: brightness == Brightness.dark
-                ? Colors.grey.shade300
+                ? Colors
+                      .grey
+                      .shade200 // Brighter for dark mode
                 : Colors.grey.shade700,
           ),
       // Enhance with aesthetics

@@ -1,15 +1,6 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:finance_manager_2026/app.dart';
-import 'package:finance_manager_2026/core/providers.dart';
-import 'package:finance_manager_2026/features/dashboard/presentation/dashboard_screen.dart';
-import 'package:finance_manager_2026/features/transactions/data/transaction_providers.dart';
-import 'package:finance_manager_2026/features/accounts/data/account_providers.dart';
 import 'package:finance_manager_2026/features/transactions/domain/transaction_model.dart';
-import 'package:finance_manager_2026/features/transactions/presentation/transaction_detail_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 // --------------------------------------------------------------------------
 // Mocks

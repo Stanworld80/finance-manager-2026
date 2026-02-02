@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../accounts/data/account_providers.dart';
 import '../../accounts/domain/account_models.dart';
 import '../../accounts/application/account_service.dart';
@@ -23,7 +22,11 @@ class AccountDetailScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
-              // TODO: Edit account name/details
+              final accountsAsync = ref.read(realAccountsProvider);
+              accountsAsync.whenData((accounts) {
+                final account = accounts.firstWhere((a) => a.id == accountId);
+                _showEditAccountDialog(context, ref, account);
+              });
             },
           ),
         ],
@@ -62,6 +65,20 @@ class AccountDetailScreen extends ConsumerWidget {
                         account.bankName!,
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
+                    if (account.iban != null && account.iban!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          "IBAN: ${account.iban}",
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                fontFamily: 'monospace',
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ),
                     const SizedBox(height: 16),
                     Text(
                       "${account.balance.toStringAsFixed(2)} €",
@@ -97,8 +114,9 @@ class AccountDetailScreen extends ConsumerWidget {
                     sortedVirtuals.sort((a, b) {
                       final priorityA = _getPriority(a.type);
                       final priorityB = _getPriority(b.type);
-                      if (priorityA != priorityB)
+                      if (priorityA != priorityB) {
                         return priorityA.compareTo(priorityB);
+                      }
                       return a.name.compareTo(b.name);
                     });
 
@@ -158,7 +176,9 @@ class AccountDetailScreen extends ConsumerWidget {
                                   const SizedBox(width: 4),
                                   IconButton(
                                     icon: const Icon(Icons.edit, size: 20),
-                                    color: Colors.grey,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                     onPressed: () => _showRenameEnvelopeDialog(
                                       context,
                                       ref,
@@ -170,7 +190,9 @@ class AccountDetailScreen extends ConsumerWidget {
                                       Icons.delete_outline,
                                       size: 20,
                                     ),
-                                    color: Colors.grey,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                     onPressed: () =>
                                         _confirmDeleteEnvelope(context, ref, v),
                                   ),
@@ -201,7 +223,93 @@ class AccountDetailScreen extends ConsumerWidget {
     );
   }
 
-  // ... (existing helper methods)
+  void _showEditAccountDialog(
+    BuildContext context,
+    WidgetRef ref,
+    RealAccount account,
+  ) {
+    final nameController = TextEditingController(text: account.name);
+    final bankController = TextEditingController(text: account.bankName ?? '');
+    final ibanController = TextEditingController(text: account.iban ?? '');
+    final bicController = TextEditingController(text: account.bic ?? '');
+    final officialNameController = TextEditingController(
+      text: account.officialName ?? '',
+    );
+    final accountNumberController = TextEditingController(
+      text: account.accountNumber ?? '',
+    );
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Modifier le compte"),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: "Nom d'affichage *",
+                ),
+              ),
+              TextField(
+                controller: bankController,
+                decoration: const InputDecoration(labelText: "Banque"),
+              ),
+              TextField(
+                controller: officialNameController,
+                decoration: const InputDecoration(
+                  labelText: "Dénomination officielle",
+                ),
+              ),
+              TextField(
+                controller: accountNumberController,
+                decoration: const InputDecoration(
+                  labelText: "Numéro de compte",
+                ),
+              ),
+              TextField(
+                controller: ibanController,
+                decoration: const InputDecoration(labelText: "IBAN"),
+                style: const TextStyle(fontFamily: 'monospace'),
+              ),
+              TextField(
+                controller: bicController,
+                decoration: const InputDecoration(labelText: "BIC / SWIFT"),
+                style: const TextStyle(fontFamily: 'monospace'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Annuler"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.isNotEmpty) {
+                await ref
+                    .read(accountServiceProvider)
+                    .updateRealAccountMetadata(
+                      account: account,
+                      name: nameController.text,
+                      bankName: bankController.text,
+                      iban: ibanController.text,
+                      bic: bicController.text,
+                      officialName: officialNameController.text,
+                      accountNumber: accountNumberController.text,
+                    );
+                if (ctx.mounted) Navigator.pop(ctx);
+              }
+            },
+            child: const Text("Enregistrer"),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _showRenameEnvelopeDialog(
     BuildContext context,

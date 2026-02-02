@@ -10,7 +10,6 @@ import 'features/preferences/presentation/preferences_screen.dart';
 
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:finance_manager_2026/features/auth/presentation/auth_gate.dart';
 
 import 'features/auth/presentation/profile_page.dart';
@@ -23,6 +22,8 @@ import 'features/help/presentation/help_screen.dart';
 import 'features/accounts/presentation/account_detail_screen.dart';
 import 'features/projects/presentation/projects_dashboard_screen.dart';
 import 'features/projects/presentation/project_detail_screen.dart';
+import 'features/transactions/presentation/recurring_transactions_screen.dart';
+import 'features/transactions/presentation/add_recurring_transaction_page.dart';
 
 import 'core/providers.dart';
 
@@ -65,6 +66,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/add-transaction',
             builder: (context, state) => const AddTransactionPage(),
+          ),
+          GoRoute(
+            path: '/recurring',
+            builder: (context, state) => const RecurringTransactionsScreen(),
+          ),
+          GoRoute(
+            path: '/recurring/add',
+            builder: (context, state) => const AddRecurringTransactionPage(),
           ),
           GoRoute(
             path: '/transaction/:id',
