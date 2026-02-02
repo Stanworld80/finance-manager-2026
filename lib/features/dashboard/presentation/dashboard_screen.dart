@@ -7,12 +7,29 @@ import '../../transactions/data/transaction_providers.dart';
 import '../../accounts/domain/account_models.dart';
 import '../../../core/presentation/ui_utils.dart';
 import '../../../core/presentation/dashed_line.dart';
+import '../../../core/providers.dart';
 
-class DashboardScreen extends ConsumerWidget {
+import '../../transactions/application/recurring_transaction_service.dart';
+
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Sync recurring transactions when entering the dashboard
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(recurringTransactionServiceProvider).syncRecurringTransactions();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final realAccountsAsync = ref.watch(realAccountsProvider);
     final isDesktop = MediaQuery.of(context).size.width > 900;
 
@@ -29,6 +46,10 @@ class DashboardScreen extends ConsumerWidget {
                 IconButton(
                   icon: const Icon(Icons.account_circle),
                   onPressed: () => context.push('/profile'),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.logout),
+                  onPressed: () => ref.read(firebaseAuthProvider).signOut(),
                 ),
               ],
             ),
@@ -240,15 +261,6 @@ class DashboardScreen extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                GestureDetector(
-                  onTap: () =>
-                      _showRenameRealAccountDialog(context, ref, account),
-                  child: Icon(
-                    Icons.edit,
-                    size: 16,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
               ],
             ),
             Text(
@@ -262,7 +274,7 @@ class DashboardScreen extends ConsumerWidget {
             Text(
               "${account.balance.toStringAsFixed(2)} €",
               style: TextStyle(
-                color: Theme.of(context).primaryColor,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
@@ -274,42 +286,6 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   // ... _buildTransactionList ...
-
-  void _showRenameRealAccountDialog(
-    BuildContext context,
-    WidgetRef ref,
-    RealAccount account,
-  ) {
-    final nameController = TextEditingController(text: account.name);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Renommer le compte"),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(labelText: "Nouveau nom"),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Annuler"),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameController.text.isNotEmpty) {
-                await ref
-                    .read(accountServiceProvider)
-                    .renameRealAccount(account, nameController.text);
-                if (ctx.mounted) Navigator.pop(ctx);
-              }
-            },
-            child: const Text("Enregistrer"),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildTransactionList(WidgetRef ref, bool isDesktop) {
     return Consumer(

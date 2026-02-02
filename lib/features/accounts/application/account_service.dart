@@ -11,9 +11,22 @@ AccountService accountService(AccountServiceRef ref) {
   return AccountService(ref);
 }
 
+/// Service for managing real and virtual accounts.
+///
+/// This service provides high-level operations for:
+/// - Creating real bank accounts with associated system virtual accounts
+/// - Creating, renaming, and deleting user budget envelopes
+/// - Managing account metadata (IBAN, BIC, etc.)
+/// - Data repair operations
+///
+/// Each real account automatically gets three system virtual accounts:
+/// - **Libre (Free)**: Unallocated funds
+/// - **Solde Engagé (Committed)**: Funds reserved for pending transactions
+/// - **À Distribuer (To Distribute)**: Income waiting to be allocated
 class AccountService {
   final AccountServiceRef ref;
 
+  /// Creates an AccountService with the given Riverpod reference.
   AccountService(this.ref);
 
   /// Initializes the user's default accounts if they don't exist.
@@ -36,6 +49,16 @@ class AccountService {
     // Let's rely on the UI/Logic layer to check `watchRealAccounts` and call `createRealAccount` if empty.
   }
 
+  /// Creates a new real bank account with associated system virtual accounts.
+  ///
+  /// This method:
+  /// 1. Validates no duplicate account names exist
+  /// 2. Creates the real account with the given [initialBalance]
+  /// 3. Creates three system virtual accounts (Libre, Solde Engagé, À Distribuer)
+  ///
+  /// Throws [Exception] if:
+  /// - User is not authenticated
+  /// - An account with the same name (case-insensitive) already exists
   Future<void> createRealAccount({
     required String name,
     required String bankName,
@@ -48,6 +71,14 @@ class AccountService {
 
     final repository = ref.read(accountRepositoryProvider);
     final uuid = const Uuid();
+
+    // Check for duplicate account name
+    final existingAccounts = await repository.getRealAccounts(user.uid);
+    if (existingAccounts.any(
+      (a) => a.name.toLowerCase() == name.toLowerCase(),
+    )) {
+      throw Exception("Un compte avec ce nom existe déjà.");
+    }
 
     // 1. Create Real Account
     final realAccount = RealAccount(
@@ -64,6 +95,7 @@ class AccountService {
     // A. "Libre" (Free) - Receives the initial balance by default
     final freeAccount = VirtualAccount(
       id: uuid.v4(),
+      userId: user.uid,
       realAccountId: realAccount.id,
       name: "Libre",
       balance: initialBalance,
@@ -74,6 +106,7 @@ class AccountService {
     // B. "Solde Engagé" (Committed) - Starts at 0
     final committedAccount = VirtualAccount(
       id: uuid.v4(),
+      userId: user.uid,
       realAccountId: realAccount.id,
       name: "Solde Engagé",
       balance: 0.0,
@@ -84,6 +117,7 @@ class AccountService {
     // C. "À Distribuer" (Flow) - Starts at 0
     final flowAccount = VirtualAccount(
       id: uuid.v4(),
+      userId: user.uid,
       realAccountId: realAccount.id,
       name: "À Distribuer",
       balance: 0.0,
@@ -98,6 +132,13 @@ class AccountService {
     await repository.createVirtualAccount(user.uid, flowAccount);
   }
 
+  /// Creates a new user budget envelope (virtual account).
+  ///
+  /// [realAccountId] - The parent real account ID
+  /// [name] - Display name for the envelope
+  /// [type] - Defaults to [VirtualAccountType.userBudget]
+  ///
+  /// New envelopes start with a balance of 0.
   Future<void> createVirtualAccount({
     required String realAccountId,
     required String name,
@@ -113,6 +154,7 @@ class AccountService {
 
     final virtualAccount = VirtualAccount(
       id: uuid.v4(),
+      userId: user.uid,
       realAccountId: realAccountId,
       name: name,
       balance: 0.0,
@@ -162,6 +204,7 @@ class AccountService {
       // Update Free Account locally
       final updatedFreeAccount = VirtualAccount(
         id: freeAccount.id,
+        userId: user.uid,
         realAccountId: freeAccount.realAccountId,
         name: freeAccount.name,
         balance: newFreeBalance,
@@ -181,7 +224,21 @@ class AccountService {
     );
   }
 
-  Future<void> renameRealAccount(RealAccount account, String newName) async {
+  /// Updates metadata for a real account.
+  ///
+  /// Only provided fields are updated; null values leave the field unchanged.
+  /// Balance and type cannot be modified through this method.
+  Future<void> updateRealAccountMetadata({
+    required RealAccount account,
+    String? name,
+    String? bankName,
+    DateTime? openingDate,
+    String? accountNumber,
+    String? officialName,
+    String? iban,
+    String? bic,
+    String? swift,
+  }) async {
     final user = ref.read(firebaseAuthProvider).currentUser;
     if (user == null) throw Exception("User not authenticated");
 
@@ -190,16 +247,49 @@ class AccountService {
     final updatedAccount = RealAccount(
       id: account.id,
       ownerId: account.ownerId,
-      name: newName,
-      bankName: account.bankName,
+      name: name ?? account.name,
+      bankName: bankName ?? account.bankName,
       initialBalance: account.initialBalance,
       balance: account.balance,
       type: account.type,
+      openingDate: openingDate ?? account.openingDate,
+      accountNumber: accountNumber ?? account.accountNumber,
+      officialName: officialName ?? account.officialName,
+      iban: iban ?? account.iban,
+      bic: bic ?? account.bic,
+      swift: swift ?? account.swift,
     );
 
     await repository.updateRealAccount(user.uid, updatedAccount);
   }
 
+  /// Convenience method to rename a real account.
+  ///
+  /// Equivalent to calling [updateRealAccountMetadata] with only the name.
+  Future<void> renameRealAccount(RealAccount account, String newName) async {
+    await updateRealAccountMetadata(account: account, name: newName);
+  }
+
+  /// Repairs inconsistent virtual account data.
+  ///
+  /// This method:
+  /// - Fixes virtual accounts missing userId fields
+  /// - Creates missing system virtual accounts for real accounts
+  ///
+  /// Returns a map with repair statistics:
+  /// - `repairedCount`: Number of accounts with fixed userId
+  /// - `createdCount`: Number of newly created system accounts
+  Future<Map<String, int>> repairData() async {
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) throw Exception("User not authenticated");
+    return await ref
+        .read(accountRepositoryProvider)
+        .repairVirtualAccounts(user.uid);
+  }
+
+  /// Renames a virtual account (envelope).
+  ///
+  /// Both system and user accounts can be renamed.
   Future<void> renameVirtualAccount(
     VirtualAccount account,
     String newName,
@@ -216,6 +306,7 @@ class AccountService {
 
     final updatedAccount = VirtualAccount(
       id: account.id,
+      userId: user.uid,
       realAccountId: account.realAccountId,
       name: newName,
       balance: account.balance,
