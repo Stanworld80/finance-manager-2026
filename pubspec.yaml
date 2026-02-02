@@ -48,6 +48,8 @@ dependencies:
 
   intl: any
   package_info_plus: ^9.0.0
+  file_picker: ^10.3.10
+  csv: ^6.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -82,6 +82,12 @@ class AppShell extends ConsumerWidget {
                   onTap: () => context.go('/recurring'),
                 ),
                 _SidebarItem(
+                  icon: Icons.upload_file,
+                  label: 'Import CSV',
+                  isSelected: currentLocation == '/import',
+                  onTap: () => context.go('/import'),
+                ),
+                _SidebarItem(
                   icon: Icons.admin_panel_settings_outlined,
                   label: 'Admin',
                   isSelected: currentLocation.contains('/admin'),
