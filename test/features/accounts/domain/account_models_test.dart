@@ -48,6 +48,12 @@ void main() {
         'initialBalance': 10.0,
         'bankName': 'Test Bank',
         'type': 'internal',
+        'openingDate': null,
+        'accountNumber': null,
+        'officialName': null,
+        'iban': null,
+        'bic': null,
+        'swift': null,
       });
     });
 
@@ -94,6 +100,7 @@ void main() {
     test('toMap returns correct map', () {
       final account = VirtualAccount(
         id: 'v1',
+        userId: 'u1',
         realAccountId: 'r1',
         name: 'Groceries',
         balance: 50.0,
@@ -105,6 +112,7 @@ void main() {
 
       expect(map, {
         'id': 'v1',
+        'userId': 'u1',
         'realAccountId': 'r1',
         'name': 'Groceries',
         'balance': 50.0,
@@ -116,6 +124,7 @@ void main() {
     test('fromMap returns correct object', () {
       final map = {
         'id': 'v2',
+        'userId': 'u2',
         'realAccountId': 'r2',
         'name': 'System',
         'balance': 100.0,
@@ -126,6 +135,7 @@ void main() {
       final account = VirtualAccount.fromMap(map);
 
       expect(account.id, 'v2');
+      expect(account.userId, 'u2');
       expect(account.type, VirtualAccountType.systemFree);
       expect(account.icon, null);
     });
@@ -133,6 +143,7 @@ void main() {
     test('fromMap handles unknown enum types gracefully', () {
       final map = {
         'id': 'v3',
+        'userId': 'u3',
         'realAccountId': 'r3',
         'name': 'Unknown',
         'balance': 0.0,
