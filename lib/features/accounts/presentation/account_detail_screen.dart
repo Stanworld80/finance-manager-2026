@@ -4,6 +4,19 @@ import '../../accounts/data/account_providers.dart';
 import '../../accounts/domain/account_models.dart';
 import '../../accounts/application/account_service.dart';
 import '../../../core/presentation/ui_utils.dart';
+import '../../transactions/presentation/widgets/transaction_list.dart';
+import 'envelope_detail_screen.dart';
+import '../../transactions/data/transaction_repository.dart';
+import '../../transactions/domain/transaction_model.dart';
+import '../../../core/providers.dart';
+
+final accountTransactionsProvider =
+    FutureProvider.family<List<TransactionModel>, String>((ref, realAccountId) {
+      final repository = ref.read(transactionRepositoryProvider);
+      final user = ref.read(firebaseAuthProvider).currentUser;
+      if (user == null) return [];
+      return repository.getTransactionsByRealAccount(user.uid, realAccountId);
+    });
 
 class AccountDetailScreen extends ConsumerWidget {
   final String accountId;
@@ -29,191 +42,226 @@ class AccountDetailScreen extends ConsumerWidget {
               });
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.delete_forever),
+            color: Colors.red.shade300,
+            onPressed: () {
+              final accountsAsync = ref.read(realAccountsProvider);
+              accountsAsync.whenData((accounts) {
+                final account = accounts.firstWhere(
+                  (a) => a.id == accountId,
+                  orElse: () => RealAccount(
+                    id: 'not-found',
+                    ownerId: '',
+                    name: '',
+                    balance: 0,
+                  ),
+                );
+                if (account.id != 'not-found') {
+                  _confirmDeleteAccount(context, ref, account);
+                }
+              });
+            },
+          ),
         ],
       ),
-      body: realAccountsAsync.when(
-        data: (accounts) {
-          final account = accounts.firstWhere(
-            (a) => a.id == accountId,
-            orElse: () => RealAccount(
-              id: 'not-found',
-              ownerId: '',
-              name: 'Inconnu',
-              balance: 0.0,
-            ),
-          );
+      body: DefaultTabController(
+        length: 2,
+        child: realAccountsAsync.when(
+          data: (accounts) {
+            final account = accounts.firstWhere(
+              (a) => a.id == accountId,
+              orElse: () => RealAccount(
+                id: 'not-found',
+                ownerId: '',
+                name: 'Inconnu',
+                balance: 0.0,
+              ),
+            );
 
-          if (account.id == 'not-found') {
-            return const Center(child: Text("Compte introuvable"));
-          }
+            if (account.id == 'not-found') {
+              return const Center(child: Text("Compte introuvable"));
+            }
 
-          return Column(
-            children: [
-              // Header
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                color: Theme.of(context).primaryColor.withOpacity(0.1),
-                child: Column(
-                  children: [
-                    Text(
-                      account.name,
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    if (account.bankName != null)
+            return Column(
+              children: [
+                // Header
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  child: Column(
+                    children: [
                       Text(
-                        account.bankName!,
-                        style: Theme.of(context).textTheme.bodyLarge,
+                        account.name,
+                        style: Theme.of(context).textTheme.headlineMedium,
                       ),
-                    if (account.iban != null && account.iban!.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          "IBAN: ${account.iban}",
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                fontFamily: 'monospace',
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
+                      if (account.bankName != null)
+                        Text(
+                          account.bankName!,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      if (account.iban != null && account.iban!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            "IBAN: ${account.iban}",
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  fontFamily: 'monospace',
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                      Text(
+                        "${account.balance.toStringAsFixed(2)} €",
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    const SizedBox(height: 16),
-                    Text(
-                      "${account.balance.toStringAsFixed(2)} €",
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Text("Solde Réel"),
+                      const Text("Solde Réel"),
+                    ],
+                  ),
+                ),
+
+                const TabBar(
+                  tabs: [
+                    Tab(text: "Enveloppes"),
+                    Tab(text: "Transactions"),
                   ],
                 ),
-              ),
 
-              const Divider(height: 1),
+                // Tab Views
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      // -- TAB 1: Envelopes List --
+                      virtualAccountsAsync.when(
+                        data: (virtuals) {
+                          if (virtuals.isEmpty) {
+                            return const Center(
+                              child: Text("Aucune enveloppe créée"),
+                            );
+                          }
 
-              // Virtual Accounts List
-              // Virtual Accounts List
-              Expanded(
-                child: virtualAccountsAsync.when(
-                  data: (virtuals) {
-                    if (virtuals.isEmpty) {
-                      return const Center(
-                        child: Text("Aucune enveloppe créée"),
-                      );
-                    }
+                          final sortedVirtuals = List<VirtualAccount>.from(
+                            virtuals,
+                          );
+                          sortedVirtuals.sort((a, b) {
+                            final priorityA = _getPriority(a.type);
+                            final priorityB = _getPriority(b.type);
+                            if (priorityA != priorityB) {
+                              return priorityA.compareTo(priorityB);
+                            }
+                            return a.name.compareTo(b.name);
+                          });
 
-                    // Sort Logic:
-                    // 1. FlowToDistribute (Income)
-                    // 2. SystemFree (Libre)
-                    // 3. SystemCommitted (Fixed)
-                    // 4. UserBudget (Envelopes)
-                    final sortedVirtuals = List<VirtualAccount>.from(virtuals);
-                    sortedVirtuals.sort((a, b) {
-                      final priorityA = _getPriority(a.type);
-                      final priorityB = _getPriority(b.type);
-                      if (priorityA != priorityB) {
-                        return priorityA.compareTo(priorityB);
-                      }
-                      return a.name.compareTo(b.name);
-                    });
+                          return ListView.separated(
+                            padding: const EdgeInsets.all(8),
+                            itemCount: sortedVirtuals.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 8),
+                            itemBuilder: (context, index) {
+                              final v = sortedVirtuals[index];
+                              final color = UiUtils.getVirtualAccountColor(
+                                v.type,
+                                brightness: Theme.of(context).brightness,
+                              );
+                              final icon = UiUtils.getVirtualAccountIcon(
+                                v.type,
+                              );
 
-                    return ListView.separated(
-                      padding: const EdgeInsets.all(8),
-                      itemCount: sortedVirtuals.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final v = sortedVirtuals[index];
-                        final color = UiUtils.getVirtualAccountColor(
-                          v.type,
-                          brightness: Theme.of(context).brightness,
-                        );
-                        final icon = UiUtils.getVirtualAccountIcon(v.type);
-
-                        return Card(
-                          elevation: 1,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: color.withOpacity(0.3)),
-                          ),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: color.withOpacity(0.1),
-                              child: Icon(icon, color: color),
-                            ),
-                            title: Text(
-                              v.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            subtitle: Text(
-                              _getLabelForType(v.type),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  "${v.balance.toStringAsFixed(2)} €",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: v.balance < 0
-                                        ? Colors.red.shade400
-                                        : null,
+                              return Card(
+                                elevation: 1,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(
+                                    color: color.withOpacity(0.3),
                                   ),
                                 ),
-                                if (v.type ==
-                                    VirtualAccountType.userBudget) ...[
-                                  const SizedBox(width: 4),
-                                  IconButton(
-                                    icon: const Icon(Icons.edit, size: 20),
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                    onPressed: () => _showRenameEnvelopeDialog(
-                                      context,
-                                      ref,
-                                      v,
+                                child: ListTile(
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (ctx) =>
+                                            EnvelopeDetailScreen(envelope: v),
+                                      ),
+                                    );
+                                  },
+                                  leading: CircleAvatar(
+                                    backgroundColor: color.withOpacity(0.1),
+                                    child: Icon(icon, color: color),
+                                  ),
+                                  title: Text(
+                                    v.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.delete_outline,
-                                      size: 20,
+                                  subtitle: Text(
+                                    _getLabelForType(v.type),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                    onPressed: () =>
-                                        _confirmDeleteEnvelope(context, ref, v),
                                   ),
-                                ],
-                              ],
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        "${v.balance.toStringAsFixed(2)} €",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: v.balance < 0
+                                              ? Colors.red.shade400
+                                              : null,
+                                        ),
+                                      ),
+                                      const Icon(Icons.chevron_right),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (e, _) => Center(child: Text("Erreur: $e")),
+                      ),
+
+                      // -- TAB 2: Transactions --
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final transactionsAsync = ref.watch(
+                            accountTransactionsProvider(accountId),
+                          );
+                          return transactionsAsync.when(
+                            data: (transactions) =>
+                                TransactionList(transactions: transactions),
+                            loading: () => const Center(
+                              child: CircularProgressIndicator(),
                             ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Center(child: Text("Erreur: $e")),
+                            error: (e, s) => Center(child: Text("Erreur: $e")),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text("Erreur: $e")),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text("Erreur: $e")),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddEnvelopeDialog(context, ref, accountId),
@@ -311,42 +359,6 @@ class AccountDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _showRenameEnvelopeDialog(
-    BuildContext context,
-    WidgetRef ref,
-    VirtualAccount account,
-  ) {
-    final nameController = TextEditingController(text: account.name);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Renommer l'enveloppe"),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(labelText: "Nouveau nom"),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Annuler"),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameController.text.isNotEmpty) {
-                await ref
-                    .read(accountServiceProvider)
-                    .renameVirtualAccount(account, nameController.text);
-                if (ctx.mounted) Navigator.pop(ctx);
-              }
-            },
-            child: const Text("Enregistrer"),
-          ),
-        ],
-      ),
-    );
-  }
-
   int _getPriority(VirtualAccountType type) {
     switch (type) {
       case VirtualAccountType.flowToDistribute:
@@ -357,53 +369,6 @@ class AccountDetailScreen extends ConsumerWidget {
         return 3;
       case VirtualAccountType.userBudget:
         return 4;
-    }
-  }
-
-  Future<void> _confirmDeleteEnvelope(
-    BuildContext context,
-    WidgetRef ref,
-    VirtualAccount v,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text("Supprimer ${v.name} ?"),
-        content: Text(
-          "Le solde restant (${v.balance.toStringAsFixed(2)} €) sera reversé dans le compte 'Libre'.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("Annuler"),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Supprimer"),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        await ref.read(accountServiceProvider).deleteVirtualAccount(v);
-        if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text("Enveloppe supprimée")));
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Erreur: $e")));
-        }
-      }
     }
   }
 
@@ -457,5 +422,56 @@ class AccountDetailScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDeleteAccount(
+    BuildContext context,
+    WidgetRef ref,
+    RealAccount account,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text("Supprimer ${account.name} ?"),
+        content: const Text(
+          "ATTENTION: Cette action supprimera définitivement le compte, "
+          "toutes ses enveloppes et toutes ses transactions associées.\n\n"
+          "Cette action est irréversible.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Annuler"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Supprimer définitivement"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      if (context.mounted) {
+        // Show loading or verify?
+        // We'll just execute.
+        try {
+          // Go back first to avoid error when page rebuilds with missing data
+          Navigator.pop(context);
+
+          await ref.read(accountServiceProvider).deleteRealAccount(account);
+        } catch (e) {
+          // If we popped, we might need a gobal scaffold messenger or show dialog again?
+          // Since we popped, we are back on Dashboard.
+          // Ideally we stay and show loading, but handling "deleted state" in this screen
+          // requires complex logic because StreamBuilder will error out or return empty.
+          // Popping is safest. We can show a snackbar on the previous screen (Dashboard).
+        }
+      }
+    }
   }
 }

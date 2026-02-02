@@ -332,4 +332,159 @@ class TransactionService {
       await repository.createTransactions(user.uid, [txSource, txTarget]);
     }
   }
+
+  Future<void> updateTransaction({
+    required TransactionModel originalTransaction,
+    required double amount,
+    required TransactionType type,
+    required String label,
+    required DateTime date,
+    required RealAccount realAccount,
+    required VirtualAccount targetVirtualAccount,
+    String? category,
+    String? note,
+  }) async {
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) throw Exception("User not authenticated");
+
+    final repository = ref.read(transactionRepositoryProvider);
+
+    // Determine signs (same as addTransaction)
+    double realAmountSigned;
+    double virtualAmountSigned;
+    double counterpartyAmountSigned;
+
+    switch (type) {
+      case TransactionType.debit:
+        realAmountSigned = -amount.abs();
+        virtualAmountSigned = -amount.abs();
+        counterpartyAmountSigned = amount.abs();
+        break;
+      case TransactionType.credit:
+        realAmountSigned = amount.abs();
+        virtualAmountSigned = amount.abs();
+        counterpartyAmountSigned = -amount.abs();
+        break;
+      default:
+        realAmountSigned = -amount.abs();
+        virtualAmountSigned = -amount.abs();
+        counterpartyAmountSigned = amount.abs();
+        break;
+    }
+
+    final updatedTransaction = TransactionModel(
+      id: originalTransaction.id, // Keep same ID
+      ownerId: user.uid,
+      realAccountId: realAccount.id,
+      amount: realAmountSigned,
+      type: type,
+      transactionDate: date,
+      label: label,
+      category: category,
+      note: note,
+      status: originalTransaction.status, // Keep status? Or reset?
+      step: originalTransaction.step,
+      splits: [
+        TransactionSplit(
+          virtualAccountId: targetVirtualAccount.id,
+          amount: virtualAmountSigned,
+        ),
+        TransactionSplit(
+          virtualAccountId: SystemAccounts.external,
+          amount: counterpartyAmountSigned,
+        ),
+      ],
+    );
+
+    assert(updatedTransaction.isBalanced);
+    await repository.updateTransaction(
+      user.uid,
+      originalTransaction,
+      updatedTransaction,
+    );
+  }
+
+  Future<void> updateSplitTransaction({
+    required TransactionModel originalTransaction,
+    required double totalAmount,
+    required TransactionType type,
+    required String label,
+    required DateTime date,
+    required RealAccount realAccount,
+    required List<({VirtualAccount account, double amount})> splits,
+    String? category,
+    String? note,
+  }) async {
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) throw Exception("User not authenticated");
+
+    if (splits.isEmpty) throw Exception("At least one split is required");
+
+    final sumSplits = splits.fold(0.0, (prev, s) => prev + s.amount);
+    if ((sumSplits - totalAmount).abs() > 0.01) {
+      throw Exception(
+        "Total des ventilations ($sumSplits) ne correspond pas au montant total ($totalAmount)",
+      );
+    }
+
+    final repository = ref.read(transactionRepositoryProvider);
+
+    List<TransactionSplit> transactionSplits = [];
+    double counterpartyAmountSigned;
+
+    if (type == TransactionType.debit) {
+      for (final split in splits) {
+        transactionSplits.add(
+          TransactionSplit(
+            virtualAccountId: split.account.id,
+            amount: -split.amount.abs(),
+          ),
+        );
+      }
+      counterpartyAmountSigned = totalAmount.abs();
+    } else if (type == TransactionType.credit) {
+      for (final split in splits) {
+        transactionSplits.add(
+          TransactionSplit(
+            virtualAccountId: split.account.id,
+            amount: split.amount.abs(),
+          ),
+        );
+      }
+      counterpartyAmountSigned = -totalAmount.abs();
+    } else {
+      throw Exception("Split transactions only supported for Debit/Credit");
+    }
+
+    transactionSplits.add(
+      TransactionSplit(
+        virtualAccountId: SystemAccounts.external,
+        amount: counterpartyAmountSigned,
+      ),
+    );
+
+    final updatedTransaction = TransactionModel(
+      id: originalTransaction.id,
+      ownerId: user.uid,
+      realAccountId: realAccount.id,
+      amount: type == TransactionType.debit
+          ? -totalAmount.abs()
+          : totalAmount.abs(),
+      type: type,
+      transactionDate: date,
+      label: label,
+      category: category,
+      note: note,
+      status: originalTransaction.status,
+      step: originalTransaction.step,
+      splits: transactionSplits,
+    );
+
+    assert(updatedTransaction.isBalanced);
+    await repository.updateTransaction(
+      user.uid,
+      originalTransaction,
+      updatedTransaction,
+    );
+  }
 }

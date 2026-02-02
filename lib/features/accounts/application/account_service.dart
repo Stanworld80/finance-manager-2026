@@ -3,6 +3,8 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/providers.dart';
 import '../data/account_repository.dart';
 import '../domain/account_models.dart';
+import '../../transactions/application/transaction_service.dart';
+import '../../transactions/data/transaction_repository.dart';
 
 part 'account_service.g.dart';
 
@@ -287,9 +289,6 @@ class AccountService {
         .repairVirtualAccounts(user.uid);
   }
 
-  /// Renames a virtual account (envelope).
-  ///
-  /// Both system and user accounts can be renamed.
   Future<void> renameVirtualAccount(
     VirtualAccount account,
     String newName,
@@ -315,5 +314,35 @@ class AccountService {
     );
 
     await repository.updateVirtualAccount(user.uid, updatedAccount);
+  }
+
+  /// Deletes a real account and all its associated data (virtual accounts, transactions).
+  Future<void> deleteRealAccount(RealAccount account) async {
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) throw Exception("User not authenticated");
+
+    // 1. Delete all transactions associated with this account
+    final txService = ref.read(transactionServiceProvider);
+    final txRepo = ref.read(transactionRepositoryProvider);
+
+    final transactions = await txRepo.getTransactionsByRealAccount(
+      user.uid,
+      account.id,
+    );
+    for (final tx in transactions) {
+      await txService.deleteTransaction(tx);
+    }
+
+    // 2. Delete all virtual accounts
+    final repository = ref.read(accountRepositoryProvider);
+    final virtuals = await repository
+        .watchVirtualAccounts(user.uid, account.id)
+        .first;
+    for (final v in virtuals) {
+      await repository.deleteVirtualAccountWithIds(user.uid, account.id, v.id);
+    }
+
+    // 3. Delete the real account
+    await repository.deleteRealAccount(user.uid, account.id);
   }
 }

@@ -6,6 +6,9 @@ import '../../../../core/presentation/ui_utils.dart';
 import '../../transactions/data/transaction_providers.dart';
 import '../../transactions/application/transaction_service.dart';
 import '../../transactions/domain/transaction_model.dart';
+import '../../accounts/data/account_providers.dart';
+import '../../accounts/domain/account_models.dart';
+import 'add_transaction_page.dart';
 
 class TransactionDetailScreen extends ConsumerWidget {
   final String transactionId;
@@ -15,43 +18,64 @@ class TransactionDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final transactionAsync = ref.watch(transactionByIdProvider(transactionId));
+    final allVirtualsAsync = ref.watch(allVirtualAccountsProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Détails de la transaction'),
+        title: const Text("Détails"),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          transactionAsync.maybeWhen(
-            data: (transaction) => transaction != null
-                ? IconButton(
-                    icon: const Icon(
-                      Icons.delete_outline,
-                      color: Colors.blueGrey,
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () {
+              transactionAsync.whenData((tx) {
+                if (tx != null) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          AddTransactionPage(transactionToEdit: tx),
                     ),
-                    onPressed: () => _confirmDelete(context, ref, transaction),
-                  )
-                : const SizedBox.shrink(),
-            orElse: () => const SizedBox.shrink(),
+                  );
+                }
+              });
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () {
+              transactionAsync.whenData((tx) {
+                if (tx != null) _confirmDelete(context, ref, tx);
+              });
+            },
           ),
         ],
       ),
       extendBodyBehindAppBar: true,
       body: transactionAsync.when(
-        data: (transaction) {
-          if (transaction == null) {
+        data: (tx) {
+          if (tx == null) {
             return const Center(child: Text("Transaction introuvable"));
           }
-          return _buildContent(context, transaction);
+          return allVirtualsAsync.when(
+            data: (virtuals) => _buildContent(context, tx, virtuals, ref),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, s) => Center(child: Text("Erreur comptes: $e")),
+          );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Erreur: $err')),
+        error: (e, s) => Center(child: Text("Erreur: $e")),
       ),
     );
   }
 
-  Widget _buildContent(BuildContext context, TransactionModel tx) {
+  Widget _buildContent(
+    BuildContext context,
+    TransactionModel tx,
+    List<VirtualAccount> virtuals,
+    WidgetRef ref,
+  ) {
     final color = UiUtils.getTransactionColor(
       tx.type,
       brightness: Theme.of(context).brightness,
@@ -182,17 +206,13 @@ class TransactionDetailScreen extends ConsumerWidget {
 
           if (tx.splits.isNotEmpty) ...[
             const SizedBox(height: 24),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Répartition",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                "Ventilation / Détails",
+                style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
-            const SizedBox(height: 8),
             ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
               shrinkWrap: true,
@@ -200,6 +220,31 @@ class TransactionDetailScreen extends ConsumerWidget {
               itemCount: tx.splits.length,
               itemBuilder: (context, index) {
                 final split = tx.splits[index];
+                final vAccount = virtuals.firstWhere(
+                  (v) => v.id == split.virtualAccountId,
+                  orElse: () => VirtualAccount(
+                    id: split.virtualAccountId,
+                    userId: '',
+                    realAccountId: '',
+                    name: 'Inconnu (ID: ${split.virtualAccountId})',
+                    balance: 0,
+                    type: VirtualAccountType.userBudget,
+                    icon: null,
+                  ),
+                );
+
+                String displayName = vAccount.name;
+                if (SystemAccounts.isSystem(split.virtualAccountId)) {
+                  if (split.virtualAccountId == SystemAccounts.external)
+                    displayName = "Monde Extérieur";
+                }
+
+                // Try to get real account name?
+                // We'd need RealAccounts list. We can fetch it or just show Virtual Account Name.
+                // Usually Virtual Account Name is enough (e.g. "Courses", "Loyer").
+                // If we want "Compte Courant > Courses", we need RealAccount.
+                // I'll stick to Virtual Account Name for now as it's much better than nothing.
+
                 return Card(
                   elevation: 0,
                   color: Theme.of(context).cardColor,
@@ -207,16 +252,18 @@ class TransactionDetailScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(color: Theme.of(context).dividerColor),
                   ),
+                  margin: const EdgeInsets.only(bottom: 12),
                   child: ListTile(
                     leading: const Icon(Icons.pie_chart_outline),
-                    title: Text(
-                      "Compte Virtuel ID: ${split.virtualAccountId.substring(0, 4)}...",
-                    ), // Placeholder for Name
+                    title: Text(displayName),
+                    subtitle: SystemAccounts.isSystem(split.virtualAccountId)
+                        ? const Text("Compte Système")
+                        : null,
                     trailing: Text(
                       "${split.amount > 0 ? '+' : ''}${split.amount.toStringAsFixed(2)} €",
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
                         color: split.amount >= 0 ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),

@@ -67,6 +67,15 @@ class AccountRepository {
     return snapshot.docs.map((doc) => RealAccount.fromMap(doc.data())).toList();
   }
 
+  Future<void> deleteRealAccount(String userId, String accountId) async {
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('real_accounts')
+        .doc(accountId)
+        .delete();
+  }
+
   // --- Virtual Accounts ---
 
   Future<void> createVirtualAccount(

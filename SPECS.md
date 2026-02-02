@@ -145,7 +145,13 @@ Représente l'état de couverture de la transaction.
     `Débit: Compte Virtuel (ex: "Alimentation")` -> `Crédit: Compte Virtuel "Solde Engagé"`.
   - Cela diminue le disponible du budget concerné.
 
-- **Consultation :**
+- **Consultation & Interface (UI) :**
+  - **Détail Compte Réel :** L'écran de détail d'un compte réel est divisé en deux onglets :
+    1.  **Enveloppes :** Liste des comptes virtuels (budgets) avec leurs soldes.
+    2.  **Transactions :** Liste chronologique de toutes les opérations affectant ce compte réel.
+  - **Détail Enveloppe :** Un écran dédié pour chaque compte virtuel affiche :
+    - Son solde actuel.
+    - L'historique des transactions filtré spécifiquement pour cette enveloppe (Dépenses, Provisions, Transferts).
   - L'application permet de voir les soldes "Réels" (Banque), "Actuels" (Dans les enveloppes), et "Prévisionnels" (Basés sur les budgets restants).
 
 ### G. Automatisation & Actions Bancaires

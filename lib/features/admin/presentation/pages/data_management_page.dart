@@ -94,10 +94,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                   OutlinedButton.icon(
                     onPressed: user == null
                         ? null
-                        : () => _handleAction(
-                            () => seed.clearAllData(user.uid),
-                            'Base de données réinitialisée !',
-                          ),
+                        : () => _confirmReset(context, seed, user.uid),
                     icon: const Icon(Icons.delete_forever),
                     label: const Text('Reset All Data'),
                     style: OutlinedButton.styleFrom(
@@ -108,5 +105,71 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
               ),
       ),
     );
+  }
+
+  Future<void> _confirmReset(
+    BuildContext context,
+    dynamic
+    seedService, // using dynamic to avoid import if not handy, but we have it in build
+    String userId,
+  ) async {
+    // 1st Confirmation
+    final confirm1 = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Réinitialiser TOUTES les données ?"),
+        content: const Text(
+          "Attention, cette action effacera tous les comptes, transactions et enveloppes.\n\n"
+          "Voulez-vous continuer ?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Annuler"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Continuer"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm1 != true) return;
+
+    if (!context.mounted) return;
+
+    // 2nd Confirmation
+    final confirm2 = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Confirmation Finale"),
+        content: const Text(
+          "Êtes-vous ABSOLUMENT certain ?\n"
+          "Cette action est irréversible.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("NON, Annuler"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("OUI, TOUT EFFACER"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm2 == true) {
+      _handleAction(
+        () => seedService.clearAllData(userId),
+        'Base de données réinitialisée !',
+      );
+    }
   }
 }

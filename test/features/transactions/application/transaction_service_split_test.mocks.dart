@@ -142,6 +142,51 @@ class MockTransactionRepository extends _i1.Mock
             returnValue: _i6.Stream<_i7.TransactionModel?>.empty(),
           )
           as _i6.Stream<_i7.TransactionModel?>);
+
+  @override
+  _i6.Future<List<_i7.TransactionModel>> getTransactionsByRealAccount(
+    String? userId,
+    String? realAccountId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#getTransactionsByRealAccount, [
+              userId,
+              realAccountId,
+            ]),
+            returnValue: _i6.Future<List<_i7.TransactionModel>>.value(
+              <_i7.TransactionModel>[],
+            ),
+          )
+          as _i6.Future<List<_i7.TransactionModel>>);
+
+  @override
+  _i6.Future<List<_i7.TransactionModel>> getTransactionsByVirtualAccount(
+    String? userId,
+    String? virtualAccountId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#getTransactionsByVirtualAccount, [
+              userId,
+              virtualAccountId,
+            ]),
+            returnValue: _i6.Future<List<_i7.TransactionModel>>.value(
+              <_i7.TransactionModel>[],
+            ),
+          )
+          as _i6.Future<List<_i7.TransactionModel>>);
+
+  @override
+  _i6.Future<void> updateTransaction(
+    String? userId,
+    _i7.TransactionModel? original,
+    _i7.TransactionModel? updated,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateTransaction, [userId, original, updated]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
 }
 
 /// A class which mocks [FirebaseAuth].
