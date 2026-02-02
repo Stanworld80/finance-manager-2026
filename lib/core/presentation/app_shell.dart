@@ -95,7 +95,21 @@ class AppShell extends ConsumerWidget {
                   isSelected: false,
                   onTap: () => ref.read(firebaseAuthProvider).signOut(),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 10),
+                ref
+                    .watch(packageInfoProvider)
+                    .when(
+                      data: (info) => Text(
+                        "v${info.version} (${info.buildNumber})",
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.3),
+                          fontSize: 12,
+                        ),
+                      ),
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
+                    ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
