@@ -58,24 +58,21 @@ void main() {
     expect(find.byType(AddTransactionPage), findsOneWidget);
 
     // 5. Test Number Input
-    final amountField = find
-        .ancestor(
-          of: find.text('Montant Total'),
-          matching: find.byType(TextFormField),
-        )
-        .first;
-    // Or just find by input type/label
-    // The label is "Montant Total"
-
     // Type "1 234,56"
-    await tester.enterText(find.byLabel('Montant Total'), '1 234,56');
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Montant Total'),
+      '1 234,56',
+    );
     await tester.pumpAndSettle();
 
     // Verify it formatted to "1234.56"
     expect(find.text('1234.56'), findsOneWidget);
 
     // Type "5000" (should be 5000)
-    await tester.enterText(find.byLabel('Montant Total'), '5000');
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Montant Total'),
+      '5000',
+    );
     await tester.pumpAndSettle();
     expect(find.text('5000'), findsOneWidget);
   });
