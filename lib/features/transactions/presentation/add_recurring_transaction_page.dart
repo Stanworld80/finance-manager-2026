@@ -6,6 +6,7 @@ import '../../accounts/domain/account_models.dart';
 import '../application/recurring_transaction_service.dart';
 import '../domain/recurring_transaction.dart';
 import '../domain/transaction_model.dart';
+import '../../../../core/presentation/utils/decimal_text_input_formatter.dart';
 
 class SelectableAccount {
   final String id;
@@ -78,6 +79,9 @@ class _AddRecurringTransactionPageState
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
+                      inputFormatters: [
+                        DecimalTextInputFormatter(decimalRange: 2),
+                      ],
                       validator: (value) {
                         if (value == null || value.isEmpty) return "Requis";
                         if (double.tryParse(value) == null) return "Invalide";
@@ -164,7 +168,9 @@ class _AddRecurringTransactionPageState
                       title: const Text("Date de début"),
                       subtitle: Text("${_startDate.toLocal()}".split(' ')[0]),
                       trailing: const Icon(Icons.calendar_today),
-                      tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      tileColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),

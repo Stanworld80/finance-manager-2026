@@ -84,6 +84,9 @@ class TransactionModel {
   // Internal Accounting
   final List<TransactionSplit> splits;
 
+  // Import Dedup
+  final String? importHash;
+
   TransactionModel({
     required this.id,
     required this.ownerId,
@@ -103,6 +106,7 @@ class TransactionModel {
     this.syncDate,
     this.provisionDate,
     this.splits = const [],
+    this.importHash,
   });
 
   /// A transaction is balanced if the sum of all splits is 0.
@@ -140,6 +144,7 @@ class TransactionModel {
       'syncDate': syncDate?.toIso8601String(),
       'provisionDate': provisionDate?.toIso8601String(),
       'splits': splits.map((x) => x.toMap()).toList(),
+      'importHash': importHash,
     };
   }
 
@@ -199,6 +204,7 @@ class TransactionModel {
           (x) => TransactionSplit.fromMap(x as Map<String, dynamic>),
         ),
       ),
+      importHash: map['importHash'] as String?,
     );
   }
 }

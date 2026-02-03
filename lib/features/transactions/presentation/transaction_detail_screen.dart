@@ -235,8 +235,9 @@ class TransactionDetailScreen extends ConsumerWidget {
 
                 String displayName = vAccount.name;
                 if (SystemAccounts.isSystem(split.virtualAccountId)) {
-                  if (split.virtualAccountId == SystemAccounts.external)
+                  if (split.virtualAccountId == SystemAccounts.external) {
                     displayName = "Monde Extérieur";
+                  }
                 }
 
                 // Try to get real account name?

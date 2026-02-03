@@ -26,6 +26,11 @@ FinanceManager2026 est une application intelligente de gestion de finances perso
 - **Connexion Commerçants (Factures) :**
   - Intégration API fournisseurs (Amazon, EDF, Opérateurs, etc.) pour récupérer les factures et le détail des commandes.
 
+#### 3. Saisie Numérique (UX/UI)
+- **Flexibilité des Décimaux :** L'utilisateur peut utiliser "." ou "," comme séparateur décimal indifféremment.
+- **Tolérance aux Espaces :** Les espaces dans les nombres (ex: "1 000") sont ignorés et nettoyés automatiquement.
+- **Sanitization :** Tout autre symbole non numérique (hormis le séparateur décimal) est ignoré lors du parsing.
+
 #### 2. Manipulation & Visualisation
 - **Vue Liste :** Affichage chronologique des dépenses/revenus.
 - **CRUD :** Créer, Lire, Mettre à jour, Supprimer une transaction.

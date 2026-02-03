@@ -30,6 +30,40 @@ class TransactionRepository {
     });
   }
 
+  /// Adds a large batch of transactions, chunked to respect Firestore limits (500 ops).
+  /// Note: Not atomic across chunks.
+  Future<int> addBatch(
+    String userId,
+    List<TransactionModel> transactions,
+  ) async {
+    // 1 transaction ~= 4 ops (1 create + 1 real update + 2 virtual updates)
+    // Limit 500 ops => ~100 tx per batch safely.
+    const int batchSize = 100;
+    int successCount = 0;
+
+    for (var i = 0; i < transactions.length; i += batchSize) {
+      final end = (i + batchSize < transactions.length)
+          ? i + batchSize
+          : transactions.length;
+      final chunk = transactions.sublist(i, end);
+
+      try {
+        await _firestore.runTransaction((tx) async {
+          for (final transaction in chunk) {
+            await _applyTransaction(tx, userId, transaction);
+          }
+        });
+        successCount += chunk.length;
+      } catch (e) {
+        // Log error? Rethrow?
+        // For import, we might want to continue or stop.
+        // For now, rethrow to stop import on critical failure.
+        throw Exception("Failed to import batch ${i ~/ batchSize}: $e");
+      }
+    }
+    return successCount;
+  }
+
   Future<void> _applyTransaction(
     Transaction tx,
     String userId,

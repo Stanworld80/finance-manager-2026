@@ -1,14 +1,9 @@
 import 'package:finance_manager_2026/features/accounts/presentation/account_detail_screen.dart';
 import 'package:finance_manager_2026/features/accounts/domain/account_models.dart';
 import 'package:finance_manager_2026/features/accounts/data/account_providers.dart';
-import 'package:finance_manager_2026/features/transactions/data/transaction_repository.dart';
-import 'package:finance_manager_2026/core/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
-import 'package:mockito/annotations.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 // Mock dependencies if needed, or use overrides with fake data.
 // Since AccountDetailScreen uses AsyncValue, we can override providers.

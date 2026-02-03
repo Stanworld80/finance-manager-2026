@@ -46,6 +46,7 @@ dependencies:
   firebase_ui_oauth_google: ^2.0.1
   shared_preferences: ^2.5.4
 
+
   intl: any
   package_info_plus: ^9.0.0
   file_picker: ^10.3.10
@@ -71,6 +72,7 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
   firebase_auth_platform_interface: any
+  path: any
 flutter:
 
   # The following line ensures that the Material Icons font is

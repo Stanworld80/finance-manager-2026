@@ -6,6 +6,7 @@ import '../../accounts/domain/account_models.dart';
 import '../application/transaction_service.dart';
 import '../domain/transaction_model.dart';
 import '../../accounts/application/account_service.dart';
+import '../../../../core/presentation/utils/decimal_text_input_formatter.dart';
 
 class SelectableAccount {
   final String id;
@@ -264,8 +265,12 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
+                      inputFormatters: [
+                        DecimalTextInputFormatter(decimalRange: 2),
+                      ],
                       validator: (value) {
                         if (value == null || value.isEmpty) return "Requis";
+                        // Formatter ensures structure, but double check parse
                         if (double.tryParse(value) == null) return "Invalide";
                         return null;
                       },
@@ -452,6 +457,11 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                                         const TextInputType.numberWithOptions(
                                           decimal: true,
                                         ),
+                                    inputFormatters: [
+                                      DecimalTextInputFormatter(
+                                        decimalRange: 2,
+                                      ),
+                                    ],
                                     onChanged: (_) => setState(() {}),
                                     validator: (val) =>
                                         (val == null || val.isEmpty)
@@ -840,7 +850,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
               const SizedBox(height: 16),
               if (realAccounts.length > 1)
                 DropdownButtonFormField<RealAccount>(
-                  value: selectedAccount,
+                  initialValue: selectedAccount,
                   decoration: const InputDecoration(labelText: "Compte lié"),
                   items: realAccounts
                       .map(
