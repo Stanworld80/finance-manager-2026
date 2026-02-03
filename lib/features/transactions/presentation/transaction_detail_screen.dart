@@ -209,42 +209,58 @@ class TransactionDetailScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
-                "Ventilation / Détails",
+                "Flux Financiers",
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
+
+            // Logic to separate Source (-ve) and Dest (+ve)
+            // Just displaying them in a smarter way
             ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: tx.splits.length,
               itemBuilder: (context, index) {
-                final split = tx.splits[index];
-                final vAccount = virtuals.firstWhere(
-                  (v) => v.id == split.virtualAccountId,
-                  orElse: () => VirtualAccount(
-                    id: split.virtualAccountId,
-                    userId: '',
-                    realAccountId: '',
-                    name: 'Inconnu (ID: ${split.virtualAccountId})',
-                    balance: 0,
-                    type: VirtualAccountType.userBudget,
-                    icon: null,
-                  ),
-                );
+                // Sort by amount: Negative (=Source) first
+                final sortedSplits = List<TransactionSplit>.from(tx.splits)
+                  ..sort((a, b) => a.amount.compareTo(b.amount));
 
-                String displayName = vAccount.name;
+                final split = sortedSplits[index];
+
+                // Name Resolution
+                String displayName = "Inconnu";
+                String? subtitle;
+
                 if (SystemAccounts.isSystem(split.virtualAccountId)) {
                   if (split.virtualAccountId == SystemAccounts.external) {
                     displayName = "Monde Extérieur";
+                    subtitle = "Contrepartie Système";
+                  } else if (split.virtualAccountId ==
+                      SystemAccounts.externalAdjustment) {
+                    displayName = "Ajustement";
+                    subtitle = "Correction de solde";
+                  } else {
+                    // Generic System Fallback
+                    displayName = "Système";
+                    subtitle = split.virtualAccountId;
+                  }
+                } else {
+                  // Try to find in virtuals
+                  try {
+                    final vAccount = virtuals.firstWhere(
+                      (v) => v.id == split.virtualAccountId,
+                    );
+                    displayName = vAccount.name;
+                    // subtitle = "Compte Virtuel";
+                  } catch (_) {
+                    displayName = "Compte Inconnu";
+                    subtitle = "ID: ${split.virtualAccountId}";
                   }
                 }
 
-                // Try to get real account name?
-                // We'd need RealAccounts list. We can fetch it or just show Virtual Account Name.
-                // Usually Virtual Account Name is enough (e.g. "Courses", "Loyer").
-                // If we want "Compte Courant > Courses", we need RealAccount.
-                // I'll stick to Virtual Account Name for now as it's much better than nothing.
+                final isSource = split.amount < 0;
+                final roleLabel = isSource ? "Source" : "Destination";
 
                 return Card(
                   elevation: 0,
@@ -255,16 +271,54 @@ class TransactionDetailScreen extends ConsumerWidget {
                   ),
                   margin: const EdgeInsets.only(bottom: 12),
                   child: ListTile(
-                    leading: const Icon(Icons.pie_chart_outline),
-                    title: Text(displayName),
-                    subtitle: SystemAccounts.isSystem(split.virtualAccountId)
-                        ? const Text("Compte Système")
-                        : null,
+                    leading: CircleAvatar(
+                      backgroundColor: isSource
+                          ? Colors.red.withOpacity(0.1)
+                          : Colors.green.withOpacity(0.1),
+                      child: Icon(
+                        isSource ? Icons.upload : Icons.download,
+                        color: isSource ? Colors.red : Colors.green,
+                        size: 20,
+                      ),
+                    ),
+                    title: Text(
+                      displayName,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (subtitle != null) Text(subtitle),
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            roleLabel.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     trailing: Text(
                       "${split.amount > 0 ? '+' : ''}${split.amount.toStringAsFixed(2)} €",
                       style: TextStyle(
                         color: split.amount >= 0 ? Colors.green : Colors.red,
                         fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
                   ),
