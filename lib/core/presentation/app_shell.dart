@@ -19,19 +19,27 @@ class AppShell extends ConsumerWidget {
     final isDesktop = MediaQuery.of(context).size.width > 900;
 
     return Scaffold(
-      body: Row(
+      body: Stack(
         children: [
-          if (isDesktop) _buildSidebar(context, ref),
-          Expanded(child: child),
+          Row(
+            children: [
+              if (isDesktop) _buildSidebar(context, ref),
+              Expanded(child: child),
+            ],
+          ),
+          Positioned(
+            bottom: 100, // Lifted up to avoid overlap
+            right: 16,
+            child: FloatingActionButton(
+              onPressed: () => context.push('/ai'),
+              tooltip: 'Coach Financier',
+              backgroundColor: Theme.of(context).primaryColor,
+              child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: !isDesktop ? _buildBottomNav(context) : null,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/ai'),
-        tooltip: 'Coach Financier',
-        backgroundColor: Theme.of(context).primaryColor,
-        child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
-      ),
     );
   }
 

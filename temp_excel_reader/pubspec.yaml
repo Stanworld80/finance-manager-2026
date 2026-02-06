@@ -1,0 +1,5 @@
+name: temp_excel_reader
+environment:
+  sdk: ^3.0.0
+dependencies:
+  excel: ^4.0.0

@@ -1,30 +1,30 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'recurring_transaction_repository.dart';
+part of 'recurring_transaction_providers.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$recurringTransactionRepositoryHash() =>
-    r'b08c538a1c82239cf376c7b533e05f17b3aca6a9';
+String _$recurringTransactionsHash() =>
+    r'24db6f151c54ffabcd3802ffa9dae9cdf73dd104';
 
-/// See also [recurringTransactionRepository].
-@ProviderFor(recurringTransactionRepository)
-final recurringTransactionRepositoryProvider =
-    AutoDisposeProvider<RecurringTransactionRepository>.internal(
-      recurringTransactionRepository,
-      name: r'recurringTransactionRepositoryProvider',
+/// See also [recurringTransactions].
+@ProviderFor(recurringTransactions)
+final recurringTransactionsProvider =
+    AutoDisposeStreamProvider<List<RecurringTransaction>>.internal(
+      recurringTransactions,
+      name: r'recurringTransactionsProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$recurringTransactionRepositoryHash,
+          : _$recurringTransactionsHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef RecurringTransactionRepositoryRef =
-    AutoDisposeProviderRef<RecurringTransactionRepository>;
+typedef RecurringTransactionsRef =
+    AutoDisposeStreamProviderRef<List<RecurringTransaction>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

@@ -141,7 +141,7 @@ class AccountService {
   /// [type] - Defaults to [VirtualAccountType.userBudget]
   ///
   /// New envelopes start with a balance of 0.
-  Future<void> createVirtualAccount({
+  Future<VirtualAccount> createVirtualAccount({
     required String realAccountId,
     required String name,
     VirtualAccountType type = VirtualAccountType.userBudget,
@@ -165,6 +165,7 @@ class AccountService {
     );
 
     await repository.createVirtualAccount(user.uid, virtualAccount);
+    return virtualAccount;
   }
 
   /// Deletes a user-created virtual account.

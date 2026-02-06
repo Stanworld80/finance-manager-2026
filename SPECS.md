@@ -18,6 +18,10 @@ FinanceManager2026 est une application intelligente de gestion de finances perso
 #### 1. Acquisition des Données (Entrées Réelles)
 - **Saisie Manuelle :** Formulaire optimisé pour une saisie rapide.
 - **Import de Fichiers :** Support des exports bancaires (CSV, PDF, OFX) issus des sites de banques.
+  - **Parsing Intelligent (CSV) :**
+    - Détection automatique du séparateur (";", ",", "\t").
+    - Identification des colonnes clés (Date, Montant, Libellé, Note) via heuristiques ou mapping manuel.
+    - Support des formats de date variés (JJ/MM/AAAA, AAAA-MM-JJ).
 - **Synchronisation Bancaire (Bank Sync) :**
   - Connexion sécurisée aux banques réelles (API Open Banking / DSP2).
   - Cibles prioritaires : **Crédit Agricole**, **La Banque Postale**, **PayPal**.

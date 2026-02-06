@@ -22,10 +22,11 @@ import 'features/help/presentation/help_screen.dart';
 import 'features/accounts/presentation/account_detail_screen.dart';
 import 'features/projects/presentation/projects_dashboard_screen.dart';
 import 'features/projects/presentation/project_detail_screen.dart';
-import 'features/transactions/presentation/recurring_transactions_screen.dart';
-import 'features/transactions/presentation/add_recurring_transaction_page.dart';
+import 'features/transactions/presentation/recurrence_list_page.dart';
+import 'features/transactions/presentation/add_recurrence_page.dart';
 import 'features/ai/presentation/ai_chat_screen.dart';
 import 'features/import/presentation/import_screen.dart';
+import 'features/transactions/presentation/transaction_list_page.dart';
 
 import 'core/providers.dart';
 
@@ -71,11 +72,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/recurring',
-            builder: (context, state) => const RecurringTransactionsScreen(),
+            builder: (context, state) => const RecurrenceListPage(),
           ),
           GoRoute(
             path: '/recurring/add',
-            builder: (context, state) => const AddRecurringTransactionPage(),
+            builder: (context, state) => const AddRecurrencePage(),
           ),
           GoRoute(
             path: '/transaction/:id',
@@ -136,6 +137,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/import',
             builder: (context, state) => const ImportScreen(),
+          ),
+          GoRoute(
+            path: '/transactions',
+            builder: (context, state) => const TransactionListPage(),
           ),
         ],
       ),

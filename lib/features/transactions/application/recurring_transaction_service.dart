@@ -1,9 +1,10 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:uuid/uuid.dart';
+
 import '../../../../core/providers.dart';
 import '../data/recurring_transaction_repository.dart';
-import '../data/transaction_repository.dart';
-import '../domain/recurring_transaction.dart';
-import '../domain/transaction_model.dart';
+import '../domain/recurring_transaction_model.dart';
+import '../domain/transaction_model.dart'; // Needed for TransactionModel output
 
 part 'recurring_transaction_service.g.dart';
 
@@ -19,124 +20,150 @@ class RecurringTransactionService {
 
   RecurringTransactionService(this.ref);
 
-  Future<void> createRecurringTransaction({
+  Future<void> addRecurringTransaction({
+    required RecurrenceFrequency frequency,
+    int interval = 1,
+    required DateTime startDate,
+    DateTime? endDate,
+    required String realAccountId,
     required double amount,
     required String label,
-    required RecurringFrequency frequency,
-    required DateTime startDate,
-    required String realAccountId,
-    String? targetVirtualAccountId,
-    List<TransactionSplit> splits = const [],
-    int interval = 1,
-    String? category,
     String? note,
-    String? payee,
-    TransactionType type = TransactionType.debit,
+    required TransactionType type,
+    List<TransactionSplit> splits = const [],
   }) async {
     final user = ref.read(firebaseAuthProvider).currentUser;
     if (user == null) throw Exception("User not authenticated");
 
-    final repo = ref.read(recurringTransactionRepositoryProvider);
-    final id = DateTime.now().millisecondsSinceEpoch.toString();
+    final uuid = const Uuid();
+    final repository = ref.read(recurringTransactionRepositoryProvider);
 
+    // Initial calculation of next occurrence
+    // If startDate is in the future, next is startDate.
+    // If startDate is today, next is today.
+    // If startDate is past, we might want to catch up or just start from 'now' or 'startDate' logic?
+    // Let's assume startDate is the first occurrence.
+    // However, we should check if startDate is already "passed" in terms of "should have run".
+    // But for "Planning", we usually define start date.
+
+    // For now, nextOccurrence is startDate.
     final recurring = RecurringTransaction(
-      id: id,
+      id: uuid.v4(),
       ownerId: user.uid,
-      realAccountId: realAccountId,
-      amount: amount,
-      label: label,
-      category: category,
-      note: note,
-      payee: payee,
-      type: type,
-      targetVirtualAccountId: targetVirtualAccountId,
-      splits: splits,
       frequency: frequency,
       interval: interval,
       startDate: startDate,
-      nextDueDate: startDate, // First generation is on start date
-      createdAt: DateTime.now(),
+      endDate: endDate,
+      nextOccurrence: startDate, // First occurrence is start date
+      realAccountId: realAccountId,
+      amount: amount,
+      label: label,
+      note: note,
+      type: type,
+      splits: splits,
     );
 
-    await repo.createRecurringTransaction(user.uid, recurring);
+    await repository.createRecurringTransaction(user.uid, recurring);
   }
 
-  /// Checks all active recurring templates and generates transactions if due.
-  Future<int> syncRecurringTransactions() async {
+  Future<void> deleteRecurringTransaction(String id) async {
     final user = ref.read(firebaseAuthProvider).currentUser;
-    if (user == null) return 0;
+    if (user == null) throw Exception("User not authenticated");
 
-    final repo = ref.read(recurringTransactionRepositoryProvider);
-    final txRepo = ref.read(transactionRepositoryProvider);
-    final now = DateTime.now();
+    await ref
+        .read(recurringTransactionRepositoryProvider)
+        .deleteRecurringTransaction(user.uid, id);
+  }
 
-    final actives = await repo.getActiveRecurringTransactions(user.uid);
-    int generatedCount = 0;
+  /// Generates a list of future transaction occurrences up to [untilDate].
+  /// These are temporary `TransactionModel` objects (id generated but not saved).
+  Future<List<TransactionModel>> generateOccurrences(DateTime untilDate) async {
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) return [];
 
-    for (final template in actives) {
-      if (template.nextDueDate.isBefore(now) ||
-          template.nextDueDate.isAtSameMomentAs(now)) {
-        // Generate the transaction
-        final plannedTx = template.toPlannedTransaction(template.nextDueDate);
+    final repository = ref.read(recurringTransactionRepositoryProvider);
+    final rules = await repository.getRecurringTransactions(user.uid);
 
-        // Save it (Atomic)
-        await txRepo.createTransaction(user.uid, plannedTx);
+    final List<TransactionModel> projections = [];
+    final uuid = const Uuid();
 
-        // Calculate next due date
-        final nextDueDate = _calculateNextDate(
-          template.nextDueDate,
-          template.frequency,
-          template.interval,
+    for (final rule in rules) {
+      DateTime candidate = rule.nextOccurrence;
+
+      // Safety break to prevent infinite loops if interval is 0 or logic fails
+      if (rule.interval <= 0) continue;
+
+      while (candidate.isBefore(untilDate) ||
+          candidate.isAtSameMomentAs(untilDate)) {
+        if (rule.endDate != null && candidate.isAfter(rule.endDate!)) break;
+
+        // Create projection
+        projections.add(
+          TransactionModel(
+            id: "proj-${uuid.v4()}", // Temporary ID
+            ownerId: rule.ownerId,
+            realAccountId: rule.realAccountId,
+            amount: rule.amount,
+            label: "${rule.label} (Prévu)",
+            note: rule.note,
+            transactionDate: candidate,
+            type: rule.type,
+            status: TransactionStatus.none, // Planned?
+            step: TransactionStep.planned,
+            splits: rule.splits,
+          ),
         );
 
-        // Update template
-        final updatedTemplate = RecurringTransaction(
-          id: template.id,
-          ownerId: template.ownerId,
-          realAccountId: template.realAccountId,
-          amount: template.amount,
-          label: template.label,
-          category: template.category,
-          note: template.note,
-          payee: template.payee,
-          type: template.type,
-          targetVirtualAccountId: template.targetVirtualAccountId,
-          splits: template.splits,
-          frequency: template.frequency,
-          interval: template.interval,
-          startDate: template.startDate,
-          endDate: template.endDate,
-          lastGeneratedDate: template.nextDueDate,
-          nextDueDate: nextDueDate,
-          createdAt: template.createdAt,
-          isActive: template.endDate != null
-              ? nextDueDate.isBefore(template.endDate!)
-              : true,
-        );
-
-        await repo.updateRecurringTransaction(user.uid, updatedTemplate);
-        generatedCount++;
+        // Calculate next candidate locally
+        candidate = _calculateNext(rule, candidate);
       }
     }
 
-    return generatedCount;
+    // Sort by date
+    projections.sort((a, b) => a.transactionDate.compareTo(b.transactionDate));
+
+    return projections;
   }
 
-  DateTime _calculateNextDate(
-    DateTime current,
-    RecurringFrequency frequency,
-    int interval,
-  ) {
-    switch (frequency) {
-      case RecurringFrequency.daily:
-        return current.add(Duration(days: interval));
-      case RecurringFrequency.weekly:
-        return current.add(Duration(days: 7 * interval));
-      case RecurringFrequency.monthly:
-        // Simple month addition (doesn't handle end-of-month perfectly but standard for now)
-        return DateTime(current.year, current.month + interval, current.day);
-      case RecurringFrequency.yearly:
-        return DateTime(current.year + interval, current.month, current.day);
+  DateTime _calculateNext(RecurringTransaction rule, DateTime current) {
+    // Re-use the logic from model or here.
+    // Since model method 'calculateNextOccurrence' takes 'afterDate', it fast forwards.
+    // Here we want Step-by-Step.
+    // We can expose a static helper or just implement simple step here.
+
+    switch (rule.frequency) {
+      case RecurrenceFrequency.daily:
+        return current.add(Duration(days: rule.interval));
+      case RecurrenceFrequency.weekly:
+        return current.add(Duration(days: 7 * rule.interval));
+      case RecurrenceFrequency.monthly:
+        int newMonth = current.month + rule.interval;
+        int newYear = current.year + (newMonth - 1) ~/ 12;
+        newMonth = (newMonth - 1) % 12 + 1;
+
+        int newDay = current.day;
+        // Ideally stick to original start day, but current simplification uses previous date.
+        // To be precise, we should track 'originalDay' but model implies startDate IS original.
+        // Let's rely on startDate day if we want consistency, but here 'current' might have shifted?
+        // For simple "Add interval", using current is fine.
+        final daysInNewMonth = DateTime(newYear, newMonth + 1, 0).day;
+        if (newDay > daysInNewMonth) newDay = daysInNewMonth;
+
+        return DateTime(
+          newYear,
+          newMonth,
+          newDay,
+          current.hour,
+          current.minute,
+        );
+      case RecurrenceFrequency.yearly:
+        return DateTime(
+          current.year + rule.interval,
+          current.month,
+          current.day,
+          current.hour,
+          current.minute,
+        );
     }
   }
 }

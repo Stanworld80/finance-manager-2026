@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finance_manager_2026/app.dart';
 import 'package:finance_manager_2026/features/dashboard/presentation/dashboard_screen.dart';
-import 'package:finance_manager_2026/features/transactions/presentation/recurring_transactions_screen.dart';
+import 'package:finance_manager_2026/features/transactions/presentation/recurrence_list_page.dart';
 
 extension BddSteps on WidgetTester {
   Future<void> givenTheAppIsRunning() async {
@@ -61,7 +61,7 @@ extension BddSteps on WidgetTester {
   }
 
   Future<void> thenIShouldSeeRecurringScreen() async {
-    expect(find.byType(RecurringTransactionsScreen), findsOneWidget);
+    expect(find.byType(RecurrenceListPage), findsOneWidget);
   }
 
   Future<void> whenITapAddRecurring() async {

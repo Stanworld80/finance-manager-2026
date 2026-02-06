@@ -9,7 +9,9 @@ import '../../../core/presentation/ui_utils.dart';
 import '../../../core/presentation/dashed_line.dart';
 import '../../../core/providers.dart';
 
-import '../../transactions/application/recurring_transaction_service.dart';
+import '../../transactions/presentation/projected_balance_provider.dart';
+
+import '../../transactions/presentation/recurrence_list_page.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -22,10 +24,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // Sync recurring transactions when entering the dashboard
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(recurringTransactionServiceProvider).syncRecurringTransactions();
-    });
+    // Sync logic will be added later
   }
 
   @override
@@ -44,12 +43,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   onPressed: () => context.push('/help'),
                 ),
                 IconButton(
+                  icon: const Icon(Icons.calendar_month),
+                  tooltip: "Récurrences",
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const RecurrenceListPage(),
+                      ),
+                    );
+                  },
+                ),
+                IconButton(
                   icon: const Icon(Icons.account_circle),
                   onPressed: () => context.push('/profile'),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.logout),
-                  onPressed: () => ref.read(firebaseAuthProvider).signOut(),
+                  icon: const Icon(Icons.upload_file),
+                  onPressed: () => context.push('/import'),
                 ),
               ],
             ),
@@ -125,6 +135,38 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final projectedAsync = ref.watch(
+                          projectedBalanceProvider,
+                        );
+                        return projectedAsync.when(
+                          data: (balance) => Text(
+                            "Projeté (Fin de mois) : ${balance.toStringAsFixed(2)} €",
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: isDesktop ? 16 : 14,
+                            ),
+                          ),
+                          loading: () => SizedBox(
+                            height: 20,
+                            width: 100,
+                            child: LinearProgressIndicator(
+                              color: Colors.white.withOpacity(0.5),
+                              backgroundColor: Colors.transparent,
+                            ),
+                          ),
+                          error: (e, s) => Text(
+                            "Erreur projection",
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.7),
+                              fontSize: 12,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -161,6 +203,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             icon: const Icon(Icons.add),
                             label: const Text("Compte"),
                           ),
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed: () => context.push('/import'),
+                            icon: const Icon(Icons.upload_file),
+                            label: const Text("Importer CSV"),
+                          ),
                         ],
                       ),
                   ],
@@ -194,15 +242,52 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                 ),
 
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: Text(
-                  "Flux récents",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Flux récents",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => context.push('/transactions'),
+                      icon: const Icon(Icons.arrow_forward, size: 16),
+                      label: const Text('Voir tout'),
+                    ),
+                  ],
                 ),
               ),
 
               _buildTransactionList(ref, isDesktop),
+              Consumer(
+                builder: (context, ref, child) {
+                  final packageInfoAsync = ref.watch(packageInfoProvider);
+                  return packageInfoAsync.when(
+                    data: (info) => Padding(
+                      padding: const EdgeInsets.only(top: 24, bottom: 8),
+                      child: Center(
+                        child: Text(
+                          'v${info.version} (${info.buildNumber})',
+                          style: TextStyle(
+                            color: Colors.grey.withOpacity(0.5),
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ),
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  );
+                },
+              ),
               const SizedBox(height: 100), // Padding for FAB/BottomNav
             ],
           );
@@ -274,7 +359,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Text(
               "${account.balance.toStringAsFixed(2)} €",
               style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
+                color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),

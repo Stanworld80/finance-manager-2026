@@ -37,6 +37,8 @@ class SelectableAccount {
   int get hashCode => id.hashCode;
 }
 
+enum AccountSortType { byAccount, alphabetical }
+
 class AddTransactionPage extends ConsumerStatefulWidget {
   final TransactionModel? transactionToEdit;
 
@@ -61,6 +63,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
   bool _isSplitMode = false;
   final List<SplitRow> _splitRows = [];
 
+  AccountSortType _sortType = AccountSortType.byAccount;
+
   // Used for pre-filling origin/destination in build when list is available
   bool _isInitialized = false;
 
@@ -75,8 +79,6 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
       _date = tx.transactionDate;
       _type = tx.type;
 
-      // Logic to pre-fill origin/destination happens in build because we need the list of accounts
-      // Logic to pre-fill split rows:
       if (tx.splits.length > 2 ||
           (tx.splits.length == 2 &&
               tx.splits.any(
@@ -84,14 +86,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                     !SystemAccounts.isSystem(s.virtualAccountId) &&
                     s.virtualAccountId != tx.splits.first.virtualAccountId,
               ))) {
-        // This logic is complex because 'split mode' in UI means > 1 internal envelope for SAME side.
-        // Or simple split.
-        // Let's assume if it has > 2 splits, it's a split.
-        // Or if it is a Transfer, we handle differently.
         if (tx.type != TransactionType.transfer) {
           _isSplitMode = true;
-          // We will populate _splitRows in build or here if we have names? No we need SelectableAccount.
-          // We'll mark as not initialized and do it in build.
         }
       }
     }
@@ -130,6 +126,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
     List<VirtualAccount> allVirtuals,
   ) {
     final List<SelectableAccount> items = [];
+
+    // Always add External first
     items.add(
       SelectableAccount(
         id: SystemAccounts.external,
@@ -137,19 +135,49 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
         isExternal: true,
       ),
     );
-    for (var v in allVirtuals) {
-      final r = realAccounts.cast<RealAccount?>().firstWhere(
-        (acc) => acc?.id == v.realAccountId,
-        orElse: () => null,
-      );
-      items.add(
-        SelectableAccount(
-          id: v.id,
-          name: v.name,
-          realAccountName: r?.name,
-          virtualAccount: v,
-        ),
-      );
+
+    if (_sortType == AccountSortType.alphabetical) {
+      // Sort all virtuals alphabetically by name
+      final sortedVirtuals = List<VirtualAccount>.from(allVirtuals)
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+      for (var v in sortedVirtuals) {
+        final r = realAccounts.cast<RealAccount?>().firstWhere(
+          (acc) => acc?.id == v.realAccountId,
+          orElse: () => null,
+        );
+        items.add(
+          SelectableAccount(
+            id: v.id,
+            name: v.name,
+            realAccountName: r?.name,
+            virtualAccount: v,
+          ),
+        );
+      }
+    } else {
+      // Default: Group by Real Account
+      for (var r in realAccounts) {
+        final virtualsForAccount =
+            allVirtuals.where((v) => v.realAccountId == r.id).toList()
+              ..sort((a, b) {
+                // Put 'Libre' first, then others alphabetical
+                if (a.type == VirtualAccountType.systemFree) return -1;
+                if (b.type == VirtualAccountType.systemFree) return 1;
+                return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+              });
+
+        for (var v in virtualsForAccount) {
+          items.add(
+            SelectableAccount(
+              id: v.id,
+              name: v.name,
+              realAccountName: r.name,
+              virtualAccount: v,
+            ),
+          );
+        }
+      }
     }
     return items;
   }
@@ -171,7 +199,28 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
     final allVirtualsAsync = ref.watch(allVirtualAccountsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Nouvelle Transaction")),
+      appBar: AppBar(
+        title: const Text("Nouvelle Transaction"),
+        actions: [
+          PopupMenuButton<AccountSortType>(
+            icon: const Icon(Icons.sort),
+            tooltip: "Trier les comptes",
+            onSelected: (val) {
+              setState(() => _sortType = val);
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: AccountSortType.byAccount,
+                child: Text("Par Compte Bancaire"),
+              ),
+              const PopupMenuItem(
+                value: AccountSortType.alphabetical,
+                child: Text("Ordre Alphabétique"),
+              ),
+            ],
+          ),
+        ],
+      ),
       body: realAccountsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text("Erreur: $err")),
@@ -192,11 +241,28 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
               } else if (_origin == null &&
                   _destination == null &&
                   items.length > 1) {
-                _origin = items.firstWhere((i) => !i.isExternal);
+                _origin = items.firstWhere(
+                  (i) => !i.isExternal,
+                  orElse: () => externalItem,
+                );
                 _destination = externalItem;
                 _type = TransactionType.debit;
               }
               _isInitialized = true;
+            } else {
+              // Re-validate selection in case sort changed reference (should use ID match)
+              if (_origin != null && !_origin!.isExternal) {
+                _origin = items.firstWhere(
+                  (i) => i.id == _origin!.id,
+                  orElse: () => _origin!,
+                );
+              }
+              if (_destination != null && !_destination!.isExternal) {
+                _destination = items.firstWhere(
+                  (i) => i.id == _destination!.id,
+                  orElse: () => _destination!,
+                );
+              }
             }
 
             return SingleChildScrollView(
@@ -230,7 +296,10 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                           _isSplitMode = false;
                           if (_type == TransactionType.debit) {
                             if (_origin?.isExternal ?? false) {
-                              _origin = items.firstWhere((i) => !i.isExternal);
+                              _origin = items.firstWhere(
+                                (i) => !i.isExternal,
+                                orElse: () => items.last,
+                              );
                             }
                             _destination = externalItem;
                           } else if (_type == TransactionType.credit) {
@@ -238,11 +307,15 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                             if (_destination?.isExternal ?? false) {
                               _destination = items.firstWhere(
                                 (i) => !i.isExternal,
+                                orElse: () => items.last,
                               );
                             }
                           } else {
                             if (_origin?.isExternal ?? true) {
-                              _origin = items.firstWhere((i) => !i.isExternal);
+                              _origin = items.firstWhere(
+                                (i) => !i.isExternal,
+                                orElse: () => items.last,
+                              );
                             }
                             if (_destination?.isExternal ?? true) {
                               _destination = items
@@ -270,7 +343,6 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                       ],
                       validator: (value) {
                         if (value == null || value.isEmpty) return "Requis";
-                        // Formatter ensures structure, but double check parse
                         if (double.tryParse(value) == null) return "Invalide";
                         return null;
                       },
@@ -309,7 +381,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                         Expanded(
                           child: DropdownButtonFormField<SelectableAccount>(
                             key: const ValueKey('origin_dropdown'),
-                            initialValue: _origin,
+                            initialValue:
+                                _origin, // Use value instead of initialValue for dynamic udpates
                             isExpanded: true,
                             decoration: const InputDecoration(
                               labelText: "De (Origine)",
@@ -333,11 +406,24 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                         IconButton(
                           icon: const Icon(Icons.add_circle_outline),
                           tooltip: "Créer une nouvelle enveloppe",
-                          onPressed: () => _showQuickCreateEnvelope(
-                            context,
-                            ref,
-                            realAccountList,
-                          ),
+                          onPressed: () async {
+                            final newAccount = await _showQuickCreateEnvelope(
+                              context,
+                              ref,
+                              realAccountList,
+                            );
+                            if (newAccount != null) {
+                              setState(() {
+                                // Find the wrapped item corresponding to the new account
+                                final newItem = items.firstWhere(
+                                  (i) => i.id == newAccount.id,
+                                  orElse: () => items.first,
+                                );
+                                _origin = newItem;
+                                _syncType();
+                              });
+                            }
+                          },
                         ),
                       ],
                     ),
@@ -373,11 +459,24 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                         IconButton(
                           icon: const Icon(Icons.add_circle_outline),
                           tooltip: "Créer une nouvelle enveloppe",
-                          onPressed: () => _showQuickCreateEnvelope(
-                            context,
-                            ref,
-                            realAccountList,
-                          ),
+                          onPressed: () async {
+                            final newAccount = await _showQuickCreateEnvelope(
+                              context,
+                              ref,
+                              realAccountList,
+                            );
+                            if (newAccount != null) {
+                              setState(() {
+                                // Find the wrapped item corresponding to the new account
+                                final newItem = items.firstWhere(
+                                  (i) => i.id == newAccount.id,
+                                  orElse: () => items.first,
+                                );
+                                _destination = newItem;
+                                _syncType();
+                              });
+                            }
+                          },
                         ),
                       ],
                     ),
@@ -645,6 +744,28 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
 
         if (widget.transactionToEdit != null) {
           // --- EDIT MODE ---
+          final shouldUpdate = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text("Confirmer la modification"),
+              content: const Text(
+                "Voulez-vous vraiment enregistrer les modifications ?",
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text("Annuler"),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text("Confirmer"),
+                ),
+              ],
+            ),
+          );
+
+          if (shouldUpdate != true) return;
+
           if (_isSplitMode) {
             final splits = _splitRows
                 .map(
@@ -824,7 +945,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
     return _getRealAccount(v.realAccountId);
   }
 
-  Future<void> _showQuickCreateEnvelope(
+  Future<VirtualAccount?> _showQuickCreateEnvelope(
     BuildContext context,
     WidgetRef ref,
     List<RealAccount> realAccounts,
@@ -834,7 +955,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
         ? realAccounts.first
         : null;
 
-    await showDialog(
+    return showDialog<VirtualAccount?>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
@@ -870,13 +991,13 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
             ElevatedButton(
               onPressed: () async {
                 if (nameController.text.isNotEmpty && selectedAccount != null) {
-                  await ref
+                  final newAccount = await ref
                       .read(accountServiceProvider)
                       .createVirtualAccount(
                         realAccountId: selectedAccount!.id,
                         name: nameController.text,
                       );
-                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (ctx.mounted) Navigator.pop(ctx, newAccount);
                 }
               },
               child: const Text("Créer"),

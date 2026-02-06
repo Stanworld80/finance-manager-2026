@@ -338,6 +338,46 @@ class TransactionRepository {
       tx.set(txRef, updated.toMap());
     });
   }
+
+  Future<List<TransactionModel>> getFilteredTransactions({
+    required String userId,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? realAccountId,
+    int limit = 20,
+    DocumentSnapshot? lastDocument,
+  }) async {
+    Query query = _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('transactions')
+        .orderBy('transactionDate', descending: true);
+
+    if (startDate != null) {
+      query = query.where('transactionDate', isGreaterThanOrEqualTo: startDate);
+    }
+    if (endDate != null) {
+      query = query.where('transactionDate', isLessThanOrEqualTo: endDate);
+    }
+    // Note: Firestore requires composite index for filtering by equality (realAccountId)
+    // and sorting by range (transactionDate).
+    if (realAccountId != null) {
+      query = query.where('realAccountId', isEqualTo: realAccountId);
+    }
+
+    if (lastDocument != null) {
+      query = query.startAfterDocument(lastDocument);
+    }
+
+    query = query.limit(limit);
+
+    final snapshot = await query.get();
+    return snapshot.docs
+        .map(
+          (doc) => TransactionModel.fromMap(doc.data() as Map<String, dynamic>),
+        )
+        .toList();
+  }
 }
 
 @riverpod

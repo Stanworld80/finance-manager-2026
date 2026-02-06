@@ -19,6 +19,7 @@ class TransactionDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final transactionAsync = ref.watch(transactionByIdProvider(transactionId));
     final allVirtualsAsync = ref.watch(allVirtualAccountsProvider);
+    final allRealAccountsAsync = ref.watch(realAccountsProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -59,7 +60,15 @@ class TransactionDetailScreen extends ConsumerWidget {
             return const Center(child: Text("Transaction introuvable"));
           }
           return allVirtualsAsync.when(
-            data: (virtuals) => _buildContent(context, tx, virtuals, ref),
+            data: (virtuals) {
+              return allRealAccountsAsync.when(
+                data: (realAccounts) =>
+                    _buildContent(context, tx, virtuals, realAccounts, ref),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, s) =>
+                    Center(child: Text("Erreur comptes réels: $e")),
+              );
+            },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, s) => Center(child: Text("Erreur comptes: $e")),
           );
@@ -74,6 +83,7 @@ class TransactionDetailScreen extends ConsumerWidget {
     BuildContext context,
     TransactionModel tx,
     List<VirtualAccount> virtuals,
+    List<RealAccount> realAccounts,
     WidgetRef ref,
   ) {
     final color = UiUtils.getTransactionColor(
@@ -252,6 +262,16 @@ class TransactionDetailScreen extends ConsumerWidget {
                       (v) => v.id == split.virtualAccountId,
                     );
                     displayName = vAccount.name;
+
+                    try {
+                      final realAccount = realAccounts.firstWhere(
+                        (r) => r.id == vAccount.realAccountId,
+                      );
+                      displayName += " (${realAccount.name})";
+                    } catch (_) {
+                      // Real account not found, just ignore
+                    }
+
                     // subtitle = "Compte Virtuel";
                   } catch (_) {
                     displayName = "Compte Inconnu";
