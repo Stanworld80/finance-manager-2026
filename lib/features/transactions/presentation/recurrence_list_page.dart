@@ -13,7 +13,20 @@ class RecurrenceListPage extends ConsumerWidget {
     final recurrencesAsync = ref.watch(recurringTransactionsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Récurrences & Abonnements')),
+      appBar: AppBar(
+        title: const Text('Récurrences & Abonnements'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: "Nouvelle Récurrence",
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AddRecurrencePage()),
+              );
+            },
+          ),
+        ],
+      ),
       body: recurrencesAsync.when(
         data: (recurrences) {
           if (recurrences.isEmpty) {
@@ -43,14 +56,6 @@ class RecurrenceListPage extends ConsumerWidget {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, st) => Center(child: Text('Erreur: $e')),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const AddRecurrencePage()));
-        },
-        child: const Icon(Icons.add),
       ),
     );
   }

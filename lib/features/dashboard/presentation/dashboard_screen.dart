@@ -295,17 +295,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Erreur: $err')),
       ),
-      floatingActionButton: !isDesktop
-          ? FloatingActionButton(
-              onPressed: () => context.push('/add-transaction'),
-              tooltip: "Nouvelle transaction",
-              child: const Icon(Icons.add),
-            )
-          : FloatingActionButton.extended(
-              onPressed: () => context.push('/add-transaction'),
-              icon: const Icon(Icons.add),
-              label: const Text("Transaction"),
-            ),
     );
   }
 

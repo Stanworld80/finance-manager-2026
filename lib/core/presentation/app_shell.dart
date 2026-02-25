@@ -18,7 +18,52 @@ class AppShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDesktop = MediaQuery.of(context).size.width > 900;
 
+    // Helper to safely extract current real account id from route
+    String? currentAccountId;
+    if (currentLocation.startsWith('/account/')) {
+      final parts = currentLocation.split('/');
+      if (parts.length > 2) {
+        currentAccountId = parts[2];
+      }
+    }
+
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          isDesktop ? '' : 'Finance Manager',
+        ), // Sidebar has it on desktop
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        actions: [
+          _buildShortcutButton(
+            context: context,
+            label: 'Revenu',
+            icon: Icons.move_to_inbox,
+            type: 'credit',
+            color: Colors.green,
+            accountId: currentAccountId,
+          ),
+          const SizedBox(width: 8),
+          _buildShortcutButton(
+            context: context,
+            label: 'Dépense',
+            icon: Icons.outbound,
+            type: 'debit',
+            color: Colors.red,
+            accountId: currentAccountId,
+          ),
+          const SizedBox(width: 8),
+          _buildShortcutButton(
+            context: context,
+            label: 'Virement',
+            icon: Icons.swap_horiz,
+            type: 'transfer',
+            color: Colors.blue,
+            accountId: currentAccountId,
+          ),
+          const SizedBox(width: 16),
+        ],
+      ),
       body: Stack(
         children: [
           Row(
@@ -162,6 +207,29 @@ class AppShell extends ConsumerWidget {
         if (index == 2) context.go('/preferences');
       },
       items: items,
+    );
+  }
+
+  Widget _buildShortcutButton({
+    required BuildContext context,
+    required String label,
+    required IconData icon,
+    required String type,
+    required Color color,
+    String? accountId,
+  }) {
+    return ActionChip(
+      avatar: Icon(icon, size: 16, color: color),
+      label: Text(label),
+      surfaceTintColor: color.withOpacity(0.1),
+      onPressed: () {
+        final query = {'type': type};
+        if (accountId != null) {
+          query['accountId'] = accountId;
+        }
+        final uri = Uri(path: '/add-transaction', queryParameters: query);
+        context.push(uri.toString());
+      },
     );
   }
 }

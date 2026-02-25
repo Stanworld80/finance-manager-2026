@@ -14,7 +14,17 @@ class ProjectsDashboardScreen extends ConsumerWidget {
     final projectsAsync = ref.watch(projectsStreamProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Mes Projets"), centerTitle: false),
+      appBar: AppBar(
+        title: const Text("Mes Projets"),
+        centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: "Nouveau Projet",
+            onPressed: () => _showAddProjectDialog(context, ref),
+          ),
+        ],
+      ),
       body: projectsAsync.when(
         data: (projects) {
           if (projects.isEmpty) {
@@ -57,10 +67,6 @@ class ProjectsDashboardScreen extends ConsumerWidget {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text("Erreur: $err")),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddProjectDialog(context, ref),
-        child: const Icon(Icons.add),
       ),
     );
   }

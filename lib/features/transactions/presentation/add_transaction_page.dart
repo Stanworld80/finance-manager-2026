@@ -41,8 +41,15 @@ enum AccountSortType { byAccount, alphabetical }
 
 class AddTransactionPage extends ConsumerStatefulWidget {
   final TransactionModel? transactionToEdit;
+  final String? initialType;
+  final String? initialRealAccountId;
 
-  const AddTransactionPage({super.key, this.transactionToEdit});
+  const AddTransactionPage({
+    super.key,
+    this.transactionToEdit,
+    this.initialType,
+    this.initialRealAccountId,
+  });
 
   @override
   ConsumerState<AddTransactionPage> createState() => _AddTransactionPageState();
@@ -89,6 +96,13 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
         if (tx.type != TransactionType.transfer) {
           _isSplitMode = true;
         }
+      }
+    } else {
+      // Handle query parameters if creating a new transaction
+      if (widget.initialType != null) {
+        if (widget.initialType == 'credit') _type = TransactionType.credit;
+        if (widget.initialType == 'debit') _type = TransactionType.debit;
+        if (widget.initialType == 'transfer') _type = TransactionType.transfer;
       }
     }
   }
@@ -240,13 +254,48 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                 );
               } else if (_origin == null &&
                   _destination == null &&
-                  items.length > 1) {
-                _origin = items.firstWhere(
-                  (i) => !i.isExternal,
-                  orElse: () => externalItem,
-                );
-                _destination = externalItem;
-                _type = TransactionType.debit;
+                  items.isNotEmpty) {
+                SelectableAccount? defaultRealAccount;
+                if (widget.initialRealAccountId != null) {
+                  try {
+                    defaultRealAccount = items.firstWhere(
+                      (i) =>
+                          i.virtualAccount?.realAccountId ==
+                              widget.initialRealAccountId &&
+                          i.virtualAccount?.type ==
+                              VirtualAccountType.systemFree,
+                    );
+                  } catch (_) {
+                    try {
+                      defaultRealAccount = items.firstWhere(
+                        (i) =>
+                            i.virtualAccount?.realAccountId ==
+                            widget.initialRealAccountId,
+                      );
+                    } catch (_) {}
+                  }
+                }
+
+                if (defaultRealAccount == null && items.length > 1) {
+                  defaultRealAccount = items.firstWhere(
+                    (i) => !i.isExternal,
+                    orElse: () => externalItem,
+                  );
+                }
+
+                if (_type == TransactionType.debit) {
+                  _origin = defaultRealAccount ?? externalItem;
+                  _destination = externalItem;
+                } else if (_type == TransactionType.credit) {
+                  _origin = externalItem;
+                  _destination = defaultRealAccount ?? externalItem;
+                } else if (_type == TransactionType.transfer) {
+                  _origin = defaultRealAccount ?? externalItem;
+                  _destination = items.firstWhere(
+                    (i) => !i.isExternal && i.id != _origin?.id,
+                    orElse: () => externalItem,
+                  );
+                }
               }
               _isInitialized = true;
             } else {

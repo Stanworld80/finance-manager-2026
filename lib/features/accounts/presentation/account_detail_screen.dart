@@ -33,7 +33,13 @@ class AccountDetailScreen extends ConsumerWidget {
         title: const Text('Détail du Compte'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.create_new_folder),
+            tooltip: 'Nouvelle Enveloppe',
+            onPressed: () => _showAddEnvelopeDialog(context, ref, accountId),
+          ),
+          IconButton(
             icon: const Icon(Icons.edit),
+            tooltip: 'Modifier le compte',
             onPressed: () {
               final accountsAsync = ref.read(realAccountsProvider);
               accountsAsync.whenData((accounts) {
@@ -45,6 +51,7 @@ class AccountDetailScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.delete_forever),
             color: Colors.red.shade300,
+            tooltip: 'Supprimer le compte',
             onPressed: () {
               final accountsAsync = ref.read(realAccountsProvider);
               accountsAsync.whenData((accounts) {
@@ -262,11 +269,6 @@ class AccountDetailScreen extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(child: Text("Erreur: $e")),
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddEnvelopeDialog(context, ref, accountId),
-        icon: const Icon(Icons.create_new_folder),
-        label: const Text("Nouvelle Enveloppe"),
       ),
     );
   }
