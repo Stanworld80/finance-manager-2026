@@ -5,6 +5,7 @@ import '../data/account_repository.dart';
 import '../domain/account_models.dart';
 import '../../transactions/application/transaction_service.dart';
 import '../../transactions/data/transaction_repository.dart';
+import '../../auth/data/user_repository.dart';
 
 part 'account_service.g.dart';
 
@@ -271,6 +272,51 @@ class AccountService {
   /// Equivalent to calling [updateRealAccountMetadata] with only the name.
   Future<void> renameRealAccount(RealAccount account, String newName) async {
     await updateRealAccountMetadata(account: account, name: newName);
+  }
+
+  /// Shares a real account with another user by their email address.
+  Future<void> shareRealAccount(RealAccount account, String email) async {
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) throw Exception("User not authenticated");
+
+    if (account.ownerId != user.uid) {
+      throw Exception("Seul le propriétaire peut partager ce compte.");
+    }
+
+    final userRepo = ref.read(userRepositoryProvider);
+    final profile = await userRepo.findUserByEmail(email);
+
+    if (profile == null) {
+      throw Exception("Aucun utilisateur trouvé avec cet e-mail.");
+    }
+
+    if (account.ownerId == profile.uid) {
+      throw Exception("Vous ne pouvez pas partager le compte avec vous-même.");
+    }
+
+    if (account.sharedWithUserIds.contains(profile.uid)) {
+      throw Exception("Le compte est déjà partagé avec cet utilisateur.");
+    }
+
+    final repository = ref.read(accountRepositoryProvider);
+    final updatedAccount = RealAccount(
+      id: account.id,
+      ownerId: account.ownerId,
+      name: account.name,
+      bankName: account.bankName,
+      initialBalance: account.initialBalance,
+      balance: account.balance,
+      type: account.type,
+      sharedWithUserIds: [...account.sharedWithUserIds, profile.uid],
+      openingDate: account.openingDate,
+      accountNumber: account.accountNumber,
+      officialName: account.officialName,
+      iban: account.iban,
+      bic: account.bic,
+      swift: account.swift,
+    );
+
+    await repository.updateRealAccount(account.ownerId, updatedAccount);
   }
 
   /// Repairs inconsistent virtual account data.

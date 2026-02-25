@@ -14,28 +14,41 @@ class AccountRepository {
   // --- Real Accounts ---
 
   Future<void> createRealAccount(String userId, RealAccount account) async {
-    await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('real_accounts')
-        .doc(account.id)
-        .set(account.toMap());
+    // Add creator to accessibleUserIds upon creation
+    final accToSave = account.toMap();
+    accToSave['accessibleUserIds'] = [userId, ...account.sharedWithUserIds];
+
+    await _firestore.collection('accounts').doc(account.id).set(accToSave);
   }
 
   Future<void> updateRealAccount(String userId, RealAccount account) async {
-    await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('real_accounts')
-        .doc(account.id)
-        .update(account.toMap());
+    final accToUpdate = account.toMap();
+    accToUpdate['accessibleUserIds'] = [
+      account.ownerId,
+      ...account.sharedWithUserIds,
+    ];
+
+    await _firestore.collection('accounts').doc(account.id).update(accToUpdate);
   }
 
   Stream<List<RealAccount>> watchRealAccounts(String userId) {
     return _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('real_accounts')
+        .collection('accounts')
+        .where('accessibleUserIds', arrayContains: userId)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => RealAccount.fromMap(doc.data()))
+              .toList(),
+        );
+  }
+
+  // watchSharedRealAccounts is deprecated but kept for backwards compatibility if needed,
+  // though watchRealAccounts now handles everything.
+  Stream<List<RealAccount>> watchSharedRealAccounts(String userId) {
+    return _firestore
+        .collection('accounts')
+        .where('sharedWithUserIds', arrayContains: userId)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
@@ -45,12 +58,7 @@ class AccountRepository {
   }
 
   Future<RealAccount?> getRealAccount(String userId, String accountId) async {
-    final doc = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('real_accounts')
-        .doc(accountId)
-        .get();
+    final doc = await _firestore.collection('accounts').doc(accountId).get();
 
     if (doc.exists && doc.data() != null) {
       return RealAccount.fromMap(doc.data()!);
@@ -60,20 +68,14 @@ class AccountRepository {
 
   Future<List<RealAccount>> getRealAccounts(String userId) async {
     final snapshot = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('real_accounts')
+        .collection('accounts')
+        .where('accessibleUserIds', arrayContains: userId)
         .get();
     return snapshot.docs.map((doc) => RealAccount.fromMap(doc.data())).toList();
   }
 
   Future<void> deleteRealAccount(String userId, String accountId) async {
-    await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('real_accounts')
-        .doc(accountId)
-        .delete();
+    await _firestore.collection('accounts').doc(accountId).delete();
   }
 
   // --- Virtual Accounts ---
@@ -83,9 +85,7 @@ class AccountRepository {
     VirtualAccount account,
   ) async {
     await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('real_accounts')
+        .collection('accounts')
         .doc(account.realAccountId)
         .collection('virtual_accounts')
         .doc(account.id)
@@ -97,9 +97,7 @@ class AccountRepository {
     String realAccountId,
   ) {
     return _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('real_accounts')
+        .collection('accounts')
         .doc(realAccountId)
         .collection('virtual_accounts')
         .snapshots()
@@ -115,9 +113,7 @@ class AccountRepository {
     VirtualAccount account,
   ) async {
     await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('real_accounts')
+        .collection('accounts')
         .doc(account.realAccountId)
         .collection('virtual_accounts')
         .doc(account.id)
@@ -172,9 +168,7 @@ class AccountRepository {
     String virtualAccountId,
   ) async {
     await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('real_accounts')
+        .collection('accounts')
         .doc(realAccountId)
         .collection('virtual_accounts')
         .doc(virtualAccountId)
@@ -190,9 +184,8 @@ class AccountRepository {
     int totalVirtuals = 0;
 
     final realAccounts = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('real_accounts')
+        .collection('accounts')
+        .where('accessibleUserIds', arrayContains: userId)
         .get();
 
     for (var realDoc in realAccounts.docs) {
@@ -279,9 +272,7 @@ class AccountRepository {
   ) async {
     final id = const Uuid().v4();
     await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('real_accounts')
+        .collection('accounts')
         .doc(realAccountId)
         .collection('virtual_accounts')
         .doc(id)

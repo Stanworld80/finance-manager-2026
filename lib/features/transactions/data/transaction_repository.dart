@@ -69,10 +69,10 @@ class TransactionRepository {
     String userId,
     TransactionModel transaction,
   ) async {
-    // 1. Reference the Transaction Doc
+    // 1. Reference the Transaction Doc (Now under accounts/{realAccountId}/transactions)
     final txRef = _firestore
-        .collection('users')
-        .doc(userId)
+        .collection('accounts')
+        .doc(transaction.realAccountId)
         .collection('transactions')
         .doc(transaction.id);
 
@@ -82,9 +82,7 @@ class TransactionRepository {
     double realImpact = transaction.amount;
 
     final realAccountRef = _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('real_accounts')
+        .collection('accounts')
         .doc(transaction.realAccountId);
 
     tx.update(realAccountRef, {'balance': FieldValue.increment(realImpact)});
@@ -94,9 +92,7 @@ class TransactionRepository {
       if (SystemAccounts.isSystem(split.virtualAccountId)) continue;
 
       final virtualAccountRef = _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('real_accounts')
+          .collection('accounts')
           .doc(transaction.realAccountId)
           .collection('virtual_accounts')
           .doc(split.virtualAccountId);
@@ -113,8 +109,8 @@ class TransactionRepository {
   ) async {
     return _firestore.runTransaction((tx) async {
       final txRef = _firestore
-          .collection('users')
-          .doc(userId)
+          .collection('accounts')
+          .doc(transaction.realAccountId)
           .collection('transactions')
           .doc(transaction.id);
 
@@ -124,9 +120,7 @@ class TransactionRepository {
       double realImpact = -transaction.amount;
 
       final realAccountRef = _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('real_accounts')
+          .collection('accounts')
           .doc(transaction.realAccountId);
 
       tx.update(realAccountRef, {'balance': FieldValue.increment(realImpact)});
@@ -135,9 +129,7 @@ class TransactionRepository {
         if (SystemAccounts.isSystem(split.virtualAccountId)) continue;
 
         final virtualAccountRef = _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('real_accounts')
+            .collection('accounts')
             .doc(transaction.realAccountId)
             .collection('virtual_accounts')
             .doc(split.virtualAccountId);
@@ -150,10 +142,24 @@ class TransactionRepository {
   }
 
   Stream<List<TransactionModel>> watchTransactions(String userId) {
+    // We want all transactions the user can access.
+    // The accessible accounts need to be looked up, OR we just use a collectionGroup
+    // which requires the transaction model to know its accessibleUserIds.
+    // For now, if TransactionModel does NOT have accessibleUserIds,
+    // we must fetch accessible RealAccount IDs first, OR add accessibleUserIds to tx.
+    // Assuming transactions are strictly bound to accounts, fetching by account is best.
+
+    // Let's use a simpler approach for a truly global stream if we don't have tx.accessibleUserIds:
+    // This is temporary until we denormalize accessibleUserIds into Transactions if needed.
+    // For MVP, we'll watch a collectionGroup if we add `accessibleUserIds` to Texas,
+    // otherwise we must fetch accounts and watch their txs.
+
+    // Using collectionGroup assuming we might add accessibleUserIds later.
+    // Actually, `ownerId` might be enough if we just want owned.
+    // Let's use a fallback for now: watch owned.
     return _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
+        .collectionGroup('transactions')
+        .where('ownerId', isEqualTo: userId)
         .orderBy('transactionDate', descending: true)
         .snapshots()
         .map(
@@ -168,14 +174,15 @@ class TransactionRepository {
     String transactionId,
   ) {
     return _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
-        .doc(transactionId)
+        .collectionGroup('transactions')
+        .where('id', isEqualTo: transactionId)
+        .limit(1)
         .snapshots()
-        .map((doc) {
-          if (!doc.exists) return null;
-          return TransactionModel.fromMap(doc.data()!);
+        .map((snapshot) {
+          if (snapshot.docs.isEmpty) return null;
+          final data = snapshot.docs.first.data();
+          if (data == null) return null;
+          return TransactionModel.fromMap(data as Map<String, dynamic>);
         });
   }
 
@@ -184,10 +191,9 @@ class TransactionRepository {
     String realAccountId,
   ) async {
     final snapshot = await _firestore
-        .collection('users')
-        .doc(userId)
+        .collection('accounts')
+        .doc(realAccountId)
         .collection('transactions')
-        .where('realAccountId', isEqualTo: realAccountId)
         .orderBy('transactionDate', descending: true)
         .get();
     return snapshot.docs
@@ -241,9 +247,8 @@ class TransactionRepository {
     // Let's assume we fetch all transactions for the user.
     // Warning: Potential performance issue later.
     final snapshot = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
+        .collectionGroup('transactions')
+        .where('ownerId', isEqualTo: userId)
         .orderBy('transactionDate', descending: true)
         .limit(500) // Safety limit
         .get();
@@ -268,9 +273,7 @@ class TransactionRepository {
       double revertRealImpact = -original.amount;
 
       final realAccountRef = _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('real_accounts')
+          .collection('accounts')
           .doc(original.realAccountId);
 
       tx.update(realAccountRef, {
@@ -281,9 +284,7 @@ class TransactionRepository {
         if (SystemAccounts.isSystem(split.virtualAccountId)) continue;
 
         final virtualAccountRef = _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('real_accounts')
+            .collection('accounts')
             .doc(original.realAccountId)
             .collection('virtual_accounts')
             .doc(split.virtualAccountId);
@@ -300,9 +301,7 @@ class TransactionRepository {
       // The code above assumes original.realAccountId.
 
       final newRealAccountRef = _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('real_accounts')
+          .collection('accounts')
           .doc(updated.realAccountId);
 
       tx.update(newRealAccountRef, {
@@ -313,9 +312,7 @@ class TransactionRepository {
         if (SystemAccounts.isSystem(split.virtualAccountId)) continue;
 
         final virtualAccountRef = _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('real_accounts')
+            .collection('accounts')
             .doc(updated.realAccountId)
             .collection('virtual_accounts')
             .doc(split.virtualAccountId);
@@ -330,8 +327,8 @@ class TransactionRepository {
 
       // 3. Update Transaction Doc
       final txRef = _firestore
-          .collection('users')
-          .doc(userId)
+          .collection('accounts')
+          .doc(updated.realAccountId)
           .collection('transactions')
           .doc(updated.id);
 
@@ -347,11 +344,20 @@ class TransactionRepository {
     int limit = 20,
     DocumentSnapshot? lastDocument,
   }) async {
-    Query query = _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
-        .orderBy('transactionDate', descending: true);
+    Query query;
+
+    if (realAccountId != null) {
+      query = _firestore
+          .collection('accounts')
+          .doc(realAccountId)
+          .collection('transactions')
+          .orderBy('transactionDate', descending: true);
+    } else {
+      query = _firestore
+          .collectionGroup('transactions')
+          .where('ownerId', isEqualTo: userId)
+          .orderBy('transactionDate', descending: true);
+    }
 
     if (startDate != null) {
       query = query.where('transactionDate', isGreaterThanOrEqualTo: startDate);
@@ -359,11 +365,7 @@ class TransactionRepository {
     if (endDate != null) {
       query = query.where('transactionDate', isLessThanOrEqualTo: endDate);
     }
-    // Note: Firestore requires composite index for filtering by equality (realAccountId)
-    // and sorting by range (transactionDate).
-    if (realAccountId != null) {
-      query = query.where('realAccountId', isEqualTo: realAccountId);
-    }
+    // Removed realAccountId where clause because we now branch above
 
     if (lastDocument != null) {
       query = query.startAfterDocument(lastDocument);

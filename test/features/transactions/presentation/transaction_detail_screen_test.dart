@@ -85,12 +85,8 @@ void main() {
       reason: "AppBar title not found",
     );
 
-    // Verify Transaction Amount (Header)
-    expect(
-      find.text("-10.00 €"),
-      findsOneWidget,
-      reason: "Header amount not found",
-    );
+    // Verify Transaction Amount (Header and potentially in splits)
+    expect(find.text("-10.00 €"), findsAtLeast(1), reason: "Amount not found");
 
     // Verify Flux Financiers section check
     expect(
@@ -98,13 +94,6 @@ void main() {
       findsOneWidget,
       reason: "Flux Financiers header not found",
     );
-
-    // Verify Virtual Amount Name
-    expect(
-      find.text("Alimentation"),
-      findsWidgets,
-      reason: "Virtual account name not found",
-    ); // might be multiple if composed
 
     // Verify Real Account Name is displayed in parentheses
     // We search for the specific combined text

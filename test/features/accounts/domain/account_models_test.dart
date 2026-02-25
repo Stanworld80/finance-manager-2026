@@ -48,6 +48,7 @@ void main() {
         'initialBalance': 10.0,
         'bankName': 'Test Bank',
         'type': 'internal',
+        'sharedWithUserIds': [],
         'openingDate': null,
         'accountNumber': null,
         'officialName': null,

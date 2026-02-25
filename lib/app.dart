@@ -13,6 +13,7 @@ import 'dart:async';
 import 'package:finance_manager_2026/features/auth/presentation/auth_gate.dart';
 
 import 'features/auth/presentation/profile_page.dart';
+import 'features/auth/data/auth_providers.dart';
 
 import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'features/transactions/presentation/add_transaction_page.dart';
@@ -22,6 +23,7 @@ import 'features/help/presentation/help_screen.dart';
 import 'features/accounts/presentation/account_detail_screen.dart';
 import 'features/projects/presentation/projects_dashboard_screen.dart';
 import 'features/projects/presentation/project_detail_screen.dart';
+import 'features/resume/presentation/resume_screen.dart';
 import 'features/transactions/presentation/recurrence_list_page.dart';
 import 'features/transactions/presentation/add_recurrence_page.dart';
 import 'features/ai/presentation/ai_chat_screen.dart';
@@ -139,6 +141,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const ImportScreen(),
           ),
           GoRoute(
+            path: '/resume',
+            builder: (context, state) => const ResumeScreen(),
+          ),
+          GoRoute(
             path: '/transactions',
             builder: (context, state) => const TransactionListPage(),
           ),
@@ -170,6 +176,9 @@ class FinanceManagerApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Start syncing the user profile once authenticated
+    ref.watch(userProfileSyncProvider);
+
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeControllerProvider);
     final lightTheme = ref.watch(lightThemeProvider);

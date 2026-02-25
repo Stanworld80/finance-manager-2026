@@ -22,12 +22,10 @@ class SeedService {
       type: RealAccountType.internal,
     );
 
-    await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('real_accounts')
-        .doc(realAccountId)
-        .set(realAccount.toMap());
+    final accToMap = realAccount.toMap();
+    accToMap['accessibleUserIds'] = [userId];
+
+    await _firestore.collection('accounts').doc(realAccountId).set(accToMap);
 
     // 2. Create Virtual Accounts (System Free & System Committed)
     final freeAccountId = _uuid.v4();
@@ -62,27 +60,21 @@ class SeedService {
     );
 
     await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('real_accounts')
+        .collection('accounts')
         .doc(realAccountId)
         .collection('virtual_accounts')
         .doc(freeAccountId)
         .set(freeAccount.toMap());
 
     await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('real_accounts')
+        .collection('accounts')
         .doc(realAccountId)
         .collection('virtual_accounts')
         .doc(committedAccountId)
         .set(committedAccount.toMap());
 
     await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('real_accounts')
+        .collection('accounts')
         .doc(realAccountId)
         .collection('virtual_accounts')
         .doc(foodAccountId)
@@ -105,8 +97,8 @@ class SeedService {
     );
 
     await _firestore
-        .collection('users')
-        .doc(userId)
+        .collection('accounts')
+        .doc(realAccountId)
         .collection('transactions')
         .doc(transactionId)
         .set(transaction.toMap());
@@ -115,21 +107,13 @@ class SeedService {
   Future<void> clearAllData(String userId) async {
     final batch = _firestore.batch();
 
-    // 1. Delete Transactions
-    final transactions = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
-        .get();
-    for (var doc in transactions.docs) {
-      batch.delete(doc.reference);
-    }
+    // 1. Delete Transactions (Actually, transactions are under accounts now)
+    // We will delete them when we iterate real accounts.
 
     // 2. Delete Real Accounts (and their sub-collections)
     final realAccounts = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('real_accounts')
+        .collection('accounts')
+        .where('ownerId', isEqualTo: userId)
         .get();
 
     for (var raDoc in realAccounts.docs) {
@@ -140,7 +124,22 @@ class SeedService {
       for (var vaDoc in virtualAccounts.docs) {
         batch.delete(vaDoc.reference);
       }
+      // Delete Transactions
+      final txs = await raDoc.reference.collection('transactions').get();
+      for (var txDoc in txs.docs) {
+        batch.delete(txDoc.reference);
+      }
+
       batch.delete(raDoc.reference);
+    }
+
+    // We should also delete projects
+    final projects = await _firestore
+        .collection('projects')
+        .where('ownerId', isEqualTo: userId)
+        .get();
+    for (var doc in projects.docs) {
+      batch.delete(doc.reference);
     }
 
     await batch.commit();

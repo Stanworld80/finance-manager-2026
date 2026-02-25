@@ -349,6 +349,15 @@ class MockAccountService extends _i1.Mock implements _i7.AccountService {
           as _i5.Future<void>);
 
   @override
+  _i5.Future<void> shareRealAccount(_i3.RealAccount? account, String? email) =>
+      (super.noSuchMethod(
+            Invocation.method(#shareRealAccount, [account, email]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
   _i5.Future<Map<String, int>> repairData() =>
       (super.noSuchMethod(
             Invocation.method(#repairData, []),

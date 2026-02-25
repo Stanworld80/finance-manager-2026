@@ -27,16 +27,6 @@ class AppShell extends ConsumerWidget {
               Expanded(child: child),
             ],
           ),
-          Positioned(
-            bottom: 100, // Lifted up to avoid overlap
-            right: 16,
-            child: FloatingActionButton(
-              onPressed: () => context.push('/ai'),
-              tooltip: 'Coach Financier',
-              backgroundColor: Theme.of(context).primaryColor,
-              child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
-            ),
-          ),
         ],
       ),
       bottomNavigationBar: !isDesktop ? _buildBottomNav(context) : null,
@@ -88,6 +78,18 @@ class AppShell extends ConsumerWidget {
                   label: 'Échéanciers',
                   isSelected: currentLocation == '/recurring',
                   onTap: () => context.go('/recurring'),
+                ),
+                _SidebarItem(
+                  icon: Icons.insights_outlined,
+                  label: 'Résumé',
+                  isSelected: currentLocation == '/resume',
+                  onTap: () => context.go('/resume'),
+                ),
+                _SidebarItem(
+                  icon: Icons.chat_bubble_outline,
+                  label: 'Coach Financier',
+                  isSelected: currentLocation == '/ai',
+                  onTap: () => context.go('/ai'),
                 ),
                 _SidebarItem(
                   icon: Icons.upload_file,

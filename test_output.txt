@@ -1,0 +1,107 @@
+00:00 +0: loading D:/development/FinanceManager2026/test/core/presentation/utils/decimal_text_input_formatter_test.dart
+00:00 +0: D:/development/FinanceManager2026/test/core/presentation/utils/decimal_text_input_formatter_test.dart: DecimalTextInputFormatter replaces comma with dot
+00:00 +1: D:/development/FinanceManager2026/test/core/presentation/utils/decimal_text_input_formatter_test.dart: DecimalTextInputFormatter removes spaces
+00:00 +2: D:/development/FinanceManager2026/test/core/presentation/utils/decimal_text_input_formatter_test.dart: DecimalTextInputFormatter ignores non-numeric characters
+00:00 +3: D:/development/FinanceManager2026/test/core/presentation/utils/decimal_text_input_formatter_test.dart: DecimalTextInputFormatter prevents multiple dots
+00:00 +4: D:/development/FinanceManager2026/test/core/presentation/utils/decimal_text_input_formatter_test.dart: DecimalTextInputFormatter limits decimal places
+00:00 +5: D:/development/FinanceManager2026/test/core/presentation/utils/decimal_text_input_formatter_test.dart: DecimalTextInputFormatter handles complex french input
+00:00 +6: D:/development/FinanceManager2026/test/features/accounts/account_detail_tabs_test.dart: AccountDetailScreen shows Envelopes and Transactions tabs
+00:01 +7: D:/development/FinanceManager2026/test/features/accounts/account_detail_tabs_test.dart: AccountDetailScreen shows Envelopes and Transactions tabs
+00:01 +7 -1: D:/development/FinanceManager2026/test/features/accounts/account_detail_tabs_test.dart: AccountDetailScreen shows Envelopes and Transactions tabs
+00:01 +7 -1: D:/development/FinanceManager2026/test/features/accounts/domain/account_models_test.dart: RealAccount toMap returns correct map [E]
+  Expected: {
+              'id': '1',
+              'ownerId': 'user1',
+              'name': 'Test Account',
+              'balance': 150.0,
+              'initialBalance': 10.0,
+              'bankName': 'Test Bank',
+              'type': 'internal',
+              'openingDate': null,
+              'accountNumber': null,
+              'officialName': null,
+              'iban': null,
+              'bic': null,
+              'swift': null
+            }
+    Actual: {
+              'id': '1',
+              'ownerId': 'user1',
+              'name': 'Test Account',
+              'bankName': 'Test Bank',
+              'initialBalance': 10.0,
+              'balance': 150.0,
+              'type': 'internal',
+              'sharedWithUserIds': [],
+              'openingDate': null,
+              'accountNumber': null,
+              'officialName': null,
+              'iban': null,
+              'bic': null,
+              'swift': null
+            }
+     Which: has different length and has extra map key 'sharedWithUserIds'
+  
+  package:matcher                                              expect
+  package:flutter_test/src/widget_tester.dart 473:18           expect
+  test\features\accounts\domain\account_models_test.dart 43:7  main.<fn>.<fn>
+  
+00:01 +8 -1: D:/development/FinanceManager2026/test/features/accounts/account_detail_tabs_test.dart: AccountDetailScreen shows Envelopes and Transactions tabs
+00:01 +9 -1: D:/development/FinanceManager2026/test/features/accounts/account_detail_tabs_test.dart: AccountDetailScreen shows Envelopes and Transactions tabs
+00:01 +10 -1: D:/development/FinanceManager2026/test/features/accounts/account_detail_tabs_test.dart: AccountDetailScreen shows Envelopes and Transactions tabs
+00:01 +11 -1: D:/development/FinanceManager2026/test/features/accounts/account_detail_tabs_test.dart: AccountDetailScreen shows Envelopes and Transactions tabs
+00:01 +12 -1: D:/development/FinanceManager2026/test/features/accounts/account_detail_tabs_test.dart: AccountDetailScreen shows Envelopes and Transactions tabs
+00:01 +13 -1: D:/development/FinanceManager2026/test/features/accounts/account_detail_tabs_test.dart: AccountDetailScreen shows Envelopes and Transactions tabs
+00:01 +14 -1: D:/development/FinanceManager2026/test/features/accounts/account_detail_tabs_test.dart: AccountDetailScreen shows Envelopes and Transactions tabs
+00:01 +15 -1: D:/development/FinanceManager2026/test/features/accounts/account_detail_tabs_test.dart: AccountDetailScreen shows Envelopes and Transactions tabs
+00:01 +16 -1: D:/development/FinanceManager2026/test/features/accounts/account_detail_tabs_test.dart: AccountDetailScreen shows Envelopes and Transactions tabs
+00:01 +17 -1: D:/development/FinanceManager2026/test/features/accounts/account_detail_tabs_test.dart: AccountDetailScreen shows Envelopes and Transactions tabs
+00:01 +18 -1: D:/development/FinanceManager2026/test/features/accounts/account_detail_tabs_test.dart: AccountDetailScreen shows Envelopes and Transactions tabs
+00:02 +19 -1: D:/development/FinanceManager2026/test/features/accounts/account_detail_tabs_test.dart: AccountDetailScreen shows Envelopes and Transactions tabs
+00:02 +20 -1: D:/development/FinanceManager2026/test/features/ai/application/ai_service_test.dart: sendMessage adds user message and awaits response
+00:02 +21 -1: D:/development/FinanceManager2026/test/features/ai/application/ai_service_test.dart: sendMessage adds user message and awaits response
+00:02 +22 -1: D:/development/FinanceManager2026/test/features/ai/application/ai_service_test.dart: sendMessage adds user message and awaits response
+00:03 +23 -1: D:/development/FinanceManager2026/test/features/import/application/import_service_test.dart: parseCsv reading from file (VM) works
+00:03 +24 -1: D:/development/FinanceManager2026/test/features/import/data/bank_import_service_test.dart: BankImportService detects empty transaction list from invalid bytes
+00:03 +25 -1: D:/development/FinanceManager2026/test/features/import/data/bank_import_service_test.dart: guessEnvelopes maps recognized keywords
+00:03 +26 -1: D:/development/FinanceManager2026/test/features/import/integration/import_flow_test.dart: Import Flow: saveTransactions correctly converts and saves data
+00:04 +27 -1: D:/development/FinanceManager2026/test/features/import/integration/import_flow_test.dart: ISTQB Edge Cases: Boundary Values & Strange Inputs
+00:04 +28 -1: D:/development/FinanceManager2026/test/features/projects/application/project_service_test.dart: ProjectService createProject creates a project via repository
+00:04 +29 -1: D:/development/FinanceManager2026/test/features/projects/application/project_service_test.dart: ProjectService addEnvelopeToProject updates project with new linked account
+00:04 +30 -1: D:/development/FinanceManager2026/test/features/projects/application/project_service_test.dart: ProjectService removeEnvelopeFromProject removes linked account
+00:04 +31 -1: D:/development/FinanceManager2026/test/features/transactions/application/csv_import_service_test.dart: CsvImportService detects semicolon delimiter
+00:04 +32 -1: D:/development/FinanceManager2026/test/features/transactions/application/csv_import_service_test.dart: CsvImportService detects comma delimiter
+00:04 +33 -1: D:/development/FinanceManager2026/test/features/transactions/application/csv_import_service_test.dart: CsvImportService analyzeCsv finds headers correctly
+00:04 +34 -1: D:/development/FinanceManager2026/test/features/transactions/application/csv_import_service_test.dart: CsvImportService extractTransactions parses French format correctly
+00:04 +35 -1: D:/development/FinanceManager2026/test/features/transactions/application/csv_import_service_test.dart: CsvImportService extractTransactions handles YYYY-MM-DD format
+00:05 +36 -1: D:/development/FinanceManager2026/test/features/transactions/application/recurring_transaction_service_test.dart: generateOccurrences Generates monthly occurrences correctly
+00:05 +37 -1: D:/development/FinanceManager2026/test/features/transactions/application/recurring_transaction_service_test.dart: generateOccurrences Stops at endDate
+00:05 +38 -1: D:/development/FinanceManager2026/test/features/transactions/application/recurring_transaction_service_test.dart: generateOccurrences Respects nextOccurrence (skips past)
+00:05 +39 -1: D:/development/FinanceManager2026/test/features/transactions/application/transaction_service_split_test.dart: addSplitTransaction creates balanced debit transaction
+00:06 +40 -1: D:/development/FinanceManager2026/test/features/transactions/application/transaction_service_split_test.dart: addSplitTransaction throws if sum does not match total
+00:06 +41 -1: D:/development/FinanceManager2026/test/features/transactions/domain/transaction_double_entry_test.dart: TransactionModel Double-Entry Tests Transaction with matching splits is balanced
+00:06 +42 -1: D:/development/FinanceManager2026/test/features/transactions/domain/transaction_double_entry_test.dart: TransactionModel Double-Entry Tests Transaction with unmatching splits is NOT balanced
+00:06 +43 -1: D:/development/FinanceManager2026/test/features/transactions/domain/transaction_double_entry_test.dart: TransactionModel Double-Entry Tests Transaction with multiple splits is balanced if sum is 0
+00:06 +44 -1: D:/development/FinanceManager2026/test/features/transactions/domain/transaction_double_entry_test.dart: TransactionModel Double-Entry Tests Adjustment transaction is balanced
+00:06 +45 -1: D:/development/FinanceManager2026/test/features/transactions/domain/transaction_model_test.dart: TransactionModel toMap returns correct map
+00:06 +46 -1: D:/development/FinanceManager2026/test/features/transactions/domain/transaction_model_test.dart: TransactionModel fromMap returns correct object
+00:06 +47 -1: D:/development/FinanceManager2026/test/features/transactions/domain/transaction_model_test.dart: TransactionModel fromMap handles Enum parsing
+00:07 +48 -1: D:/development/FinanceManager2026/test/features/transactions/domain/transaction_model_test.dart: TransactionModel fromMap fallback for unknown Enum
+00:07 +49 -1: D:/development/FinanceManager2026/test/features/transactions/domain/transaction_model_test.dart: TransactionModel TransactionSplit serialization
+00:07 +50 -1: D:/development/FinanceManager2026/test/features/transactions/presentation/add_transaction_page_test.dart: AddTransactionPage renders and shows sort button
+00:08 +51 -1: D:/development/FinanceManager2026/test/features/transactions/presentation/add_transaction_page_test.dart: AddTransactionPage renders and shows sort button
+00:09 +52 -1: D:/development/FinanceManager2026/test/features/transactions/presentation/recurring_transactions_ui_test.dart: RecurrenceListPage shows list of recurrences
+00:10 +53 -1: D:/development/FinanceManager2026/test/features/transactions/presentation/transaction_detail_screen_test.dart: TransactionDetailScreen displays real account name
+00:10 +54 -1: D:/development/FinanceManager2026/test/features/transactions/presentation/transaction_detail_screen_test.dart: TransactionDetailScreen displays real account name
+00:10 +55 -1: D:/development/FinanceManager2026/test/features/transactions/presentation/transaction_detail_screen_test.dart: TransactionDetailScreen displays real account name
+00:11 +56 -1: D:/development/FinanceManager2026/test/features/transactions/presentation/recurring_transactions_ui_test.dart: AddRecurrencePage Validation errors if empty
+00:11 +57 -1: D:/development/FinanceManager2026/test/features/transactions/presentation/transaction_list_page_test.dart: (setUpAll)
+00:11 +57 -1: D:/development/FinanceManager2026/test/features/transactions/presentation/recurring_transactions_ui_test.dart: AddRecurrencePage Calls service on valid submission
+00:11 +57 ~1 -1: D:/development/FinanceManager2026/test/features/transactions/presentation/recurring_transactions_ui_test.dart: AddRecurrencePage Calls service on valid submission
+00:12 +57 ~2 -1: D:/development/FinanceManager2026/test/features/transactions/presentation/recurring_transactions_ui_test.dart: AddRecurrencePage Calls service on valid submission
+00:12 +58 ~2 -1: D:/development/FinanceManager2026/test/features/transactions/presentation/transaction_list_page_test.dart: TransactionListPage renders list of transactions grouped by date
+00:14 +59 ~2 -1: D:/development/FinanceManager2026/test/widget_test.dart: App smoke test
+00:14 +60 ~2 -1: D:/development/FinanceManager2026/test/widget_test.dart: App smoke test
+00:14 +61 ~2 -1: D:/development/FinanceManager2026/test/features/transactions/presentation/transaction_list_page_test.dart: TransactionListPage input in search updates filter
+00:15 +62 ~2 -1: D:/development/FinanceManager2026/test/features/transactions/presentation/transaction_list_page_test.dart: (tearDownAll)
+00:15 +62 ~2 -1: Some tests failed.

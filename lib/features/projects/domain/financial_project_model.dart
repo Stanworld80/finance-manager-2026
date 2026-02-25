@@ -11,6 +11,7 @@ class FinancialProject {
   final double targetBudget;
   final List<String>
   linkedVirtualAccountIds; // IDs of envelopes in this project
+  final List<String> sharedWithUserIds;
   final ProjectStatus status;
   final DateTime createdAt;
 
@@ -22,6 +23,7 @@ class FinancialProject {
     this.targetDate,
     this.targetBudget = 0.0,
     this.linkedVirtualAccountIds = const [],
+    this.sharedWithUserIds = const [],
     this.status = ProjectStatus.active,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
@@ -35,6 +37,8 @@ class FinancialProject {
       'targetDate': targetDate?.toIso8601String(),
       'targetBudget': targetBudget,
       'linkedVirtualAccountIds': linkedVirtualAccountIds,
+      'sharedWithUserIds': sharedWithUserIds,
+      'accessibleUserIds': [ownerId, ...sharedWithUserIds],
       'status': status.name,
       'createdAt': createdAt.toIso8601String(),
     };
@@ -53,6 +57,7 @@ class FinancialProject {
       linkedVirtualAccountIds: List<String>.from(
         map['linkedVirtualAccountIds'] ?? [],
       ),
+      sharedWithUserIds: List<String>.from(map['sharedWithUserIds'] ?? []),
       status: ProjectStatus.values.firstWhere(
         (e) => e.name == map['status'],
         orElse: () => ProjectStatus.active,
@@ -85,6 +90,7 @@ class FinancialProject {
       targetBudget: targetBudget ?? this.targetBudget,
       linkedVirtualAccountIds:
           linkedVirtualAccountIds ?? this.linkedVirtualAccountIds,
+      sharedWithUserIds: sharedWithUserIds,
       status: status ?? this.status,
       createdAt: createdAt,
     );
