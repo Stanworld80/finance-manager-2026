@@ -20,34 +20,50 @@ service cloud.firestore {
 
     // Real Accounts
     match /accounts/{accountId} {
+      
       // Allow read if user is in accessibleUserIds
       allow read: if request.auth != null && 
                   (request.auth.uid in resource.data.accessibleUserIds);
-      // Allow write if user is owner or in accessibleUserIds (for shared editors)
-      allow write: if request.auth != null && 
-                   (request.resource.data.ownerId == request.auth.uid || 
-                    request.auth.uid in get(/databases/$(database)/documents/accounts/$(accountId)).data.accessibleUserIds);
+                  
+      // Allow create if user sets themselves as owner
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+      
+      // Allow update if user is in accessibleUserIds OR is owner
+      allow update: if request.auth != null && 
+                    (request.auth.uid == resource.data.ownerId || 
+                     request.auth.uid in resource.data.accessibleUserIds);
+                     
+      // Allow delete if user is owner
+      allow delete: if request.auth != null && request.auth.uid == resource.data.ownerId;
                   
       // Nested Virtual Accounts
       match /virtual_accounts/{vAccountId} {
-        // Allow read if querying collectionGroup by userId, OR if user has access to parent account
+        function isParentAccessible() {
+          return request.auth.uid in get(/databases/$(database)/documents/accounts/$(accountId)).data.accessibleUserIds;
+        }
+        
         allow read: if request.auth != null && 
-                    (resource.data.userId == request.auth.uid || 
-                     request.auth.uid in get(/databases/$(database)/documents/accounts/$(accountId)).data.accessibleUserIds);
-        allow write: if request.auth != null && 
-                     (request.resource.data.userId == request.auth.uid || 
-                      request.auth.uid in get(/databases/$(database)/documents/accounts/$(accountId)).data.accessibleUserIds);
+                    (resource.data.userId == request.auth.uid || isParentAccessible());
+                    
+        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        
+        allow update, delete: if request.auth != null && 
+                    (resource.data.userId == request.auth.uid || isParentAccessible());
       }
       
       // Nested Transactions
       match /transactions/{txId} {
-        // Allow read if querying collectionGroup by ownerId, OR if user has access to parent account
+        function isParentAccessible() {
+          return request.auth.uid in get(/databases/$(database)/documents/accounts/$(accountId)).data.accessibleUserIds;
+        }
+
         allow read: if request.auth != null && 
-                    (resource.data.ownerId == request.auth.uid || 
-                     request.auth.uid in get(/databases/$(database)/documents/accounts/$(accountId)).data.accessibleUserIds);
-        allow write: if request.auth != null && 
-                     (request.resource.data.ownerId == request.auth.uid || 
-                      request.auth.uid in get(/databases/$(database)/documents/accounts/$(accountId)).data.accessibleUserIds);
+                    (resource.data.ownerId == request.auth.uid || isParentAccessible());
+                    
+        allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+        
+        allow update, delete: if request.auth != null && 
+                     (resource.data.ownerId == request.auth.uid || isParentAccessible());
       }
     }
   }
