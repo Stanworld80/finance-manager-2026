@@ -70,6 +70,7 @@ class MockTransactionService extends _i1.Mock
     required DateTime? date,
     required _i3.RealAccount? realAccount,
     required _i3.VirtualAccount? targetVirtualAccount,
+    _i6.TransactionStep? step = _i6.TransactionStep.completed,
     String? category,
     String? note,
   }) =>
@@ -81,6 +82,7 @@ class MockTransactionService extends _i1.Mock
               #date: date,
               #realAccount: realAccount,
               #targetVirtualAccount: targetVirtualAccount,
+              #step: step,
               #category: category,
               #note: note,
             }),
@@ -97,6 +99,7 @@ class MockTransactionService extends _i1.Mock
     required DateTime? date,
     required _i3.RealAccount? realAccount,
     required List<({_i3.VirtualAccount account, double amount})>? splits,
+    _i6.TransactionStep? step = _i6.TransactionStep.completed,
     String? category,
     String? note,
   }) =>
@@ -108,6 +111,7 @@ class MockTransactionService extends _i1.Mock
               #date: date,
               #realAccount: realAccount,
               #splits: splits,
+              #step: step,
               #category: category,
               #note: note,
             }),
@@ -178,6 +182,7 @@ class MockTransactionService extends _i1.Mock
     required DateTime? date,
     required _i3.RealAccount? realAccount,
     required _i3.VirtualAccount? targetVirtualAccount,
+    _i6.TransactionStep? step,
     String? category,
     String? note,
   }) =>
@@ -190,6 +195,7 @@ class MockTransactionService extends _i1.Mock
               #date: date,
               #realAccount: realAccount,
               #targetVirtualAccount: targetVirtualAccount,
+              #step: step,
               #category: category,
               #note: note,
             }),
@@ -207,6 +213,7 @@ class MockTransactionService extends _i1.Mock
     required DateTime? date,
     required _i3.RealAccount? realAccount,
     required List<({_i3.VirtualAccount account, double amount})>? splits,
+    _i6.TransactionStep? step,
     String? category,
     String? note,
   }) =>
@@ -219,9 +226,32 @@ class MockTransactionService extends _i1.Mock
               #date: date,
               #realAccount: realAccount,
               #splits: splits,
+              #step: step,
               #category: category,
               #note: note,
             }),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> confirmTransaction(
+    _i6.TransactionModel? originalTransaction,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#confirmTransaction, [originalTransaction]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> cancelTransaction(
+    _i6.TransactionModel? originalTransaction,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#cancelTransaction, [originalTransaction]),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )

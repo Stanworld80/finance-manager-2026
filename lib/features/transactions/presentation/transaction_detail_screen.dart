@@ -44,6 +44,17 @@ class TransactionDetailScreen extends ConsumerWidget {
             },
           ),
           IconButton(
+            icon: const Icon(Icons.cancel_outlined),
+            tooltip: "Annuler la transaction",
+            onPressed: () {
+              transactionAsync.whenData((tx) {
+                if (tx != null && tx.step != TransactionStep.cancelled) {
+                  _confirmCancel(context, ref, tx);
+                }
+              });
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.delete),
             onPressed: () {
               transactionAsync.whenData((tx) {
@@ -421,6 +432,41 @@ class TransactionDetailScreen extends ConsumerWidget {
               }
             },
             child: const Text("Supprimer"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmCancel(
+    BuildContext context,
+    WidgetRef ref,
+    TransactionModel tx,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Annuler la transaction ?"),
+        content: const Text(
+          "Cette action marquera la transaction comme 'Annulée' et remettra les compteurs de solde à leur état d'origine.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Retour"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              await ref.read(transactionServiceProvider).cancelTransaction(tx);
+              if (ctx.mounted) {
+                Navigator.pop(ctx); // Close Dialog
+              }
+            },
+            child: const Text("Annuler l'opération"),
           ),
         ],
       ),

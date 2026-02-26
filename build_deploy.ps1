@@ -5,7 +5,7 @@
     Handles version bumping, building (APK/AppBundle/Web), and deploying to Firebase.
     Adapted from example/build_deploy.sh.
 .PARAMETER Environment
-    Target environment: 'dev' (Staging) or 'prod'. Default is 'dev'.
+    Target environment: 'develop', 'staging' or 'prod'. Default is 'staging'.
 .PARAMETER Platform
     Target platform: 'web', 'android', or 'all'. Default is 'all'.
 .PARAMETER BuildMode
@@ -18,8 +18,8 @@
     If set, skips unit tests.
 #>
 param(
-    [ValidateSet("dev", "prod")]
-    [string]$Environment = "dev",
+    [ValidateSet("develop", "staging", "prod")]
+    [string]$Environment = "staging",
 
     [ValidateSet("web", "android", "all")]
     [string]$Platform = "all",
@@ -37,10 +37,18 @@ $ErrorActionPreference = "Stop"
 
 # --- Configuration ---
 $Config = @{
-    dev  = @{
+    develop = @{
+        ProjectId          = "finance-manager-2026-dev"
+        AndroidAppId       = "" # Note: Create dev project in Firebase to fill this
+        DartDefines        = "APP_ENV=develop"
+        Flavor             = "dev" # Default flavor for non-prod
+        EntryPoint         = "lib/main_dev.dart" # Might need another entry point eventually
+        GoogleServicesPath = "android/app/google-services.dev.json"
+    }
+    staging = @{
         ProjectId          = "finance-manager-2026-stg"
         AndroidAppId       = "1:420654277416:android:4b750e6abdb68a7150661d" # Verified Staging App ID
-        DartDefines        = "APP_ENV=dev"
+        DartDefines        = "APP_ENV=staging"
         Flavor             = "dev"
         EntryPoint         = "lib/main_dev.dart"
         GoogleServicesPath = "android/app/google-services.staging.json"
@@ -170,8 +178,8 @@ Write-Host "-> Step 6: Deploying..." -ForegroundColor Yellow
 
 # Web Deploy
 if ($Platform -eq "web" -or $Platform -eq "all") {
-    Write-Host "   Deploying Hosting to $($EnvConfig.ProjectId)..."
-    firebase deploy --only hosting --project $EnvConfig.ProjectId
+    Write-Host "   Deploying Hosting and Firestore to $($EnvConfig.ProjectId)..."
+    firebase deploy --only hosting,firestore --project $EnvConfig.ProjectId
 }
 
 # Android Deploy (APK to App Distribution)

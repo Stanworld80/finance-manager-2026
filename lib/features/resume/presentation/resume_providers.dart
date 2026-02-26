@@ -6,8 +6,6 @@ import '../../transactions/domain/transaction_model.dart';
 import '../../accounts/domain/account_models.dart';
 import '../../../core/providers.dart';
 
-part 'resume_providers.g.dart';
-
 class EnvelopeStat {
   final String virtualAccountId;
   final String envelopeName;
@@ -28,10 +26,9 @@ class EnvelopeStat {
   });
 }
 
-@riverpod
-Future<List<EnvelopeStat>> resumeData(
-  ResumeDataRef ref,
-  DateTimeRange period,
+final resumeDataProvider = FutureProvider.family<List<EnvelopeStat>, DateTimeRange>((
+  ref,
+  period,
 ) async {
   final auth = ref.watch(firebaseAuthProvider);
   final user = auth.currentUser;
@@ -64,10 +61,14 @@ Future<List<EnvelopeStat>> resumeData(
   final Map<String, EnvelopeStat> statsMap = {};
 
   for (final virtualAcc in virtualAccountsList) {
+    // Skip virtual accounts that have no associated real account (orphaned)
+    if (!realAccountNames.containsKey(virtualAcc.realAccountId)) {
+      continue;
+    }
+
     // Current actual balance in the database
     double currentBalance = virtualAcc.balance;
-    String realAccountName =
-        realAccountNames[virtualAcc.realAccountId] ?? 'Inconnu';
+    String realAccountName = realAccountNames[virtualAcc.realAccountId]!;
 
     // To find "End Balance" (at period.end):
     // currentBalance - (all transactions that occurred AFTER period.end)
@@ -129,4 +130,4 @@ Future<List<EnvelopeStat>> resumeData(
 
   return statsMap.values.toList()
     ..sort((a, b) => a.realAccountName.compareTo(b.realAccountName));
-}
+});

@@ -122,15 +122,83 @@ class AccountDetailScreen extends ConsumerWidget {
                                 ),
                           ),
                         ),
-                      const SizedBox(height: 16),
-                      Text(
-                        "${account.balance.toStringAsFixed(2)} €",
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      virtualAccountsAsync.when(
+                        data: (virtuals) {
+                          final committedAccount = virtuals
+                              .where(
+                                (v) =>
+                                    v.type ==
+                                    VirtualAccountType.systemCommitted,
+                              )
+                              .firstOrNull;
+                          final soldeEngage = committedAccount?.balance ?? 0.0;
+                          final soldeDisponible = account.balance - soldeEngage;
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                "${soldeDisponible.toStringAsFixed(2)} €",
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const Text("Solde Disponible"),
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Column(
+                                    children: [
+                                      Text(
+                                        "${account.balance.toStringAsFixed(2)} €",
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Text(
+                                        "Solde Réel",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(width: 32),
+                                  Column(
+                                    children: [
+                                      Text(
+                                        "${soldeEngage.toStringAsFixed(2)} €",
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.orange,
+                                        ),
+                                      ),
+                                      Text(
+                                        "Solde Engagé",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
+                          );
+                        },
+                        loading: () => const CircularProgressIndicator(),
+                        error: (_, __) => const SizedBox.shrink(),
                       ),
-                      const Text("Solde Réel"),
                     ],
                   ),
                 ),

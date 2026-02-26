@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/providers.dart';
 import '../../accounts/domain/account_models.dart';
+import '../../accounts/data/account_repository.dart';
 import '../data/transaction_repository.dart';
 import '../domain/transaction_model.dart';
 
@@ -26,6 +27,7 @@ class TransactionService {
     required DateTime date,
     required RealAccount realAccount,
     required VirtualAccount targetVirtualAccount, // The budget affected
+    TransactionStep step = TransactionStep.completed,
     String? category,
     String? note,
   }) async {
@@ -33,23 +35,39 @@ class TransactionService {
     if (user == null) throw Exception("User not authenticated");
 
     final repository = ref.read(transactionRepositoryProvider);
+    final accountRepo = ref.read(accountRepositoryProvider);
     final uuid = const Uuid();
 
     // Determine signs for the poles
     double realAmountSigned;
     double virtualAmountSigned;
     double counterpartyAmountSigned;
+    String counterpartyAccountId = SystemAccounts.external;
+
+    if (step == TransactionStep.pending &&
+        (type == TransactionType.debit || type == TransactionType.credit)) {
+      final committedAccount = await accountRepo.getVirtualAccountByType(
+        user.uid,
+        realAccount.id,
+        VirtualAccountType.systemCommitted,
+      );
+      if (committedAccount == null)
+        throw Exception("System committed account not found.");
+      counterpartyAccountId = committedAccount.id;
+    }
 
     switch (type) {
       case TransactionType.debit:
-        // Movement: Internal Envelope -> External World
-        realAmountSigned = -amount.abs();
+        // Movement: Internal Envelope -> External World (or Committed)
+        realAmountSigned = step == TransactionStep.pending
+            ? 0.0
+            : -amount.abs();
         virtualAmountSigned = -amount.abs();
         counterpartyAmountSigned = amount.abs();
         break;
       case TransactionType.credit:
-        // Movement: External World -> Internal Envelope
-        realAmountSigned = amount.abs();
+        // Movement: External World (or Committed) -> Internal Envelope
+        realAmountSigned = step == TransactionStep.pending ? 0.0 : amount.abs();
         virtualAmountSigned = amount.abs();
         counterpartyAmountSigned = -amount.abs();
         break;
@@ -72,7 +90,7 @@ class TransactionService {
       category: category,
       note: note,
       status: TransactionStatus.none,
-      step: TransactionStep.completed,
+      step: step,
       splits: [
         // Internal Pole
         TransactionSplit(
@@ -81,7 +99,7 @@ class TransactionService {
         ),
         // External Pole (Double-entry contra account)
         TransactionSplit(
-          virtualAccountId: SystemAccounts.external,
+          virtualAccountId: counterpartyAccountId,
           amount: counterpartyAmountSigned,
         ),
       ],
@@ -100,6 +118,7 @@ class TransactionService {
     required DateTime date,
     required RealAccount realAccount,
     required List<({VirtualAccount account, double amount})> splits,
+    TransactionStep step = TransactionStep.completed,
     String? category,
     String? note,
   }) async {
@@ -117,11 +136,25 @@ class TransactionService {
     }
 
     final repository = ref.read(transactionRepositoryProvider);
+    final accountRepo = ref.read(accountRepositoryProvider);
     final uuid = const Uuid();
 
     // Prepare Splits
     List<TransactionSplit> transactionSplits = [];
     double counterpartyAmountSigned;
+    String counterpartyAccountId = SystemAccounts.external;
+
+    if (step == TransactionStep.pending &&
+        (type == TransactionType.debit || type == TransactionType.credit)) {
+      final committedAccount = await accountRepo.getVirtualAccountByType(
+        user.uid,
+        realAccount.id,
+        VirtualAccountType.systemCommitted,
+      );
+      if (committedAccount == null)
+        throw Exception("System committed account not found.");
+      counterpartyAccountId = committedAccount.id;
+    }
 
     if (type == TransactionType.debit) {
       // Debit: Envelopes decrease (negative), External increases (positive)
@@ -150,10 +183,10 @@ class TransactionService {
       throw Exception("Split transactions only supported for Debit/Credit");
     }
 
-    // Add Counterparty (External)
+    // Add Counterparty
     transactionSplits.add(
       TransactionSplit(
-        virtualAccountId: SystemAccounts.external,
+        virtualAccountId: counterpartyAccountId,
         amount: counterpartyAmountSigned,
       ),
     );
@@ -163,15 +196,15 @@ class TransactionService {
       ownerId: user.uid,
       realAccountId: realAccount.id,
       amount: type == TransactionType.debit
-          ? -totalAmount.abs()
-          : totalAmount.abs(),
+          ? (step == TransactionStep.pending ? 0.0 : -totalAmount.abs())
+          : (step == TransactionStep.pending ? 0.0 : totalAmount.abs()),
       type: type,
       transactionDate: date,
       label: label,
       category: category,
       note: note,
       status: TransactionStatus.none,
-      step: TransactionStep.completed,
+      step: step,
       splits: transactionSplits,
     );
 
@@ -341,6 +374,7 @@ class TransactionService {
     required DateTime date,
     required RealAccount realAccount,
     required VirtualAccount targetVirtualAccount,
+    TransactionStep? step,
     String? category,
     String? note,
   }) async {
@@ -348,20 +382,40 @@ class TransactionService {
     if (user == null) throw Exception("User not authenticated");
 
     final repository = ref.read(transactionRepositoryProvider);
+    final accountRepo = ref.read(accountRepositoryProvider);
 
     // Determine signs (same as addTransaction)
     double realAmountSigned;
     double virtualAmountSigned;
     double counterpartyAmountSigned;
+    String counterpartyAccountId = SystemAccounts.external;
+
+    final targetStep = step ?? originalTransaction.step;
+
+    if (targetStep == TransactionStep.pending &&
+        (type == TransactionType.debit || type == TransactionType.credit)) {
+      final committedAccount = await accountRepo.getVirtualAccountByType(
+        user.uid,
+        realAccount.id,
+        VirtualAccountType.systemCommitted,
+      );
+      if (committedAccount == null)
+        throw Exception("System committed account not found.");
+      counterpartyAccountId = committedAccount.id;
+    }
 
     switch (type) {
       case TransactionType.debit:
-        realAmountSigned = -amount.abs();
+        realAmountSigned = targetStep == TransactionStep.pending
+            ? 0.0
+            : -amount.abs();
         virtualAmountSigned = -amount.abs();
         counterpartyAmountSigned = amount.abs();
         break;
       case TransactionType.credit:
-        realAmountSigned = amount.abs();
+        realAmountSigned = targetStep == TransactionStep.pending
+            ? 0.0
+            : amount.abs();
         virtualAmountSigned = amount.abs();
         counterpartyAmountSigned = -amount.abs();
         break;
@@ -383,14 +437,14 @@ class TransactionService {
       category: category,
       note: note,
       status: originalTransaction.status, // Keep status? Or reset?
-      step: originalTransaction.step,
+      step: targetStep,
       splits: [
         TransactionSplit(
           virtualAccountId: targetVirtualAccount.id,
           amount: virtualAmountSigned,
         ),
         TransactionSplit(
-          virtualAccountId: SystemAccounts.external,
+          virtualAccountId: counterpartyAccountId,
           amount: counterpartyAmountSigned,
         ),
       ],
@@ -412,6 +466,7 @@ class TransactionService {
     required DateTime date,
     required RealAccount realAccount,
     required List<({VirtualAccount account, double amount})> splits,
+    TransactionStep? step,
     String? category,
     String? note,
   }) async {
@@ -428,9 +483,25 @@ class TransactionService {
     }
 
     final repository = ref.read(transactionRepositoryProvider);
+    final accountRepo = ref.read(accountRepositoryProvider);
 
     List<TransactionSplit> transactionSplits = [];
     double counterpartyAmountSigned;
+    String counterpartyAccountId = SystemAccounts.external;
+
+    final targetStep = step ?? originalTransaction.step;
+
+    if (targetStep == TransactionStep.pending &&
+        (type == TransactionType.debit || type == TransactionType.credit)) {
+      final committedAccount = await accountRepo.getVirtualAccountByType(
+        user.uid,
+        realAccount.id,
+        VirtualAccountType.systemCommitted,
+      );
+      if (committedAccount == null)
+        throw Exception("System committed account not found.");
+      counterpartyAccountId = committedAccount.id;
+    }
 
     if (type == TransactionType.debit) {
       for (final split in splits) {
@@ -458,7 +529,7 @@ class TransactionService {
 
     transactionSplits.add(
       TransactionSplit(
-        virtualAccountId: SystemAccounts.external,
+        virtualAccountId: counterpartyAccountId,
         amount: counterpartyAmountSigned,
       ),
     );
@@ -468,16 +539,134 @@ class TransactionService {
       ownerId: user.uid,
       realAccountId: realAccount.id,
       amount: type == TransactionType.debit
-          ? -totalAmount.abs()
-          : totalAmount.abs(),
+          ? (targetStep == TransactionStep.pending ? 0.0 : -totalAmount.abs())
+          : (targetStep == TransactionStep.pending ? 0.0 : totalAmount.abs()),
       type: type,
       transactionDate: date,
       label: label,
       category: category,
       note: note,
       status: originalTransaction.status,
-      step: originalTransaction.step,
+      step: targetStep,
       splits: transactionSplits,
+    );
+
+    assert(updatedTransaction.isBalanced);
+    await repository.updateTransaction(
+      user.uid,
+      originalTransaction,
+      updatedTransaction,
+    );
+  }
+
+  /// Confirms a pending transaction, changing its step to completed and moving its
+  /// counterparty split from 'Solde Engagé' to 'system:external'.
+  Future<void> confirmTransaction(TransactionModel originalTransaction) async {
+    if (originalTransaction.step != TransactionStep.pending) {
+      return; // Nothing to confirm
+    }
+
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) throw Exception("User not authenticated");
+
+    final repository = ref.read(transactionRepositoryProvider);
+
+    // Swap the counterparty split to external
+    final newSplits = originalTransaction.splits.map((s) {
+      if (s.isSystem) {
+        return TransactionSplit(
+          virtualAccountId: SystemAccounts.external,
+          amount: s.amount,
+        );
+      }
+      return s;
+    }).toList();
+
+    // The real amount now actually impacts the bank account
+    double newAmount = 0.0;
+    if (originalTransaction.type == TransactionType.debit) {
+      // Find the envelope split to know the total amount
+      final envelopeSplit = newSplits.firstWhere((s) => !s.isSystem);
+      newAmount = envelopeSplit.amount; // Already negative
+    } else if (originalTransaction.type == TransactionType.credit) {
+      final envelopeSplit = newSplits.firstWhere((s) => !s.isSystem);
+      newAmount = envelopeSplit.amount; // Already positive
+    }
+
+    // Edge case if splits are complex (split transaction): sum of non-system
+    if (newSplits.length > 2) {
+      newAmount = newSplits
+          .where((s) => !s.isSystem)
+          .fold(0.0, (p, s) => p + s.amount);
+    }
+
+    final updatedTransaction = TransactionModel(
+      id: originalTransaction.id,
+      ownerId: originalTransaction.ownerId,
+      realAccountId: originalTransaction.realAccountId,
+      amount: newAmount,
+      type: originalTransaction.type,
+      transactionDate: originalTransaction.transactionDate,
+      label: originalTransaction.label,
+      note: originalTransaction.note,
+      payee: originalTransaction.payee,
+      category: originalTransaction.category,
+      status: originalTransaction.status,
+      step: TransactionStep.completed, // Finalized!
+      externalEntityId: originalTransaction.externalEntityId,
+      valueDate: originalTransaction.valueDate,
+      visibilityDate: originalTransaction.visibilityDate,
+      syncDate: originalTransaction.syncDate,
+      provisionDate: originalTransaction.provisionDate,
+      splits: newSplits,
+      importHash: originalTransaction.importHash,
+    );
+
+    assert(updatedTransaction.isBalanced);
+    await repository.updateTransaction(
+      user.uid,
+      originalTransaction,
+      updatedTransaction,
+    );
+  }
+
+  /// Cancels a transaction, reversing its financial impact and marking it as cancelled.
+  Future<void> cancelTransaction(TransactionModel originalTransaction) async {
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) throw Exception("User not authenticated");
+
+    final repository = ref.read(transactionRepositoryProvider);
+
+    // To cancel without losing the record, we zero out the amounts and change the step.
+    // The repository will handle reversing the original transaction's impact
+    // and applying the new (zero) impact.
+    final updatedTransaction = TransactionModel(
+      id: originalTransaction.id,
+      ownerId: originalTransaction.ownerId,
+      realAccountId: originalTransaction.realAccountId,
+      amount: 0.0, // Zero impact
+      type: originalTransaction.type,
+      transactionDate: originalTransaction.transactionDate,
+      label: originalTransaction.label,
+      category: originalTransaction.category,
+      note: originalTransaction.note,
+      status: originalTransaction.status,
+      step: TransactionStep.cancelled,
+      externalEntityId: originalTransaction.externalEntityId,
+      valueDate: originalTransaction.valueDate,
+      visibilityDate: originalTransaction.visibilityDate,
+      syncDate: originalTransaction.syncDate,
+      provisionDate: originalTransaction.provisionDate,
+      importHash: originalTransaction.importHash,
+      // Zero out all splits
+      splits: originalTransaction.splits
+          .map(
+            (s) => TransactionSplit(
+              virtualAccountId: s.virtualAccountId,
+              amount: 0.0,
+            ),
+          )
+          .toList(),
     );
 
     assert(updatedTransaction.isBalanced);

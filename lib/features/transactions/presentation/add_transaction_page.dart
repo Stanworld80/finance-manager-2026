@@ -7,6 +7,7 @@ import '../application/transaction_service.dart';
 import '../domain/transaction_model.dart';
 import '../../accounts/application/account_service.dart';
 import '../../../../core/presentation/utils/decimal_text_input_formatter.dart';
+import 'widgets/searchable_account_selector.dart';
 
 class SelectableAccount {
   final String id;
@@ -63,6 +64,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
   String _label = "";
   String? _note;
   DateTime _date = DateTime.now();
+  TransactionStep _step = TransactionStep.pending;
 
   SelectableAccount? _origin;
   SelectableAccount? _destination;
@@ -85,6 +87,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
       _note = tx.note;
       _date = tx.transactionDate;
       _type = tx.type;
+      _step = tx.step;
 
       if (tx.splits.length > 2 ||
           (tx.splits.length == 2 &&
@@ -428,21 +431,10 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                     Row(
                       children: [
                         Expanded(
-                          child: DropdownButtonFormField<SelectableAccount>(
-                            key: const ValueKey('origin_dropdown'),
-                            initialValue:
-                                _origin, // Use value instead of initialValue for dynamic udpates
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: "De (Origine)",
-                              border: OutlineInputBorder(),
-                            ),
-                            items: items.map((i) {
-                              return DropdownMenuItem(
-                                value: i,
-                                child: Text(i.displayName),
-                              );
-                            }).toList(),
+                          child: SearchableAccountSelector(
+                            label: "De (Origine)",
+                            selectedAccount: _origin,
+                            items: items,
                             onChanged: (val) {
                               setState(() {
                                 _origin = val;
@@ -482,20 +474,10 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                     Row(
                       children: [
                         Expanded(
-                          child: DropdownButtonFormField<SelectableAccount>(
-                            key: const ValueKey('destination_dropdown'),
-                            initialValue: _destination,
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: "À (Destination)",
-                              border: OutlineInputBorder(),
-                            ),
-                            items: items.map((i) {
-                              return DropdownMenuItem(
-                                value: i,
-                                child: Text(i.displayName),
-                              );
-                            }).toList(),
+                          child: SearchableAccountSelector(
+                            label: "À (Destination)",
+                            selectedAccount: _destination,
+                            items: items,
                             onChanged: (val) {
                               setState(() {
                                 _destination = val;
@@ -565,33 +547,16 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                               children: [
                                 Expanded(
                                   flex: 2,
-                                  child:
-                                      DropdownButtonFormField<
-                                        SelectableAccount
-                                      >(
-                                        initialValue: row.selectableAccount,
-                                        isExpanded: true,
-                                        decoration: const InputDecoration(
-                                          labelText: "Enveloppe",
-                                        ),
-                                        items: internalItems
-                                            .map(
-                                              (i) => DropdownMenuItem(
-                                                value: i,
-                                                child: Text(
-                                                  i.name,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                            )
-                                            .toList(),
-                                        onChanged: (val) => setState(
-                                          () => row.selectableAccount = val,
-                                        ),
-                                        validator: (val) =>
-                                            val == null ? "!" : null,
-                                      ),
+                                  child: SearchableAccountSelector(
+                                    label: "Enveloppe",
+                                    selectedAccount: row.selectableAccount,
+                                    items: internalItems,
+                                    onChanged: (val) => setState(
+                                      () => row.selectableAccount = val,
+                                    ),
+                                    validator: (val) =>
+                                        val == null ? "!" : null,
+                                  ),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
@@ -653,6 +618,26 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                           ),
                         ],
                       ],
+                    ],
+
+                    if (_type != TransactionType.transfer) ...[
+                      const SizedBox(height: 16),
+                      SwitchListTile(
+                        title: const Text("Transaction Réalisée ?"),
+                        subtitle: Text(
+                          _step == TransactionStep.completed
+                              ? "Déjà passée sur le compte bancaire"
+                              : "En attente (impacte uniquement l'enveloppe)",
+                        ),
+                        value: _step == TransactionStep.completed,
+                        onChanged: (val) {
+                          setState(() {
+                            _step = val
+                                ? TransactionStep.completed
+                                : TransactionStep.pending;
+                          });
+                        },
+                      ),
                     ],
 
                     const SizedBox(height: 24),
@@ -871,6 +856,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
               date: _date,
               realAccount: realAccount,
               splits: splits,
+              step: _step,
             );
           } else {
             // Simple Update
@@ -897,6 +883,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                 target.virtualAccount!.realAccountId,
               ),
               targetVirtualAccount: target.virtualAccount!,
+              step: _step,
             );
           }
         } else {
@@ -941,6 +928,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                 date: _date,
                 realAccount: realAccount,
                 splits: splits,
+                step: _step,
               );
             } else {
               await service.addSplitTransaction(
@@ -953,6 +941,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                   refItem.virtualAccount!.realAccountId,
                 ),
                 splits: splits,
+                step: _step,
               );
             }
           } else {
@@ -968,6 +957,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
               date: _date,
               realAccount: await _getRealAccount(vAccount.realAccountId),
               targetVirtualAccount: vAccount,
+              step: _step,
             );
           }
         }

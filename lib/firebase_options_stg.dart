@@ -65,5 +65,4 @@ class StagingFirebaseOptions {
     projectId: 'finance-manager-2026-stg',
     storageBucket: 'finance-manager-2026-stg.firebasestorage.app',
   );
-
 }

@@ -22,6 +22,7 @@ enum TransactionStep {
   scheduled, // Bank order sent
   pending, // Visible on bank but transient
   completed, // Finalized
+  cancelled, // Cancelled / Rejetée
 }
 
 class SystemAccounts {

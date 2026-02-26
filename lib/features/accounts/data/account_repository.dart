@@ -108,6 +108,25 @@ class AccountRepository {
         );
   }
 
+  Future<VirtualAccount?> getVirtualAccountByType(
+    String userId,
+    String realAccountId,
+    VirtualAccountType type,
+  ) async {
+    final snapshot = await _firestore
+        .collection('accounts')
+        .doc(realAccountId)
+        .collection('virtual_accounts')
+        .where('type', isEqualTo: type.name)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      return VirtualAccount.fromMap(snapshot.docs.first.data());
+    }
+    return null;
+  }
+
   Future<void> updateVirtualAccount(
     String userId,
     VirtualAccount account,

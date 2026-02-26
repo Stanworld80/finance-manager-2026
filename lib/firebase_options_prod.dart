@@ -65,5 +65,4 @@ class ProdFirebaseOptions {
     projectId: 'finance-manager-2026',
     storageBucket: 'finance-manager-2026.firebasestorage.app',
   );
-
 }

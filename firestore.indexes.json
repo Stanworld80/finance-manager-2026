@@ -1,5 +1,34 @@
   {
-    "indexes": [],
+    "indexes": [
+      {
+        "collectionGroup": "transactions",
+        "queryScope": "COLLECTION_GROUP",
+        "fields": [
+          {
+            "fieldPath": "ownerId",
+            "order": "ASCENDING"
+          },
+          {
+            "fieldPath": "transactionDate",
+            "order": "DESCENDING"
+          }
+        ]
+      },
+      {
+        "collectionGroup": "transactions",
+        "queryScope": "COLLECTION_GROUP",
+        "fields": [
+          {
+            "fieldPath": "ownerId",
+            "order": "ASCENDING"
+          },
+          {
+            "fieldPath": "id",
+            "order": "ASCENDING"
+          }
+        ]
+      }
+    ],
     "fieldOverrides": [
       {
         "collectionGroup": "virtual_accounts",

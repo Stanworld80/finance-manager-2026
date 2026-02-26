@@ -175,6 +175,7 @@ class TransactionRepository {
   ) {
     return _firestore
         .collectionGroup('transactions')
+        .where('ownerId', isEqualTo: userId)
         .where('id', isEqualTo: transactionId)
         .limit(1)
         .snapshots()

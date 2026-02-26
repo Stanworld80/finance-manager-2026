@@ -319,21 +319,48 @@ class AccountService {
     await repository.updateRealAccount(account.ownerId, updatedAccount);
   }
 
-  /// Repairs inconsistent virtual account data.
-  ///
-  /// This method:
-  /// - Fixes virtual accounts missing userId fields
-  /// - Creates missing system virtual accounts for real accounts
-  ///
-  /// Returns a map with repair statistics:
-  /// - `repairedCount`: Number of accounts with fixed userId
-  /// - `createdCount`: Number of newly created system accounts
   Future<Map<String, int>> repairData() async {
     final user = ref.read(firebaseAuthProvider).currentUser;
     if (user == null) throw Exception("User not authenticated");
-    return await ref
+
+    // 1. Run standard repair logic (fixes user IDs, creates missing system accounts)
+    final repairResult = await ref
         .read(accountRepositoryProvider)
         .repairVirtualAccounts(user.uid);
+
+    // 2. Cleanup Orphaned Virtual Accounts
+    final repository = ref.read(accountRepositoryProvider);
+    final allRealAccounts = await repository.getRealAccounts(user.uid);
+    final validRealAccountIds = allRealAccounts.map((a) => a.id).toSet();
+
+    final allVirtualAccounts = await repository
+        .watchAllVirtualAccounts(user.uid)
+        .first;
+
+    int orphanedDeleted = 0;
+
+    for (final virtualAcc in allVirtualAccounts) {
+      if (!validRealAccountIds.contains(virtualAcc.realAccountId)) {
+        // Attempt to delete the orphaned account.
+        // Note: Normally deleteVirtualAccountWithIds expects the real account to exist,
+        // but the collection path just needs the ID in the URL.
+        try {
+          await repository.deleteVirtualAccountWithIds(
+            user.uid,
+            virtualAcc.realAccountId,
+            virtualAcc.id,
+          );
+          orphanedDeleted++;
+        } catch (e) {
+          // Ignore if deletion fails (e.g. permission denied because parent doesn't exist)
+          // though our rules allow delete if virtualAccount.userId matches.
+        }
+      }
+    }
+
+    repairResult['orphanedDeleted'] = orphanedDeleted;
+
+    return repairResult;
   }
 
   Future<void> renameVirtualAccount(
