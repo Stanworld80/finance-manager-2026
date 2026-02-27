@@ -52,18 +52,18 @@ void main() {
 
     // Verify search sheet is open
     expect(find.byType(TextField), findsOneWidget);
-    expect(find.text("Groceries"), findsOneWidget);
-    expect(find.text("Rent"), findsOneWidget);
+    expect(find.widgetWithText(ListTile, "Groceries"), findsOneWidget);
+    expect(find.widgetWithText(ListTile, "Rent"), findsOneWidget);
 
     // Filter
     await tester.enterText(find.byType(TextField), "Rent");
     await tester.pumpAndSettle();
 
     expect(find.text("Groceries"), findsNothing);
-    expect(find.text("Rent"), findsOneWidget);
+    expect(find.widgetWithText(ListTile, "Rent"), findsOneWidget);
 
     // Select
-    await tester.tap(find.text("Rent"));
+    await tester.tap(find.widgetWithText(ListTile, "Rent"));
     await tester.pumpAndSettle();
 
     expect(selected?.name, "Rent");

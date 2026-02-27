@@ -7,9 +7,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:finance_manager_2026/features/accounts/data/account_repository.dart';
 import 'package:finance_manager_2026/core/providers.dart';
 
 import 'transaction_service_split_test.mocks.dart';
+
+class MockAccountRepository extends Mock implements AccountRepository {}
 
 @GenerateMocks([TransactionRepository, FirebaseAuth, User])
 void main() {
@@ -30,6 +33,7 @@ void main() {
       overrides: [
         transactionRepositoryProvider.overrideWithValue(mockRepository),
         firebaseAuthProvider.overrideWithValue(mockAuth),
+        accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
       ],
     );
   });

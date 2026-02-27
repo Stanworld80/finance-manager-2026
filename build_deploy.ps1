@@ -179,7 +179,7 @@ Write-Host "-> Step 6: Deploying..." -ForegroundColor Yellow
 # Web Deploy
 if ($Platform -eq "web" -or $Platform -eq "all") {
     Write-Host "   Deploying Hosting and Firestore to $($EnvConfig.ProjectId)..."
-    firebase deploy --only hosting,firestore --project $EnvConfig.ProjectId
+    firebase deploy --only "hosting,firestore" --project $EnvConfig.ProjectId
 }
 
 # Android Deploy (APK to App Distribution)

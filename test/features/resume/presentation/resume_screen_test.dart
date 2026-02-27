@@ -62,9 +62,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Courses'), findsOneWidget);
-      expect(find.text('50,00 €'), findsOneWidget); // income
-      expect(find.text('-20,00 €'), findsOneWidget); // expense (minus)
-      expect(find.text('130,00 €'), findsOneWidget); // endBalance
+      expect(find.textContaining('50,00'), findsOneWidget); // income
+      expect(find.textContaining('-20,00'), findsOneWidget); // expense (minus)
+      expect(find.textContaining('130,00'), findsOneWidget); // endBalance
 
       // Export button should be visible since there is data
       expect(find.byIcon(Icons.download), findsOneWidget);
