@@ -4,6 +4,10 @@ All notable changes to FinanceManager2026 will be documented in this file.
 
 ## [Unreleased]
 
+### Infrastructure
+- **Versioning**: Implemented Git-driven build numbering. The build number is now automatically derived from the total commit count, ensuring incrementing and unique builds without manual `pubspec.yaml` edits.
+- **Deployment**: Updated `build_deploy.ps1` to support PowerShell quoting for Firebase targets.
+
 ### Added
 - **AI**: Added "Coach Financier" conversational assistant (UI + Service)
 - **UI**: Added FAB in AppShell to access AI Assistant

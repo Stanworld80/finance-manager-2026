@@ -38,11 +38,17 @@ class MockResumeExportService extends _i1.Mock
   @override
   _i3.Future<void> exportToCsv(
     _i4.BuildContext? context,
-    List<_i5.EnvelopeStat>? stats,
+    List<_i5.AccountStat>? accountStats,
+    List<_i5.EnvelopeStat>? envelopeStats,
     _i4.DateTimeRange<DateTime>? period,
   ) =>
       (super.noSuchMethod(
-            Invocation.method(#exportToCsv, [context, stats, period]),
+            Invocation.method(#exportToCsv, [
+              context,
+              accountStats,
+              envelopeStats,
+              period,
+            ]),
             returnValue: _i3.Future<void>.value(),
             returnValueForMissingStub: _i3.Future<void>.value(),
           )
@@ -51,11 +57,17 @@ class MockResumeExportService extends _i1.Mock
   @override
   _i3.Future<void> exportToPdf(
     _i4.BuildContext? context,
-    List<_i5.EnvelopeStat>? stats,
+    List<_i5.AccountStat>? accountStats,
+    List<_i5.EnvelopeStat>? envelopeStats,
     _i4.DateTimeRange<DateTime>? period,
   ) =>
       (super.noSuchMethod(
-            Invocation.method(#exportToPdf, [context, stats, period]),
+            Invocation.method(#exportToPdf, [
+              context,
+              accountStats,
+              envelopeStats,
+              period,
+            ]),
             returnValue: _i3.Future<void>.value(),
             returnValueForMissingStub: _i3.Future<void>.value(),
           )

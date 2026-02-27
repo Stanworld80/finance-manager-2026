@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'resume_providers.dart';
-import '../application/resume_export_service.dart';
 
 class ResumeScreen extends ConsumerStatefulWidget {
   const ResumeScreen({super.key});
@@ -71,7 +70,55 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
     });
   }
 
-  List<EnvelopeStat> _getProcessedStats(List<EnvelopeStat> stats) {
+  List<AccountStat> _getProcessedAccountStats(List<AccountStat> stats) {
+    // 1. Filter
+    var processed = stats;
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      processed = processed.where((stat) {
+        return stat.accountName.toLowerCase().contains(query);
+      }).toList();
+    }
+
+    // 2. Sort
+    if (_sortColumnIndex != null) {
+      processed.sort((a, b) {
+        int result;
+        switch (_sortColumnIndex) {
+          case 0:
+            result = a.accountName.compareTo(b.accountName);
+            break;
+          case 1:
+            result = 0; // Linked account column for envelopes
+            break;
+          case 2:
+            result = a.startBalance.compareTo(b.startBalance);
+            break;
+          case 3:
+            result = a.income.compareTo(b.income);
+            break;
+          case 4:
+            result = a.expense.compareTo(b.expense);
+            break;
+          case 5:
+            final diffA = a.income + a.expense;
+            final diffB = b.income + b.expense;
+            result = diffA.compareTo(diffB);
+            break;
+          case 6:
+            result = a.endBalance.compareTo(b.endBalance);
+            break;
+          default:
+            result = 0;
+        }
+        return _sortAscending ? result : -result;
+      });
+    }
+
+    return processed;
+  }
+
+  List<EnvelopeStat> _getProcessedEnvelopeStats(List<EnvelopeStat> stats) {
     // 1. Filter
     var processed = stats;
     if (_searchQuery.isNotEmpty) {
@@ -127,7 +174,7 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
 
     final numberFormat = NumberFormat.currency(locale: 'fr_FR', symbol: '€');
     final dateFormat = DateFormat('dd/MM/yyyy');
-    final exportService = ResumeExportService();
+    final exportService = ref.watch(resumeExportServiceProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -142,22 +189,30 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
             ),
           ),
           resumeDataAsync.maybeWhen(
-            data: (stats) {
-              if (stats.isEmpty) return const SizedBox.shrink();
+            data: (data) {
+              if (data.envelopeStats.isEmpty) return const SizedBox.shrink();
               return PopupMenuButton<String>(
                 icon: const Icon(Icons.download, color: Colors.white),
                 onSelected: (value) async {
-                  final processedStats = _getProcessedStats(stats);
+                  final processedEnvelopeStats = _getProcessedEnvelopeStats(
+                    data.envelopeStats,
+                  );
+                  final processedAccountStats = _getProcessedAccountStats(
+                    data.accountStats,
+                  );
+
                   if (value == 'csv') {
                     await exportService.exportToCsv(
                       context,
-                      processedStats,
+                      processedAccountStats,
+                      processedEnvelopeStats,
                       _selectedDateRange,
                     );
                   } else if (value == 'pdf') {
                     await exportService.exportToPdf(
                       context,
-                      processedStats,
+                      processedAccountStats,
+                      processedEnvelopeStats,
                       _selectedDateRange,
                     );
                   }
@@ -229,140 +284,85 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                   style: const TextStyle(color: Colors.red),
                 ),
               ),
-              data: (stats) {
-                final processedStats = _getProcessedStats(stats);
+              data: (data) {
+                final processedEnvelopeStats = _getProcessedEnvelopeStats(
+                  data.envelopeStats,
+                );
+                final processedAccountStats = _getProcessedAccountStats(
+                  data.accountStats,
+                );
 
-                if (stats.isEmpty) {
+                if (data.envelopeStats.isEmpty) {
                   return const Center(
                     child: Text('Aucune donnée disponible pour cette période.'),
                   );
                 }
 
-                if (processedStats.isEmpty) {
-                  return const Center(
-                    child: Text('Aucun résultat pour cette recherche.'),
-                  );
-                }
-
                 return SingleChildScrollView(
                   scrollDirection: Axis.vertical,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      sortColumnIndex: _sortColumnIndex,
-                      sortAscending: _sortAscending,
-                      headingRowColor: WidgetStateProperty.resolveWith(
-                        (states) => Theme.of(
-                          context,
-                        ).primaryColor.withValues(alpha: 0.1),
-                      ),
-                      columns: [
-                        DataColumn(
-                          label: const Text(
-                            'Nom de l\'enveloppe',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          onSort: _onSort,
-                        ),
-                        DataColumn(
-                          label: const Text(
-                            'Compte lié',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          onSort: _onSort,
-                        ),
-                        DataColumn(
-                          label: const Text(
-                            'Solde début',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          numeric: true,
-                          onSort: _onSort,
-                        ),
-                        DataColumn(
-                          label: const Text(
-                            'Revenus',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
+                  padding: const EdgeInsets.only(bottom: 32),
+                  child: Column(
+                    children: [
+                      // Section: Account Totals
+                      KeyedSubtree(
+                        key: const Key('account-totals-section'),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionHeader(
+                              context,
+                              'Totaux par Compte Réel',
+                              Icons.account_balance,
                             ),
-                          ),
-                          numeric: true,
-                          onSort: _onSort,
-                        ),
-                        DataColumn(
-                          label: const Text(
-                            'Dépenses',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red,
-                            ),
-                          ),
-                          numeric: true,
-                          onSort: _onSort,
-                        ),
-                        DataColumn(
-                          label: const Text(
-                            'Différence',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          numeric: true,
-                          onSort: _onSort,
-                        ),
-                        DataColumn(
-                          label: const Text(
-                            'Solde fin',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          numeric: true,
-                          onSort: _onSort,
-                        ),
-                      ],
-                      rows: processedStats.map((stat) {
-                        final diff =
-                            stat.income + stat.expense; // Expense is negative
-                        final diffColor = diff >= 0 ? Colors.green : Colors.red;
-
-                        return DataRow(
-                          cells: [
-                            DataCell(Text(stat.envelopeName)),
-                            DataCell(Text(stat.realAccountName)),
-                            DataCell(
-                              Text(numberFormat.format(stat.startBalance)),
-                            ),
-                            DataCell(
-                              Text(
-                                numberFormat.format(stat.income),
-                                style: const TextStyle(color: Colors.green),
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                numberFormat.format(stat.expense),
-                                style: const TextStyle(color: Colors.red),
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                numberFormat.format(diff),
-                                style: TextStyle(
-                                  color: diffColor,
-                                  fontWeight: FontWeight.bold,
+                            if (processedAccountStats.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: Text('Aucun compte trouvé.'),
+                              )
+                            else
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: _buildAccountTable(
+                                  context,
+                                  processedAccountStats,
+                                  numberFormat,
                                 ),
                               ),
-                            ),
-                            DataCell(
-                              Text(
-                                numberFormat.format(stat.endBalance),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
                           ],
-                        );
-                      }).toList(),
-                    ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Section: Envelope Details
+                      KeyedSubtree(
+                        key: const Key('envelope-details-section'),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionHeader(
+                              context,
+                              'Détails par Enveloppe',
+                              Icons.account_tree,
+                            ),
+                            if (processedEnvelopeStats.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: Text('Aucune enveloppe trouvée.'),
+                              )
+                            else
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: _buildEnvelopeTable(
+                                  context,
+                                  processedEnvelopeStats,
+                                  numberFormat,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
@@ -371,5 +371,194 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildSectionHeader(
+    BuildContext context,
+    String title,
+    IconData icon,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Theme.of(context).primaryColor),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountTable(
+    BuildContext context,
+    List<AccountStat> stats,
+    NumberFormat numberFormat,
+  ) {
+    return DataTable(
+      sortColumnIndex: _sortColumnIndex,
+      sortAscending: _sortAscending,
+      headingRowColor: WidgetStateProperty.resolveWith(
+        (states) => Theme.of(context).primaryColor.withValues(alpha: 0.1),
+      ),
+      columns: _buildColumns(isAccount: true),
+      rows: stats.map((stat) {
+        final diff = stat.income + stat.expense;
+        final diffColor = diff >= 0 ? Colors.green : Colors.red;
+
+        return DataRow(
+          cells: [
+            DataCell(
+              Text(
+                stat.accountName,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            const DataCell(Text('---')), // No linked account for totals
+            DataCell(Text(numberFormat.format(stat.startBalance))),
+            DataCell(
+              Text(
+                numberFormat.format(stat.income),
+                style: const TextStyle(color: Colors.green),
+              ),
+            ),
+            DataCell(
+              Text(
+                numberFormat.format(stat.expense),
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+            DataCell(
+              Text(
+                numberFormat.format(diff),
+                style: TextStyle(color: diffColor, fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataCell(
+              Text(
+                numberFormat.format(stat.endBalance),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildEnvelopeTable(
+    BuildContext context,
+    List<EnvelopeStat> stats,
+    NumberFormat numberFormat,
+  ) {
+    return DataTable(
+      sortColumnIndex: _sortColumnIndex,
+      sortAscending: _sortAscending,
+      headingRowColor: WidgetStateProperty.resolveWith(
+        (states) => Theme.of(context).primaryColor.withValues(alpha: 0.1),
+      ),
+      columns: _buildColumns(isAccount: false),
+      rows: stats.map((stat) {
+        final diff = stat.income + stat.expense;
+        final diffColor = diff >= 0 ? Colors.green : Colors.red;
+
+        return DataRow(
+          cells: [
+            DataCell(Text(stat.envelopeName)),
+            DataCell(Text(stat.realAccountName)),
+            DataCell(Text(numberFormat.format(stat.startBalance))),
+            DataCell(
+              Text(
+                numberFormat.format(stat.income),
+                style: const TextStyle(color: Colors.green),
+              ),
+            ),
+            DataCell(
+              Text(
+                numberFormat.format(stat.expense),
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+            DataCell(
+              Text(
+                numberFormat.format(diff),
+                style: TextStyle(color: diffColor, fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataCell(
+              Text(
+                numberFormat.format(stat.endBalance),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      }).toList(),
+    );
+  }
+
+  List<DataColumn> _buildColumns({required bool isAccount}) {
+    return [
+      DataColumn(
+        label: Text(
+          isAccount ? 'Nom du compte' : 'Nom de l\'enveloppe',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        onSort: _onSort,
+      ),
+      DataColumn(
+        label: const Text(
+          'Compte lié',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        onSort: _onSort,
+      ),
+      DataColumn(
+        label: const Text(
+          'Solde début',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        numeric: true,
+        onSort: _onSort,
+      ),
+      DataColumn(
+        label: const Text(
+          'Revenus',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+        ),
+        numeric: true,
+        onSort: _onSort,
+      ),
+      DataColumn(
+        label: const Text(
+          'Dépenses',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+        ),
+        numeric: true,
+        onSort: _onSort,
+      ),
+      DataColumn(
+        label: const Text(
+          'Différence',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        numeric: true,
+        onSort: _onSort,
+      ),
+      DataColumn(
+        label: const Text(
+          'Solde fin',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        numeric: true,
+        onSort: _onSort,
+      ),
+    ];
   }
 }

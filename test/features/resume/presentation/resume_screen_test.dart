@@ -18,19 +18,16 @@ void main() {
     mockExportService = MockResumeExportService();
   });
 
-  Widget createWidgetUnderTest({
-    List<EnvelopeStat> stats = const [],
-    bool isLoading = false,
-  }) {
+  Widget createWidgetUnderTest({ResumeData? data, bool isLoading = false}) {
     return ProviderScope(
       overrides: [
         resumeDataProvider.overrideWith((ref, period) async {
           if (isLoading) {
-            // keep loading indefinitely for test
-            await Completer<List<EnvelopeStat>>().future;
+            await Completer<ResumeData>().future;
           }
-          return stats;
+          return data ?? ResumeData(envelopeStats: [], accountStats: []);
         }),
+        resumeExportServiceProvider.overrideWith((ref) => mockExportService),
       ],
       child: MaterialApp(home: const ResumeScreen()),
     );
@@ -46,77 +43,132 @@ void main() {
     });
 
     testWidgets('displays data correctly', (WidgetTester tester) async {
-      final stats = [
-        EnvelopeStat(
-          virtualAccountId: 'mock-1',
-          envelopeName: 'Courses',
-          realAccountName: 'Compte Courant',
-          startBalance: 100.0,
-          income: 50.0,
-          expense: -20.0,
-          endBalance: 130.0,
-        ),
-      ];
+      final data = ResumeData(
+        envelopeStats: [
+          EnvelopeStat(
+            virtualAccountId: 'mock-1',
+            envelopeName: 'Courses',
+            realAccountName: 'Compte Courant',
+            realAccountId: 'real-1',
+            startBalance: 100.0,
+            income: 50.0,
+            expense: -20.0,
+            endBalance: 130.0,
+          ),
+        ],
+        accountStats: [
+          AccountStat(
+            accountId: 'real-1',
+            accountName: 'Compte Courant',
+            startBalance: 100.0,
+            income: 50.0,
+            expense: -20.0,
+            endBalance: 130.0,
+          ),
+        ],
+      );
 
-      await tester.pumpWidget(createWidgetUnderTest(stats: stats));
+      await tester.pumpWidget(createWidgetUnderTest(data: data));
       await tester.pumpAndSettle();
 
-      expect(find.text('Courses'), findsOneWidget);
-      expect(find.textContaining('50,00'), findsOneWidget); // income
-      expect(find.textContaining('-20,00'), findsOneWidget); // expense (minus)
-      expect(find.textContaining('130,00'), findsOneWidget); // endBalance
+      // Headers
+      expect(find.text('Totaux par Compte Réel'), findsOneWidget);
+      expect(find.text('Détails par Enveloppe'), findsOneWidget);
 
-      // Export button should be visible since there is data
+      // Data
+      expect(find.text('Courses'), findsOneWidget);
+      expect(
+        find.text('Compte Courant'),
+        findsAtLeast(2),
+      ); // Account table and Envelope table
+      expect(
+        find.textContaining('50,00'),
+        findsAtLeast(2),
+      ); // income in both tables
+      expect(
+        find.textContaining('-20,00'),
+        findsAtLeast(2),
+      ); // expense in both tables
+      expect(
+        find.textContaining('130,00'),
+        findsAtLeast(2),
+      ); // endBalance in both tables
+
+      // Export button should be visible
       expect(find.byIcon(Icons.download), findsOneWidget);
     });
 
-    testWidgets('search functionality filters rows', (
+    testWidgets('search functionality filters rows in both tables', (
       WidgetTester tester,
     ) async {
-      final stats = [
-        EnvelopeStat(
-          virtualAccountId: 'mock-1',
-          envelopeName: 'Courses',
-          realAccountName: 'Compte Courant',
-          startBalance: 100.0,
-          income: 50.0,
-          expense: -20.0,
-          endBalance: 130.0,
-        ),
-        EnvelopeStat(
-          virtualAccountId: 'mock-2',
-          envelopeName: 'Loisirs',
-          realAccountName: 'Compte Courant',
-          startBalance: 50.0,
-          income: 0.0,
-          expense: -10.0,
-          endBalance: 40.0,
-        ),
-      ];
+      final data = ResumeData(
+        envelopeStats: [
+          EnvelopeStat(
+            virtualAccountId: 'mock-1',
+            envelopeName: 'Courses',
+            realAccountName: 'Compte Courant',
+            realAccountId: 'real-1',
+            startBalance: 100.0,
+            income: 50.0,
+            expense: -20.0,
+            endBalance: 130.0,
+          ),
+          EnvelopeStat(
+            virtualAccountId: 'mock-2',
+            envelopeName: 'Loisirs',
+            realAccountName: 'Compte Courant',
+            realAccountId: 'real-1',
+            startBalance: 50.0,
+            income: 0.0,
+            expense: -10.0,
+            endBalance: 40.0,
+          ),
+        ],
+        accountStats: [
+          AccountStat(
+            accountId: 'real-1',
+            accountName: 'Compte Courant',
+            startBalance: 150.0,
+            income: 50.0,
+            expense: -30.0,
+            endBalance: 170.0,
+          ),
+        ],
+      );
 
-      await tester.pumpWidget(createWidgetUnderTest(stats: stats));
+      await tester.pumpWidget(createWidgetUnderTest(data: data));
       await tester.pumpAndSettle();
 
       expect(find.text('Courses'), findsOneWidget);
       expect(find.text('Loisirs'), findsOneWidget);
 
       final searchField = find.byType(TextField);
-      expect(searchField, findsOneWidget);
-
       await tester.enterText(searchField, 'Loisirs');
       await tester.pumpAndSettle();
 
-      expect(
-        find.descendant(
-          of: find.byType(DataTable),
-          matching: find.text('Courses'),
-        ),
-        findsNothing,
-      );
+      expect(find.text('Courses'), findsNothing);
       expect(
         find.descendant(
           of: find.byType(DataTable),
           matching: find.text('Loisirs'),
+        ),
+        findsOneWidget,
+      );
+
+      // 'Compte Courant' should be filtered out from accounts table
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('account-totals-section')),
+          matching: find.text('Compte Courant'),
+        ),
+        findsNothing,
+      );
+
+      // But 'Compte Courant' should still be visible in the envelope table for the 'Loisirs' row
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('envelope-details-section')),
+          matching: find.text('Compte Courant'),
         ),
         findsOneWidget,
       );
@@ -128,6 +180,7 @@ void main() {
           virtualAccountId: 'mock-1',
           envelopeName: 'Courses',
           realAccountName: 'Compte Courant',
+          realAccountId: 'real-1',
           startBalance: 100.0,
           income: 50.0,
           expense: -20.0,
@@ -137,6 +190,7 @@ void main() {
           virtualAccountId: 'mock-2',
           envelopeName: 'Loisirs',
           realAccountName: 'Compte Courant',
+          realAccountId: 'real-1',
           startBalance: 50.0,
           income: 0.0,
           expense: -10.0,
@@ -146,6 +200,7 @@ void main() {
           virtualAccountId: 'mock-3',
           envelopeName: 'Auto',
           realAccountName: 'Visa',
+          realAccountId: 'real-2',
           startBalance: 200.0,
           income: 0.0,
           expense: -50.0,
@@ -153,7 +208,11 @@ void main() {
         ),
       ];
 
-      await tester.pumpWidget(createWidgetUnderTest(stats: stats));
+      await tester.pumpWidget(
+        createWidgetUnderTest(
+          data: ResumeData(envelopeStats: stats, accountStats: []),
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Tap 'Nom de l'enveloppe' header (column 0) to sort ascending
@@ -172,6 +231,51 @@ void main() {
       await tester.tap(firstHeader);
       await tester.pumpAndSettle();
       expect(find.text('Auto'), findsOneWidget);
+    });
+
+    testWidgets('export functionality calls export service', (
+      WidgetTester tester,
+    ) async {
+      final stats = [
+        EnvelopeStat(
+          virtualAccountId: 'mock-1',
+          envelopeName: 'Courses',
+          realAccountName: 'Compte Courant',
+          realAccountId: 'real-1',
+          startBalance: 100.0,
+          income: 50.0,
+          expense: -20.0,
+          endBalance: 130.0,
+        ),
+      ];
+      final accountStats = [
+        AccountStat(
+          accountName: 'Compte Courant',
+          accountId: 'real-1',
+          startBalance: 100.0,
+          income: 50.0,
+          expense: -20.0,
+          endBalance: 130.0,
+        ),
+      ];
+
+      await tester.pumpWidget(
+        createWidgetUnderTest(
+          data: ResumeData(envelopeStats: stats, accountStats: accountStats),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Open export menu
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle(const Duration(seconds: 1));
+
+      // Tap 'Exporter en CSV'
+      await tester.tap(find.text('Exporter en CSV'));
+      await tester.pumpAndSettle();
+
+      // Verify exportToCsv was called
+      verify(mockExportService.exportToCsv(any, any, any, any)).called(1);
     });
   });
 }

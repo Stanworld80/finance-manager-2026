@@ -49,8 +49,10 @@ Our context-aware rules prioritize:
 
 ## 📦 Deployment Flow
 1. **Verify Logic:** Run `flutter test`.
-2. **Build & Deploy:** Run `.\build_deploy.ps1 -env dev -platform web -mode release`.
-   - This script handles code generation, cleaning, and Firebase Hosting deployment.
+2. **Build & Deploy:** Run `.\build_deploy.ps1 -Environment develop -Platform web -BuildMode release`.
+   - **Versioning:** The script automatically calculates the build number based on the **Git commit count** (`git rev-list --count HEAD`).
+   - **No Manual Bumps:** You only need to update the `version: x.y.z` (Version Name) in `pubspec.yaml` when making semantic releases. The build number (+N) is handled by the CI/CD script.
+   - **Targets:** Handles cleaning, building, git tagging, and Firebase Hosting/App Distribution.
 
 ---
 > [!TIP]

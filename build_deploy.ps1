@@ -53,7 +53,7 @@ $Config = @{
         EntryPoint         = "lib/main_dev.dart"
         GoogleServicesPath = "android/app/google-services.staging.json"
     }
-    prod = @{
+    prod    = @{
         ProjectId          = "finance-manager-2026"
         AndroidAppId       = "1:599792752048:android:0c9d7449fce60754c07275" # Verified Prod App ID
         DartDefines        = "APP_ENV=prod"
@@ -82,20 +82,20 @@ if (-not $NoClean) {
     flutter clean
 }
 
-# 2. Version Bump
-Write-Host "-> Step 2: Version Bump..." -ForegroundColor Yellow
+# 2. Extract Version and Calculate Build Number
+Write-Host "-> Step 2: Version Logic..." -ForegroundColor Yellow
 $PubspecPath = "pubspec.yaml"
 $PubspecContent = Get-Content $PubspecPath
 $VersionLine = $PubspecContent | Select-String "version:" | Select-Object -First 1
 $CurrentVersion = $VersionLine.ToString().Split(":")[1].Trim()
+# We use the version name (e.g., 1.0.2) from pubspec.yaml
 $VersionName = $CurrentVersion.Split("+")[0]
-$BuildNumber = [int]$CurrentVersion.Split("+")[1]
-$NewBuildNumber = $BuildNumber + 1
+# We use Git commit count as the Build Number
+$NewBuildNumber = (git rev-list --count HEAD).Trim()
 $NewVersion = "$VersionName+$NewBuildNumber"
 
-$PubspecContent = $PubspecContent -replace "version: $CurrentVersion", "version: $NewVersion"
-Set-Content $PubspecPath $PubspecContent
-Write-Host "   Bumped version to $NewVersion" -ForegroundColor Green
+Write-Host "   Version: $VersionName" -ForegroundColor Green
+Write-Host "   Build Number (Git): $NewBuildNumber" -ForegroundColor Green
 
 # 3. Tests
 if ($Environment -eq "prod" -or (-not $BypassTest)) {
@@ -163,11 +163,18 @@ if ($NoDeploy) {
 # 5. Git Operations
 if (-not $NoGit) {
     Write-Host "-> Step 5: Git Operations..." -ForegroundColor Yellow
-    git add pubspec.yaml
-    git commit -m "chore: bump version to $NewVersion"
-    git push
-    git tag -a "v$NewVersion" -m "Release $NewVersion ($Environment)"
-    git push origin "v$NewVersion"
+    # Note: We no longer commit pubspec.yaml changes here as build number is dynamic.
+    
+    # Check if tag already exists to avoid failure
+    $TagExists = git tag -l "v$NewVersion"
+    if (-not $TagExists) {
+        Write-Host "   Tagging v$NewVersion..."
+        git tag -a "v$NewVersion" -m "Release $NewVersion ($Environment)"
+        git push origin "v$NewVersion"
+    }
+    else {
+        Write-Host "   Tag v$NewVersion already exists. Skipping tagging." -ForegroundColor Gray
+    }
 }
 else {
     Write-Host "-> Step 5: Git Operations Skipped (-NoGit)." -ForegroundColor Gray
