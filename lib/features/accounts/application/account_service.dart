@@ -370,10 +370,10 @@ class AccountService {
     final user = ref.read(firebaseAuthProvider).currentUser;
     if (user == null) throw Exception("User not authenticated");
 
-    // Validate system accounts renaming?
-    // Maybe we allow renaming system accounts for now, or block it.
-    // The spec "manipulation & visualisation" implies flexibility.
-    // I won't block it unless strict rule.
+    // 1. Prevent renaming system accounts
+    if (account.type != VirtualAccountType.userBudget) {
+      throw Exception("Impossible de renommer un compte système.");
+    }
 
     final repository = ref.read(accountRepositoryProvider);
 

@@ -32,10 +32,11 @@ class EnvelopeDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(envelope.name),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () => _showRenameDialog(context, ref),
-          ),
+          if (envelope.type == VirtualAccountType.userBudget)
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () => _showRenameDialog(context, ref),
+            ),
           if (envelope.type == VirtualAccountType.userBudget)
             IconButton(
               icon: const Icon(Icons.delete),

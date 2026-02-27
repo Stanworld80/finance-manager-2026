@@ -217,7 +217,11 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Nouvelle Transaction"),
+        title: Text(
+          widget.transactionToEdit != null
+              ? "Modifier la Transaction"
+              : "Nouvelle Transaction",
+        ),
         actions: [
           PopupMenuButton<AccountSortType>(
             icon: const Icon(Icons.sort),
@@ -405,6 +409,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                     const SizedBox(height: 16),
 
                     TextFormField(
+                      initialValue: _label,
                       decoration: const InputDecoration(
                         labelText: "Libellé",
                         hintText: "Ex: Courses, Salaire...",
@@ -412,16 +417,19 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                       ),
                       validator: (value) =>
                           (value == null || value.isEmpty) ? "Requis" : null,
+                      onChanged: (val) => setState(() => _label = val),
                       onSaved: (value) => _label = value!,
                     ),
                     const SizedBox(height: 16),
 
                     TextFormField(
+                      initialValue: _note,
                       decoration: const InputDecoration(
                         labelText: "Commentaire",
                         hintText: "Ajouter une note...",
                         border: OutlineInputBorder(),
                       ),
+                      onChanged: (val) => setState(() => _note = val),
                       onSaved: (value) => _note = value,
                     ),
                     const SizedBox(height: 16),
