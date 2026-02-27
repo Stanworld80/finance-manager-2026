@@ -143,12 +143,11 @@ class AppShell extends ConsumerWidget {
                   onTap: () => context.go('/import'),
                 ),
                 _SidebarItem(
-                  icon: Icons.admin_panel_settings_outlined,
-                  label: 'Admin',
-                  isSelected: currentLocation.contains('/admin'),
-                  onTap: () => context.go('/admin'),
+                  icon: Icons.help_outline,
+                  label: 'Aide',
+                  isSelected: currentLocation == '/help',
+                  onTap: () => context.go('/help'),
                 ),
-                const Spacer(),
                 _SidebarItem(
                   icon: Icons.settings_outlined,
                   label: 'Paramètres',

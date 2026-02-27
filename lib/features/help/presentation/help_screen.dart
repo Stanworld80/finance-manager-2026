@@ -5,133 +5,276 @@ class HelpScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Aide & Concepts")),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("Centre d'Aide"),
+          bottom: const TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.lightbulb_outline), text: "Concepts"),
+              Tab(icon: Icon(Icons.menu_book), text: "Guide"),
+              Tab(icon: Icon(Icons.account_balance), text: "Méthode"),
+            ],
+          ),
+        ),
+        body: TabBarView(
           children: [
-            _buildSectionTitle(context, "Bienvenue sur Finance Manager 2026"),
-            const Text(
-              "Cette application utilise une méthode de gestion budgétaire précise basée sur des enveloppes virtuelles et un suivi rigoureux des flux bancaires.",
-            ),
-            const SizedBox(height: 24),
-
-            _buildSectionTitle(context, "1. Comptes Réels vs Virtuels"),
-            _buildSubsection(
-              "Comptes Réels",
-              "Ce sont vos comptes bancaires physiques (BNP, Crédit Agricole, PayPal). Ils reflètent la réalité de votre banque.",
-            ),
-            _buildSubsection(
-              "Comptes Virtuels (Enveloppes)",
-              "Chaque compte réel est divisé en plusieurs enveloppes. C'est votre budget. La somme de vos enveloppes est toujours égale au solde de votre compte réel.\n\n"
-                  "• 🟦 Compte Libre : L'argent non attribué.\n"
-                  "• 🟩 Budgets : Vos catégories de dépenses (Alimentation, Loisirs).\n"
-                  "• 🟨 Solde Engagé : L'argent qui a quitté votre budget mais pas encore la banque (ou inversement pour le suivi).",
-            ),
-
-            const SizedBox(height: 24),
-            _buildSectionTitle(context, "2. Cycle de Vie d'une Transaction"),
-            const Text(
-              "Une transaction passe par plusieurs états pour coller à la réalité bancaire :",
-            ),
-            const SizedBox(height: 8),
-            _buildStep(
-              "Prévu",
-              "La dépense est connue mais pas encore faite.",
-              context,
-            ),
-            _buildStep(
-              "A Programmer",
-              "Vous devez faire le virement.",
-              context,
-            ),
-            _buildStep("Programmé", "L'ordre est donné à la banque.", context),
-            _buildStep(
-              "En Cours",
-              "Visible sur le site de la banque (souvent en grisé).",
-              context,
-            ),
-            _buildStep("Effectué", "Débité définitivement.", context),
-
-            const SizedBox(height: 24),
-            _buildSectionTitle(context, "3. Les Dates Clés"),
-            _buildDateDef(
-              "Date d'Opération",
-              "Le jour où vous faites l'achat.",
-              context,
-            ),
-            _buildDateDef(
-              "Date de Valeur",
-              "La date prise en compte pour les agios/intérêts.",
-              context,
-            ),
-            _buildDateDef(
-              "Date de Vision",
-              "Quand vous l'avez vue sur votre relevé.",
-              context,
-            ),
-
-            const SizedBox(height: 32),
+            _buildConceptsTab(context),
+            _buildGuideTab(context),
+            _buildMethodTab(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(BuildContext context, String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).primaryColor,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSubsection(String title, String content) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+  Widget _buildConceptsTab(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          _buildInfoCard(
+            context,
+            "Comptes Réels",
+            "La réalité physique de votre argent : BNP, Revolut, Cash, etc.",
+            Icons.account_balance_wallet,
+            Colors.blue,
           ),
-          const SizedBox(height: 4),
-          Text(content, style: const TextStyle(height: 1.4)),
+          const SizedBox(height: 12),
+          _buildInfoCard(
+            context,
+            "Enveloppes (Comptes Virtuels)",
+            "Votre organisation logique. Un budget 'Courses' n'existe que dans l'app, pas à la banque.",
+            Icons.label_outline,
+            Colors.orange,
+          ),
+          const SizedBox(height: 12),
+          _buildInfoCard(
+            context,
+            "Solde Engagé",
+            "L'argent qui est 'parti' de votre budget (car vous avez payé) mais qui n'a pas encore été débité par la banque.",
+            Icons.hourglass_empty,
+            Colors.purple,
+          ),
+          const SizedBox(height: 24),
+          _buildSectionTitle(context, "États d'une Transaction"),
+          _buildStatusRow(
+            context,
+            "Prévu",
+            "Anticipé, n'affecte pas encore les soldes.",
+            Icons.calendar_today,
+            Colors.grey,
+          ),
+          _buildStatusRow(
+            context,
+            "Effectué",
+            "La transaction est confirmée et traitée.",
+            Icons.check_circle,
+            Colors.green,
+          ),
+          _buildStatusRow(
+            context,
+            "En Cours",
+            "Visible en banque mais pas encore débité.",
+            Icons.sync,
+            Colors.blue,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildStep(String name, String desc, BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
+  Widget _buildGuideTab(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16.0),
+      children: [
+        _buildGuideStep(
+          context,
+          "1. Ajouter un Revenu",
+          "Cliquez sur 'Revenu'. Choisissez le compte réel qui reçoit l'argent et l'enveloppe à remplir (souvent 'À Distribuer').",
+          Icons.add_circle_outline,
+        ),
+        _buildGuideStep(
+          context,
+          "2. Faire une Dépense",
+          "Cliquez sur 'Dépense'. Sélectionnez l'enveloppe qui paie. L'argent ira dans le solde 'Engagé' jusqu'à validation.",
+          Icons.remove_circle_outline,
+        ),
+        _buildGuideStep(
+          context,
+          "3. Réorganiser ses Budgets",
+          "Utilisez 'Virement' pour déplacer de l'argent entre deux enveloppes sans toucher à la banque.",
+          Icons.swap_horiz,
+        ),
+        _buildGuideStep(
+          context,
+          "4. Importer ses relevés",
+          "Allez dans 'Import CSV' pour traiter massivement vos lignes bancaires et les mapper sur vos enveloppes.",
+          Icons.upload_file,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMethodTab(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.arrow_right,
-            size: 20,
-            color: Theme.of(context).colorScheme.primary,
+          _buildSectionTitle(context, "La Méthode des Enveloppes"),
+          const Text(
+            "C'est la base de Finance Manager 2026. Au lieu de regarder votre solde bancaire global, vous regardez ce qu'il reste dans chaque enveloppe spécifique.",
+            style: TextStyle(height: 1.5),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.withOpacity(0.3)),
+            ),
+            child: const Column(
+              children: [
+                Text(
+                  "Équation de Confiance",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  "💰 Solde Banque = 📂 Somme des Enveloppes",
+                  style: TextStyle(fontSize: 18),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          _buildSectionTitle(context, "Exemple Pratique"),
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  _ExampleRow(
+                    label: "Salaire reçu",
+                    value: "+2000€",
+                    color: Colors.green,
+                  ),
+                  Divider(),
+                  _ExampleRow(label: "Vers Enveloppe 'Loyer'", value: "800€"),
+                  _ExampleRow(label: "Vers Enveloppe 'Courses'", value: "400€"),
+                  _ExampleRow(label: "Reste en 'Libre'", value: "800€"),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const ExpansionTile(
+            title: Text("Que faire en cas d'imprévu ?"),
+            children: [
+              Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  "Si une dépense n'était pas prévue (ex: réparation voiture), piochez dans votre enveloppe 'Libre' ou faites un virement interne depuis une autre enveloppe moins prioritaire (ex: 'Loisirs').",
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard(
+    BuildContext context,
+    String title,
+    String desc,
+    IconData icon,
+    Color color,
+  ) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: color.withOpacity(0.2)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    desc,
+                    style: TextStyle(
+                      color: Theme.of(context).hintColor,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusRow(
+    BuildContext context,
+    String label,
+    String desc,
+    IconData icon,
+    Color color,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 12),
           Expanded(
             child: RichText(
               text: TextSpan(
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyMedium?.color,
-                  fontSize: 14,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium,
                 children: [
                   TextSpan(
-                    text: "$name : ",
+                    text: "$label : ",
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   TextSpan(text: desc),
@@ -144,20 +287,60 @@ class HelpScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDateDef(String name, String desc, BuildContext context) {
+  Widget _buildGuideStep(
+    BuildContext context,
+    String title,
+    String desc,
+    IconData icon,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Theme.of(context).colorScheme.secondary),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(desc, style: const TextStyle(height: 1.4)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExampleRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? color;
+
+  const _ExampleRow({required this.label, required this.value, this.color});
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(
-            Icons.date_range,
-            size: 16,
-            color: Theme.of(context).colorScheme.tertiary,
+          Text(label),
+          Text(
+            value,
+            style: TextStyle(fontWeight: FontWeight.bold, color: color),
           ),
-          const SizedBox(width: 8),
-          Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-          const Text(" : "),
-          Expanded(child: Text(desc)),
         ],
       ),
     );
