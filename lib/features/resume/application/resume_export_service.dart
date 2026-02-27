@@ -13,7 +13,7 @@ import '../presentation/resume_providers.dart';
 class ResumeExportService {
   final NumberFormat _numberFormat = NumberFormat.currency(
     locale: 'fr_FR',
-    symbol: '€',
+    symbol: '',
   );
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
 
@@ -116,7 +116,7 @@ class ResumeExportService {
 
       pdf.addPage(
         pw.MultiPage(
-          pageFormat: PdfPageFormat.a4.landscape,
+          pageFormat: PdfPageFormat.a4,
           build: (context) => [
             pw.Header(
               level: 0,
@@ -136,6 +136,7 @@ class ResumeExportService {
               headerStyle: pw.TextStyle(
                 fontWeight: pw.FontWeight.bold,
                 color: PdfColors.white,
+                fontSize: 10,
               ),
               headerDecoration: const pw.BoxDecoration(
                 color: PdfColors.blueGrey800,
@@ -150,7 +151,10 @@ class ResumeExportService {
                 0: pw.Alignment.centerLeft,
                 1: pw.Alignment.centerLeft,
               },
-              cellStyle: const pw.TextStyle(color: PdfColors.black),
+              cellStyle: const pw.TextStyle(
+                color: PdfColors.black,
+                fontSize: 9,
+              ),
             ),
           ],
         ),
