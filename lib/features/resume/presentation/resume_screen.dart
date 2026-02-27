@@ -118,6 +118,21 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
     return processed;
   }
 
+  List<EnvelopeStat> _getProcessedSystemEnvelopeStats(
+    List<EnvelopeStat> stats,
+  ) {
+    // System envelopes use account name for search
+    var processed = stats;
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      processed = processed.where((stat) {
+        return stat.envelopeName.toLowerCase().contains(query) ||
+            stat.realAccountName.toLowerCase().contains(query);
+      }).toList();
+    }
+    return processed;
+  }
+
   List<EnvelopeStat> _getProcessedEnvelopeStats(List<EnvelopeStat> stats) {
     // 1. Filter
     var processed = stats;
@@ -190,7 +205,10 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
           ),
           resumeDataAsync.maybeWhen(
             data: (data) {
-              if (data.envelopeStats.isEmpty) return const SizedBox.shrink();
+              if (data.envelopeStats.isEmpty &&
+                  data.systemEnvelopeStats.isEmpty) {
+                return const SizedBox.shrink();
+              }
               return PopupMenuButton<String>(
                 icon: const Icon(Icons.download, color: Colors.white),
                 onSelected: (value) async {
@@ -288,11 +306,15 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                 final processedEnvelopeStats = _getProcessedEnvelopeStats(
                   data.envelopeStats,
                 );
+                final processedSystemEnvelopeStats =
+                    _getProcessedSystemEnvelopeStats(data.systemEnvelopeStats);
                 final processedAccountStats = _getProcessedAccountStats(
                   data.accountStats,
                 );
 
-                if (data.envelopeStats.isEmpty) {
+                if (data.envelopeStats.isEmpty &&
+                    data.systemEnvelopeStats.isEmpty &&
+                    data.accountStats.isEmpty) {
                   return const Center(
                     child: Text('Aucune donnée disponible pour cette période.'),
                   );
@@ -326,6 +348,43 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                                   context,
                                   processedAccountStats,
                                   numberFormat,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Section: System Envelopes
+                      KeyedSubtree(
+                        key: const Key('system-envelopes-section'),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionHeader(
+                              context,
+                              'Enveloppes Système',
+                              Icons.settings,
+                              color: Colors.amber.shade700,
+                            ),
+                            if (processedSystemEnvelopeStats.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: Text(
+                                  'Aucune enveloppe système trouvée.',
+                                ),
+                              )
+                            else
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: _buildEnvelopeTable(
+                                  context,
+                                  processedSystemEnvelopeStats,
+                                  numberFormat,
+                                  headerColor: Colors.amber.shade700.withValues(
+                                    alpha: 0.12,
+                                  ),
                                 ),
                               ),
                           ],
@@ -376,19 +435,21 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
   Widget _buildSectionHeader(
     BuildContext context,
     String title,
-    IconData icon,
-  ) {
+    IconData icon, {
+    Color? color,
+  }) {
+    final effectiveColor = color ?? Theme.of(context).primaryColor;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: Theme.of(context).primaryColor),
+          Icon(icon, size: 20, color: effectiveColor),
           const SizedBox(width: 8),
           Text(
             title,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).primaryColor,
+              color: effectiveColor,
             ),
           ),
         ],
@@ -455,13 +516,16 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
   Widget _buildEnvelopeTable(
     BuildContext context,
     List<EnvelopeStat> stats,
-    NumberFormat numberFormat,
-  ) {
+    NumberFormat numberFormat, {
+    Color? headerColor,
+  }) {
     return DataTable(
       sortColumnIndex: _sortColumnIndex,
       sortAscending: _sortAscending,
       headingRowColor: WidgetStateProperty.resolveWith(
-        (states) => Theme.of(context).primaryColor.withValues(alpha: 0.1),
+        (states) =>
+            headerColor ??
+            Theme.of(context).primaryColor.withValues(alpha: 0.1),
       ),
       columns: _buildColumns(isAccount: false),
       rows: stats.map((stat) {
