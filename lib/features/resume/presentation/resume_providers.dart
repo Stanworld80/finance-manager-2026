@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../accounts/data/account_providers.dart';
+import '../../accounts/domain/account_models.dart';
 import '../../transactions/data/transaction_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers.dart';
+import '../../transactions/domain/transaction_model.dart';
 import '../application/resume_export_service.dart';
 
 final resumeExportServiceProvider = Provider<ResumeExportService>((ref) {
@@ -17,7 +19,12 @@ class EnvelopeStat {
   final double startBalance;
   final double income;
   final double expense;
-  final double endBalance;
+  final double endBalance; // Current actual balance
+  final double plannedIncome;
+  final double plannedExpense;
+  final VirtualAccountType accountType;
+
+  double get forecastedBalance => endBalance + plannedIncome + plannedExpense;
 
   EnvelopeStat({
     required this.virtualAccountId,
@@ -28,7 +35,15 @@ class EnvelopeStat {
     required this.income,
     required this.expense,
     required this.endBalance,
+    this.plannedIncome = 0.0,
+    this.plannedExpense = 0.0,
+    this.accountType = VirtualAccountType.userBudget,
   });
+
+  bool get isSystem =>
+      accountType == VirtualAccountType.systemFree ||
+      accountType == VirtualAccountType.systemCommitted ||
+      accountType == VirtualAccountType.flowToDistribute;
 }
 
 class AccountStat {
@@ -50,10 +65,15 @@ class AccountStat {
 }
 
 class ResumeData {
-  final List<EnvelopeStat> envelopeStats;
+  final List<EnvelopeStat> envelopeStats; // user envelopes only
+  final List<EnvelopeStat> systemEnvelopeStats; // system envelopes
   final List<AccountStat> accountStats;
 
-  ResumeData({required this.envelopeStats, required this.accountStats});
+  ResumeData({
+    required this.envelopeStats,
+    required this.systemEnvelopeStats,
+    required this.accountStats,
+  });
 }
 
 final resumeDataProvider = FutureProvider.family<ResumeData, DateTimeRange>((
@@ -62,7 +82,13 @@ final resumeDataProvider = FutureProvider.family<ResumeData, DateTimeRange>((
 ) async {
   final auth = ref.watch(firebaseAuthProvider);
   final user = auth.currentUser;
-  if (user == null) return ResumeData(envelopeStats: [], accountStats: []);
+  if (user == null) {
+    return ResumeData(
+      envelopeStats: [],
+      systemEnvelopeStats: [],
+      accountStats: [],
+    );
+  }
 
   // 1. Fetch all accessible real accounts
   final realAccountsList = await ref.watch(realAccountsProvider.future);
@@ -79,6 +105,7 @@ final resumeDataProvider = FutureProvider.family<ResumeData, DateTimeRange>((
   final allTransactions = await allTxStream.first;
 
   final List<EnvelopeStat> envelopeStats = [];
+  final List<EnvelopeStat> systemEnvelopeStats = [];
   final Map<String, AccountStat> accountStatsMap = {};
 
   for (final virtualAcc in virtualAccountsList) {
@@ -93,6 +120,8 @@ final resumeDataProvider = FutureProvider.family<ResumeData, DateTimeRange>((
     double endBalance = currentBalance;
     double periodIncome = 0;
     double periodExpense = 0;
+    double periodPlannedIncome = 0;
+    double periodPlannedExpense = 0;
 
     for (final tx in allTransactions) {
       double impact = 0;
@@ -104,33 +133,56 @@ final resumeDataProvider = FutureProvider.family<ResumeData, DateTimeRange>((
 
       if (impact == 0) continue;
 
+      bool doesImpactBalance =
+          tx.step == TransactionStep.completed ||
+          tx.step == TransactionStep.pending;
+      bool isPlanned =
+          tx.step == TransactionStep.planned ||
+          tx.step == TransactionStep.scheduled ||
+          tx.step == TransactionStep.toSchedule;
+
       if (tx.transactionDate.isAfter(period.end)) {
-        endBalance -= impact;
+        if (doesImpactBalance) endBalance -= impact;
       } else if (tx.transactionDate.isAfter(period.start) ||
           tx.transactionDate.isAtSameMomentAs(period.start)) {
-        if (impact > 0) {
-          periodIncome += impact;
-        } else {
-          periodExpense += impact;
+        if (doesImpactBalance) {
+          if (impact > 0) {
+            periodIncome += impact;
+          } else {
+            periodExpense += impact;
+          }
+        } else if (isPlanned) {
+          if (impact > 0) {
+            periodPlannedIncome += impact;
+          } else {
+            periodPlannedExpense += impact;
+          }
         }
       }
     }
 
     double startBalance = endBalance - (periodIncome + periodExpense);
 
-    // Add to envelope stats (All envelopes now)
-    envelopeStats.add(
-      EnvelopeStat(
-        virtualAccountId: virtualAcc.id,
-        envelopeName: virtualAcc.name,
-        realAccountName: realAccountName,
-        realAccountId: realAccountId,
-        startBalance: startBalance,
-        income: periodIncome,
-        expense: periodExpense,
-        endBalance: endBalance,
-      ),
+    final stat = EnvelopeStat(
+      virtualAccountId: virtualAcc.id,
+      envelopeName: virtualAcc.name,
+      realAccountName: realAccountName,
+      realAccountId: realAccountId,
+      startBalance: startBalance,
+      income: periodIncome,
+      expense: periodExpense,
+      endBalance: endBalance,
+      plannedIncome: periodPlannedIncome,
+      plannedExpense: periodPlannedExpense,
+      accountType: virtualAcc.type,
     );
+
+    // Separate system vs user envelopes
+    if (stat.isSystem) {
+      systemEnvelopeStats.add(stat);
+    } else {
+      envelopeStats.add(stat);
+    }
 
     // Aggregate into account stats
     final existingAccountStat = accountStatsMap[realAccountId];
@@ -157,6 +209,8 @@ final resumeDataProvider = FutureProvider.family<ResumeData, DateTimeRange>((
 
   return ResumeData(
     envelopeStats: envelopeStats
+      ..sort((a, b) => a.realAccountName.compareTo(b.realAccountName)),
+    systemEnvelopeStats: systemEnvelopeStats
       ..sort((a, b) => a.realAccountName.compareTo(b.realAccountName)),
     accountStats: accountStatsMap.values.toList()
       ..sort((a, b) => a.accountName.compareTo(b.accountName)),

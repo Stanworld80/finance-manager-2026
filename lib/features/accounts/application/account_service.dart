@@ -38,18 +38,104 @@ class AccountService {
     final user = ref.read(firebaseAuthProvider).currentUser;
     if (user == null) return;
 
-    // Check if any real account exists
-    // We use a stream in the repo, but here we might want a simple get or assume stream logic.
-    // For simplicity, we can try to fetch the list once.
-    // Since the repo currently only has watch methods or single get, we might need a fetchAll.
-    // Let's assume for now if list is empty, we create one.
+    final repository = ref.read(accountRepositoryProvider);
+    final existingAccounts = await repository.getRealAccounts(user.uid);
 
-    // Wait for the stream to emit once (not ideal for check, but workable)
-    // Or better: Add a fetch method to repo.
-    // For now, let's just expose a direct create method and UI calls it if empty.
-    // BUT, the request is for "Smart init".
+    // 1. Check for Generic External Account
+    final hasGenericExternal = existingAccounts.any(
+      (a) => a.type == RealAccountType.externalGeneric,
+    );
 
-    // Let's rely on the UI/Logic layer to check `watchRealAccounts` and call `createRealAccount` if empty.
+    if (!hasGenericExternal) {
+      final uuid = const Uuid();
+      final genericExternal = RealAccount(
+        id: uuid.v4(),
+        ownerId: user.uid,
+        name: "Monde extérieur - indéfini",
+        bankName: "Exterieur",
+        initialBalance: 0.0,
+        balance: 0.0,
+        type: RealAccountType.externalGeneric,
+      );
+      await repository.createRealAccount(user.uid, genericExternal);
+      await _createExternalSystemAccounts(user.uid, genericExternal.id);
+    }
+  }
+
+  /// Helper to create default system accounts for an external entity
+  Future<void> _createExternalSystemAccounts(
+    String userId,
+    String realAccountId,
+  ) async {
+    final repository = ref.read(accountRepositoryProvider);
+    final uuid = const Uuid();
+
+    // A. "Libre" (Free)
+    final freeAccount = VirtualAccount(
+      id: uuid.v4(),
+      userId: userId,
+      realAccountId: realAccountId,
+      name: "Libre",
+      balance: 0.0,
+      type: VirtualAccountType.systemFree,
+      icon: "public",
+    );
+
+    // B. "Solde Engagé" (Committed)
+    final committedAccount = VirtualAccount(
+      id: uuid.v4(),
+      userId: userId,
+      realAccountId: realAccountId,
+      name: "Solde Engagé",
+      balance: 0.0,
+      type: VirtualAccountType.systemCommitted,
+      icon: "lock_clock",
+    );
+
+    await repository.createVirtualAccount(userId, freeAccount);
+    await repository.createVirtualAccount(userId, committedAccount);
+  }
+
+  /// Streams all external entities (RealAccountType.external or externalGeneric)
+  Stream<List<RealAccount>> watchExternalEntities() {
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) return Stream.value([]);
+
+    return ref
+        .read(accountRepositoryProvider)
+        .watchRealAccounts(user.uid)
+        .map(
+          (accounts) => accounts
+              .where(
+                (a) =>
+                    a.type == RealAccountType.external ||
+                    a.type == RealAccountType.externalGeneric,
+              )
+              .toList(),
+        );
+  }
+
+  /// Creates a new specific external entity (e.g., "Amazon", "Employeur")
+  Future<RealAccount> createExternalEntity(String name) async {
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) throw Exception("User not authenticated");
+
+    final repository = ref.read(accountRepositoryProvider);
+    final uuid = const Uuid();
+
+    final entity = RealAccount(
+      id: uuid.v4(),
+      ownerId: user.uid,
+      name: name,
+      bankName: "Exterieur",
+      initialBalance: 0.0,
+      balance: 0.0,
+      type: RealAccountType.external,
+    );
+
+    await repository.createRealAccount(user.uid, entity);
+    await _createExternalSystemAccounts(user.uid, entity.id);
+    return entity;
   }
 
   /// Creates a new real bank account with associated system virtual accounts.
@@ -242,6 +328,7 @@ class AccountService {
     String? iban,
     String? bic,
     String? swift,
+    bool? isPrincipal,
   }) async {
     final user = ref.read(firebaseAuthProvider).currentUser;
     if (user == null) throw Exception("User not authenticated");
@@ -256,6 +343,7 @@ class AccountService {
       initialBalance: account.initialBalance,
       balance: account.balance,
       type: account.type,
+      isPrincipal: isPrincipal ?? account.isPrincipal,
       openingDate: openingDate ?? account.openingDate,
       accountNumber: accountNumber ?? account.accountNumber,
       officialName: officialName ?? account.officialName,
@@ -370,10 +458,10 @@ class AccountService {
     final user = ref.read(firebaseAuthProvider).currentUser;
     if (user == null) throw Exception("User not authenticated");
 
-    // Validate system accounts renaming?
-    // Maybe we allow renaming system accounts for now, or block it.
-    // The spec "manipulation & visualisation" implies flexibility.
-    // I won't block it unless strict rule.
+    // 1. Prevent renaming system accounts
+    if (account.type != VirtualAccountType.userBudget) {
+      throw Exception("Impossible de renommer un compte système.");
+    }
 
     final repository = ref.read(accountRepositoryProvider);
 
@@ -418,5 +506,38 @@ class AccountService {
 
     // 3. Delete the real account
     await repository.deleteRealAccount(user.uid, account.id);
+  }
+
+  /// Sets the specified account as the principal account and unsets all others.
+  Future<void> setPrincipalAccount(String accountId) async {
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) throw Exception("User not authenticated");
+
+    final repository = ref.read(accountRepositoryProvider);
+    final allAccounts = await repository.getRealAccounts(user.uid);
+
+    for (final account in allAccounts) {
+      final shouldBePrincipal = account.id == accountId;
+      if (account.isPrincipal != shouldBePrincipal) {
+        final updatedAccount = RealAccount(
+          id: account.id,
+          ownerId: account.ownerId,
+          name: account.name,
+          bankName: account.bankName,
+          initialBalance: account.initialBalance,
+          balance: account.balance,
+          type: account.type,
+          isPrincipal: shouldBePrincipal,
+          sharedWithUserIds: account.sharedWithUserIds,
+          openingDate: account.openingDate,
+          accountNumber: account.accountNumber,
+          officialName: account.officialName,
+          iban: account.iban,
+          bic: account.bic,
+          swift: account.swift,
+        );
+        await repository.updateRealAccount(user.uid, updatedAccount);
+      }
+    }
   }
 }

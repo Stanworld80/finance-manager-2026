@@ -237,39 +237,95 @@ class AccountRepository {
         }
       }
 
-      // Create missing system accounts
-      if (!hasLibre) {
-        await _createSystemVirtualAccount(
-          userId,
-          realAccountId,
-          'Libre',
-          'systemFree',
-          'savings',
-          realDoc.data()['initialBalance']?.toDouble() ?? 0.0,
+      // Ensure 'Libre' and 'Solde Engagé' for External accounts too
+      // Note: This part of the repair logic is specific to external accounts and
+      // creates virtual accounts directly under the top-level 'virtual_accounts' collection
+      // if the real account is external. This is a deviation from the subcollection model
+      // for internal accounts, and might need re-evaluation for consistency.
+      // For now, it assumes external accounts have their virtual accounts at the top level.
+      // This also means `virtuals` list above might not contain these if they are in a different collection.
+      // The current `virtuals` list is from `realDoc.reference.collection('virtual_accounts')`.
+      // If external accounts' virtual accounts are at the top level, this logic needs to be adjusted.
+      // Assuming for now that `virtuals` correctly contains all virtual accounts for `realDoc`,
+      // regardless of whether `realDoc` is internal or external.
+      // This implies that external accounts also have virtual accounts as subcollections.
+      // Let's assume `real` is available and `db` is `_firestore`.
+      final real = RealAccount.fromMap(
+        realDoc.data(),
+      ); // Re-parse real account to get type
+
+      // Ensure 'Libre' and 'Solde Engagé' for External accounts
+      if (real.type == RealAccountType.external ||
+          real.type == RealAccountType.externalGeneric) {
+        final hasLibreExternal = virtuals.docs.any(
+          (vDoc) =>
+              VirtualAccount.fromMap(vDoc.data()).type ==
+              VirtualAccountType.systemFree,
         );
-        createdCount++;
+        if (!hasLibreExternal) {
+          await _createSystemVirtualAccount(
+            userId,
+            realAccountId,
+            'Libre',
+            VirtualAccountType.systemFree.name,
+            'savings',
+            0.0,
+          );
+          createdCount++;
+        }
+
+        final hasCommittedExternal = virtuals.docs.any(
+          (vDoc) =>
+              VirtualAccount.fromMap(vDoc.data()).type ==
+              VirtualAccountType.systemCommitted,
+        );
+        if (!hasCommittedExternal) {
+          await _createSystemVirtualAccount(
+            userId,
+            realAccountId,
+            'Solde Engagé',
+            VirtualAccountType.systemCommitted.name,
+            'lock_clock',
+            0.0,
+          );
+          createdCount++;
+        }
       }
-      if (!hasCommitted) {
-        await _createSystemVirtualAccount(
-          userId,
-          realAccountId,
-          'Solde Engagé',
-          'systemCommitted',
-          'lock_clock',
-          0.0,
-        );
-        createdCount++;
-      }
-      if (!hasFlow) {
-        await _createSystemVirtualAccount(
-          userId,
-          realAccountId,
-          'À Distribuer',
-          'flowToDistribute',
-          'input',
-          0.0,
-        );
-        createdCount++;
+      // Create missing system accounts for internal accounts
+      if (real.type == RealAccountType.internal) {
+        if (!hasLibre) {
+          await _createSystemVirtualAccount(
+            userId,
+            realAccountId,
+            'Libre',
+            VirtualAccountType.systemFree.name,
+            'savings',
+            real.initialBalance,
+          );
+          createdCount++;
+        }
+        if (!hasCommitted) {
+          await _createSystemVirtualAccount(
+            userId,
+            realAccountId,
+            'Solde Engagé',
+            VirtualAccountType.systemCommitted.name,
+            'lock_clock',
+            0.0,
+          );
+          createdCount++;
+        }
+        if (!hasFlow) {
+          await _createSystemVirtualAccount(
+            userId,
+            realAccountId,
+            'À distribuer',
+            VirtualAccountType.flowToDistribute.name,
+            'input',
+            0.0,
+          );
+          createdCount++;
+        }
       }
     }
 

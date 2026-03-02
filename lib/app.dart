@@ -29,6 +29,8 @@ import 'features/transactions/presentation/add_recurrence_page.dart';
 import 'features/ai/presentation/ai_chat_screen.dart';
 import 'features/import/presentation/import_screen.dart';
 import 'features/transactions/presentation/transaction_list_page.dart';
+import 'features/transactions/presentation/upcoming_transactions_page.dart';
+import 'features/accounts/presentation/external_entities_screen.dart';
 
 import 'core/providers.dart';
 
@@ -82,6 +84,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/recurring',
             builder: (context, state) => const RecurrenceListPage(),
+          ),
+          GoRoute(
+            path: '/upcoming',
+            builder: (context, state) => const UpcomingTransactionsPage(),
           ),
           GoRoute(
             path: '/recurring/add',
@@ -154,6 +160,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/transactions',
             builder: (context, state) => const TransactionListPage(),
+          ),
+          GoRoute(
+            path: '/exterieur',
+            builder: (context, state) => const ExternalEntitiesScreen(),
           ),
         ],
       ),

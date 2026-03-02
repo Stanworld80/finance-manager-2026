@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/utils/currency_formatter.dart';
 import '../../accounts/data/account_providers.dart';
+import '../application/transaction_service.dart';
 import '../data/filtered_transactions_provider.dart';
 import '../domain/transaction_model.dart';
 
@@ -254,7 +255,13 @@ class _TransactionListPageState extends ConsumerState<TransactionListPage> {
 
   Widget _buildTransactionTile(BuildContext context, TransactionModel tx) {
     final isExpense = tx.amount < 0;
-    return ListTile(
+    final isPending = tx.step == TransactionStep.pending;
+    final isPlanned =
+        tx.step == TransactionStep.planned ||
+        tx.step == TransactionStep.scheduled;
+    final amountColor = isExpense ? Colors.red : Colors.green;
+
+    final card = ListTile(
       onTap: () => context.push('/transaction/${tx.id}'),
       leading: CircleAvatar(
         backgroundColor: isExpense
@@ -268,18 +275,142 @@ class _TransactionListPageState extends ConsumerState<TransactionListPage> {
           size: 16,
         ),
       ),
-      title: Text(
-        tx.payee ?? 'Sans bénéficiaire',
-        style: const TextStyle(fontWeight: FontWeight.w500),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              tx.payee ?? tx.label ?? 'Sans libellé',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (isPending)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              margin: const EdgeInsets.only(left: 8.0),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                "En attente",
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          if (isPlanned)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              margin: const EdgeInsets.only(left: 8.0),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                "Planifié",
+                style: TextStyle(
+                  color: Colors.blue,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+        ],
       ),
       subtitle: Text(tx.label ?? ''),
       trailing: Text(
         CurrencyFormatter.format(tx.amount),
         style: TextStyle(
-          color: isExpense ? Colors.red : Colors.green,
           fontWeight: FontWeight.bold,
+          fontSize: 14,
+          color: isPending
+              ? Colors.orange
+              : (isPlanned ? Colors.grey : amountColor),
         ),
       ),
     );
+
+    if (isPending) {
+      return Dismissible(
+        key: Key('pending-${tx.id}'),
+        direction: DismissDirection.startToEnd,
+        background: Container(
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.only(left: 16.0),
+          color: Colors.green.shade400,
+          child: const Row(
+            children: [
+              Icon(Icons.check, color: Colors.white),
+              SizedBox(width: 8),
+              Text(
+                "Pointer",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        confirmDismiss: (direction) async {
+          try {
+            await ref.read(transactionServiceProvider).confirmTransaction(tx);
+            return false;
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text("Action échouée: $e")));
+            }
+            return false;
+          }
+        },
+        child: card,
+      );
+    }
+
+    if (isPlanned) {
+      return Dismissible(
+        key: Key('planned-${tx.id}'),
+        direction: DismissDirection.startToEnd,
+        background: Container(
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.only(left: 16.0),
+          color: Colors.orange.shade400,
+          child: const Row(
+            children: [
+              Icon(Icons.account_balance_wallet, color: Colors.white),
+              SizedBox(width: 8),
+              Text(
+                "Provisionner",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        confirmDismiss: (direction) async {
+          try {
+            await ref.read(transactionServiceProvider).provisionTransaction(tx);
+            return false;
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text("Action échouée: $e")));
+            }
+            return false;
+          }
+        },
+        child: card,
+      );
+    }
+
+    return card;
   }
 }

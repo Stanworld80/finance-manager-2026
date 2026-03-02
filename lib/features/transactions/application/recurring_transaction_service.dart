@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/providers.dart';
 import '../data/recurring_transaction_repository.dart';
+import '../data/transaction_repository.dart';
 import '../domain/recurring_transaction_model.dart';
 import '../domain/transaction_model.dart'; // Needed for TransactionModel output
 
@@ -31,6 +32,7 @@ class RecurringTransactionService {
     String? note,
     required TransactionType type,
     List<TransactionSplit> splits = const [],
+    String? externalEntityId,
   }) async {
     final user = ref.read(firebaseAuthProvider).currentUser;
     if (user == null) throw Exception("User not authenticated");
@@ -61,6 +63,7 @@ class RecurringTransactionService {
       note: note,
       type: type,
       splits: splits,
+      externalEntityId: externalEntityId,
     );
 
     await repository.createRecurringTransaction(user.uid, recurring);
@@ -164,6 +167,75 @@ class RecurringTransactionService {
           current.hour,
           current.minute,
         );
+    }
+  }
+
+  /// Processes upcoming recurrences and saves them to the database as PLANNED transactions.
+  /// Typically called on app launch or via a background job.
+  Future<void> processUpcomingRecurrences({DateTime? upToDate}) async {
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) return;
+
+    final txRepo = ref.read(transactionRepositoryProvider);
+    final recRepo = ref.read(recurringTransactionRepositoryProvider);
+
+    // Default lookahead is 30 days
+    final targetDate = upToDate ?? DateTime.now().add(const Duration(days: 30));
+    final rules = await recRepo.getRecurringTransactions(user.uid);
+
+    for (final rule in rules) {
+      if (rule.interval <= 0) continue;
+
+      DateTime candidate = rule.nextOccurrence;
+      bool hasUpdates = false;
+
+      while (candidate.isBefore(targetDate) ||
+          candidate.isAtSameMomentAs(targetDate)) {
+        if (rule.endDate != null && candidate.isAfter(rule.endDate!)) break;
+
+        final uuid = const Uuid();
+        final newTx = TransactionModel(
+          id: uuid.v4(),
+          ownerId: rule.ownerId,
+          realAccountId: rule.realAccountId,
+          amount: rule.amount,
+          label: rule.label, // Or add " (Planifié)" ?
+          note: rule.note,
+          transactionDate: candidate,
+          type: rule.type,
+          status: TransactionStatus.none,
+          step: TransactionStep.planned,
+          splits: rule.splits,
+          recurringTransactionId: rule.id,
+          externalEntityId: rule.externalEntityId,
+        );
+
+        await txRepo.createTransaction(user.uid, newTx);
+
+        candidate = _calculateNext(rule, candidate);
+        hasUpdates = true;
+      }
+
+      if (hasUpdates) {
+        final updatedRule = RecurringTransaction(
+          id: rule.id,
+          ownerId: rule.ownerId,
+          frequency: rule.frequency,
+          interval: rule.interval,
+          startDate: rule.startDate,
+          endDate: rule.endDate,
+          nextOccurrence: candidate,
+          lastOccurrence: rule.lastOccurrence,
+          realAccountId: rule.realAccountId,
+          amount: rule.amount,
+          label: rule.label,
+          note: rule.note,
+          type: rule.type,
+          splits: rule.splits,
+          externalEntityId: rule.externalEntityId,
+        );
+        await recRepo.updateRecurringTransaction(user.uid, updatedRule);
+      }
     }
   }
 }

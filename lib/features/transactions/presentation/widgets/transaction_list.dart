@@ -27,6 +27,9 @@ class TransactionList extends ConsumerWidget {
       itemBuilder: (context, index) {
         final tx = transactions[index];
         final isPending = tx.step == TransactionStep.pending;
+        final isPlanned =
+            tx.step == TransactionStep.planned ||
+            tx.step == TransactionStep.scheduled;
         final amountColor = UiUtils.getTransactionColor(
           tx.type,
           brightness: Theme.of(context).brightness,
@@ -59,12 +62,43 @@ class TransactionList extends ConsumerWidget {
                 ),
               ),
               if (isPending)
-                const Padding(
-                  padding: EdgeInsets.only(left: 8.0),
-                  child: Icon(
-                    Icons.access_time_filled,
-                    color: Colors.orange,
-                    size: 16,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  margin: const EdgeInsets.only(left: 8.0),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    "En attente",
+                    style: TextStyle(
+                      color: Colors.orange,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              if (isPlanned)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  margin: const EdgeInsets.only(left: 8.0),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    "Planifié",
+                    style: TextStyle(
+                      color: Colors.blue,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
             ],
@@ -81,7 +115,9 @@ class TransactionList extends ConsumerWidget {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
-              color: isPending ? Colors.orange : amountColor,
+              color: isPending
+                  ? Colors.orange
+                  : (isPlanned ? Colors.grey : amountColor),
             ),
           ),
         );
@@ -99,7 +135,7 @@ class TransactionList extends ConsumerWidget {
 
         if (isPending) {
           return Dismissible(
-            key: Key(tx.id),
+            key: Key('pending-${tx.id}'),
             direction: DismissDirection.startToEnd,
             background: Container(
               alignment: Alignment.centerLeft,
@@ -109,14 +145,71 @@ class TransactionList extends ConsumerWidget {
                 color: Colors.green.shade400,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.check, color: Colors.white),
+              child: const Row(
+                children: [
+                  Icon(Icons.check, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text(
+                    "Pointer",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
             confirmDismiss: (direction) async {
               try {
                 await ref
                     .read(transactionServiceProvider)
                     .confirmTransaction(tx);
-                return true;
+                return false; // Don't remove from list, it just updates step
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text("Action échouée: $e")));
+                }
+                return false;
+              }
+            },
+            child: card,
+          );
+        }
+
+        if (isPlanned) {
+          return Dismissible(
+            key: Key('planned-${tx.id}'),
+            direction: DismissDirection.startToEnd,
+            background: Container(
+              alignment: Alignment.centerLeft,
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.only(left: 16.0),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade400,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.account_balance_wallet, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text(
+                    "Provisionner",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            confirmDismiss: (direction) async {
+              try {
+                await ref
+                    .read(transactionServiceProvider)
+                    .provisionTransaction(tx);
+                return false; // Don't remove from list
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(

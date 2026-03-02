@@ -121,8 +121,8 @@ class AppShell extends ConsumerWidget {
                 _SidebarItem(
                   icon: Icons.calendar_month_outlined,
                   label: 'Échéanciers',
-                  isSelected: currentLocation == '/recurring',
-                  onTap: () => context.go('/recurring'),
+                  isSelected: currentLocation == '/upcoming',
+                  onTap: () => context.go('/upcoming'),
                 ),
                 _SidebarItem(
                   icon: Icons.insights_outlined,
@@ -135,6 +135,12 @@ class AppShell extends ConsumerWidget {
                   label: 'Coach Financier',
                   isSelected: currentLocation == '/ai',
                   onTap: () => context.go('/ai'),
+                ),
+                _SidebarItem(
+                  icon: Icons.public_outlined,
+                  label: 'Exterieur',
+                  isSelected: currentLocation == '/exterieur',
+                  onTap: () => context.go('/exterieur'),
                 ),
                 _SidebarItem(
                   icon: Icons.upload_file,

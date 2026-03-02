@@ -25,6 +25,7 @@ class ResumeExportService {
   Future<void> exportToCsv(
     BuildContext context,
     List<AccountStat> accountStats,
+    List<EnvelopeStat> systemEnvelopeStats,
     List<EnvelopeStat> envelopeStats,
     DateTimeRange period,
   ) async {
@@ -48,6 +49,34 @@ class ResumeExportService {
           rows.add([
             stat.accountName,
             '---',
+            stat.startBalance,
+            stat.income,
+            stat.expense,
+            diff,
+            stat.endBalance,
+          ]);
+        }
+        rows.add([]); // Spacer
+      }
+
+      // System Envelopes Section
+      if (systemEnvelopeStats.isNotEmpty) {
+        rows.add(['ENVELOPPES SYSTEME']);
+        rows.add([
+          'Nom de l\'enveloppe',
+          'Compte lié',
+          'Solde début',
+          'Revenus',
+          'Dépenses',
+          'Différence',
+          'Solde fin',
+        ]);
+
+        for (final EnvelopeStat stat in systemEnvelopeStats) {
+          final diff = stat.income + stat.expense;
+          rows.add([
+            stat.envelopeName,
+            stat.realAccountName,
             stat.startBalance,
             stat.income,
             stat.expense,
@@ -114,20 +143,31 @@ class ResumeExportService {
   Future<void> exportToPdf(
     BuildContext context,
     List<AccountStat> accountStats,
+    List<EnvelopeStat> systemEnvelopeStats,
     List<EnvelopeStat> envelopeStats,
     DateTimeRange period,
   ) async {
     try {
       final pdf = pw.Document();
 
-      final headers = [
-        'Nom',
+      final accountHeaders = [
+        'Nom du compte',
         'Compte lié',
-        'Début',
-        'In',
-        'Out',
-        'Diff',
-        'Fin',
+        'Solde début',
+        'Revenus',
+        'Dépenses',
+        'Différence',
+        'Solde fin',
+      ];
+
+      final envelopeHeaders = [
+        'Nom de l\'enveloppe',
+        'Compte lié',
+        'Solde début',
+        'Revenus',
+        'Dépenses',
+        'Différence',
+        'Solde fin',
       ];
 
       final accountData = accountStats.map((AccountStat stat) {
@@ -135,6 +175,19 @@ class ResumeExportService {
         return [
           stat.accountName,
           '---',
+          _numberFormat.format(stat.startBalance),
+          _numberFormat.format(stat.income),
+          _numberFormat.format(stat.expense),
+          _numberFormat.format(diff),
+          _numberFormat.format(stat.endBalance),
+        ];
+      }).toList();
+
+      final systemEnvelopeData = systemEnvelopeStats.map((EnvelopeStat stat) {
+        final diff = stat.income + stat.expense;
+        return [
+          stat.envelopeName,
+          stat.realAccountName,
           _numberFormat.format(stat.startBalance),
           _numberFormat.format(stat.income),
           _numberFormat.format(stat.expense),
@@ -189,10 +242,31 @@ class ResumeExportService {
                   style: pw.TextStyle(
                     fontSize: 14,
                     fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.blueGrey800,
                   ),
                 ),
               ),
-              _buildPdfTable(headers, accountData),
+              _buildPdfTable(accountHeaders, accountData),
+              pw.SizedBox(height: 20),
+            ],
+            if (systemEnvelopeStats.isNotEmpty) ...[
+              pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(vertical: 10),
+                child: pw.Text(
+                  'Enveloppes Système',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                    color:
+                        PdfColors.orange800, // Matching UI color Amber/Orange
+                  ),
+                ),
+              ),
+              _buildPdfTable(
+                envelopeHeaders,
+                systemEnvelopeData,
+                headerColor: PdfColors.orange800,
+              ),
               pw.SizedBox(height: 20),
             ],
             pw.Padding(
@@ -202,10 +276,11 @@ class ResumeExportService {
                 style: pw.TextStyle(
                   fontSize: 14,
                   fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.blueGrey800,
                 ),
               ),
             ),
-            _buildPdfTable(headers, envelopeData),
+            _buildPdfTable(envelopeHeaders, envelopeData),
           ],
         ),
       );
@@ -224,7 +299,11 @@ class ResumeExportService {
     }
   }
 
-  pw.Widget _buildPdfTable(List<String> headers, List<List<String>> data) {
+  pw.Widget _buildPdfTable(
+    List<String> headers,
+    List<List<String>> data, {
+    PdfColor headerColor = PdfColors.blueGrey800,
+  }) {
     return pw.TableHelper.fromTextArray(
       headers: headers,
       data: data,
@@ -234,7 +313,7 @@ class ResumeExportService {
         color: PdfColors.white,
         fontSize: 9,
       ),
-      headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey800),
+      headerDecoration: pw.BoxDecoration(color: headerColor),
       rowDecoration: const pw.BoxDecoration(
         border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey200)),
       ),

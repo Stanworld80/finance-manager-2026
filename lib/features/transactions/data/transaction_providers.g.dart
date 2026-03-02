@@ -168,5 +168,155 @@ class _TransactionByIdProviderElement
   String get id => (origin as TransactionByIdProvider).id;
 }
 
+String _$upcomingTransactionsHash() =>
+    r'1d558f7ae294d5adce6f661cff9f29cfbeffb529';
+
+/// See also [upcomingTransactions].
+@ProviderFor(upcomingTransactions)
+final upcomingTransactionsProvider =
+    AutoDisposeStreamProvider<List<TransactionModel>>.internal(
+      upcomingTransactions,
+      name: r'upcomingTransactionsProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$upcomingTransactionsHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpcomingTransactionsRef =
+    AutoDisposeStreamProviderRef<List<TransactionModel>>;
+String _$externalTransactionsHash() =>
+    r'baafaeecfebeeae1b8ba15bbee336e68c8d2712e';
+
+/// See also [externalTransactions].
+@ProviderFor(externalTransactions)
+const externalTransactionsProvider = ExternalTransactionsFamily();
+
+/// See also [externalTransactions].
+class ExternalTransactionsFamily
+    extends Family<AsyncValue<List<TransactionModel>>> {
+  /// See also [externalTransactions].
+  const ExternalTransactionsFamily();
+
+  /// See also [externalTransactions].
+  ExternalTransactionsProvider call(String externalEntityId) {
+    return ExternalTransactionsProvider(externalEntityId);
+  }
+
+  @override
+  ExternalTransactionsProvider getProviderOverride(
+    covariant ExternalTransactionsProvider provider,
+  ) {
+    return call(provider.externalEntityId);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'externalTransactionsProvider';
+}
+
+/// See also [externalTransactions].
+class ExternalTransactionsProvider
+    extends AutoDisposeStreamProvider<List<TransactionModel>> {
+  /// See also [externalTransactions].
+  ExternalTransactionsProvider(String externalEntityId)
+    : this._internal(
+        (ref) => externalTransactions(
+          ref as ExternalTransactionsRef,
+          externalEntityId,
+        ),
+        from: externalTransactionsProvider,
+        name: r'externalTransactionsProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$externalTransactionsHash,
+        dependencies: ExternalTransactionsFamily._dependencies,
+        allTransitiveDependencies:
+            ExternalTransactionsFamily._allTransitiveDependencies,
+        externalEntityId: externalEntityId,
+      );
+
+  ExternalTransactionsProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.externalEntityId,
+  }) : super.internal();
+
+  final String externalEntityId;
+
+  @override
+  Override overrideWith(
+    Stream<List<TransactionModel>> Function(ExternalTransactionsRef provider)
+    create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: ExternalTransactionsProvider._internal(
+        (ref) => create(ref as ExternalTransactionsRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        externalEntityId: externalEntityId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeStreamProviderElement<List<TransactionModel>> createElement() {
+    return _ExternalTransactionsProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ExternalTransactionsProvider &&
+        other.externalEntityId == externalEntityId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, externalEntityId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin ExternalTransactionsRef
+    on AutoDisposeStreamProviderRef<List<TransactionModel>> {
+  /// The parameter `externalEntityId` of this provider.
+  String get externalEntityId;
+}
+
+class _ExternalTransactionsProviderElement
+    extends AutoDisposeStreamProviderElement<List<TransactionModel>>
+    with ExternalTransactionsRef {
+  _ExternalTransactionsProviderElement(super.provider);
+
+  @override
+  String get externalEntityId =>
+      (origin as ExternalTransactionsProvider).externalEntityId;
+}
+
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

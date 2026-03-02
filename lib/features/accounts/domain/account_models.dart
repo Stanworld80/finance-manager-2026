@@ -26,6 +26,7 @@ class RealAccount {
   final double initialBalance;
   final double balance; // Current calculated balance
   final RealAccountType type;
+  final bool isPrincipal; // NEW
   final List<String> sharedWithUserIds; // NEW for sharing
 
   // Metadata expansion
@@ -44,6 +45,7 @@ class RealAccount {
     this.initialBalance = 0.0,
     required this.balance,
     this.type = RealAccountType.internal,
+    this.isPrincipal = false, // Default false
     this.sharedWithUserIds = const [], // Default empty
     this.openingDate,
     this.accountNumber,
@@ -62,6 +64,7 @@ class RealAccount {
       'initialBalance': initialBalance,
       'balance': balance,
       'type': type.name,
+      'isPrincipal': isPrincipal,
       'sharedWithUserIds': sharedWithUserIds,
       'openingDate': openingDate?.toIso8601String(),
       'accountNumber': accountNumber,
@@ -84,6 +87,7 @@ class RealAccount {
         (e) => e.name == map['type'],
         orElse: () => RealAccountType.internal,
       ),
+      isPrincipal: map['isPrincipal'] as bool? ?? false,
       sharedWithUserIds: List<String>.from(map['sharedWithUserIds'] ?? []),
       openingDate: map['openingDate'] != null
           ? DateTime.parse(map['openingDate'] as String)

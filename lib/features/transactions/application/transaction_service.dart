@@ -27,9 +27,12 @@ class TransactionService {
     required DateTime date,
     required RealAccount realAccount,
     required VirtualAccount targetVirtualAccount, // The budget affected
-    TransactionStep step = TransactionStep.completed,
     String? category,
     String? note,
+    TransactionStep step = TransactionStep.completed,
+    TransactionStatus status = TransactionStatus.none,
+    String? recurringTransactionId,
+    String? externalEntityId,
   }) async {
     final user = ref.read(firebaseAuthProvider).currentUser;
     if (user == null) throw Exception("User not authenticated");
@@ -59,15 +62,13 @@ class TransactionService {
     switch (type) {
       case TransactionType.debit:
         // Movement: Internal Envelope -> External World (or Committed)
-        realAmountSigned = step == TransactionStep.pending
-            ? 0.0
-            : -amount.abs();
+        realAmountSigned = -amount.abs();
         virtualAmountSigned = -amount.abs();
         counterpartyAmountSigned = amount.abs();
         break;
       case TransactionType.credit:
         // Movement: External World (or Committed) -> Internal Envelope
-        realAmountSigned = step == TransactionStep.pending ? 0.0 : amount.abs();
+        realAmountSigned = amount.abs();
         virtualAmountSigned = amount.abs();
         counterpartyAmountSigned = -amount.abs();
         break;
@@ -91,6 +92,8 @@ class TransactionService {
       note: note,
       status: TransactionStatus.none,
       step: step,
+      recurringTransactionId: recurringTransactionId,
+      externalEntityId: externalEntityId,
       splits: [
         // Internal Pole
         TransactionSplit(
@@ -118,9 +121,12 @@ class TransactionService {
     required DateTime date,
     required RealAccount realAccount,
     required List<({VirtualAccount account, double amount})> splits,
-    TransactionStep step = TransactionStep.completed,
     String? category,
     String? note,
+    TransactionStep step = TransactionStep.completed,
+    TransactionStatus status = TransactionStatus.none,
+    String? recurringTransactionId,
+    String? externalEntityId,
   }) async {
     final user = ref.read(firebaseAuthProvider).currentUser;
     if (user == null) throw Exception("User not authenticated");
@@ -196,8 +202,8 @@ class TransactionService {
       ownerId: user.uid,
       realAccountId: realAccount.id,
       amount: type == TransactionType.debit
-          ? (step == TransactionStep.pending ? 0.0 : -totalAmount.abs())
-          : (step == TransactionStep.pending ? 0.0 : totalAmount.abs()),
+          ? -totalAmount.abs()
+          : totalAmount.abs(),
       type: type,
       transactionDate: date,
       label: label,
@@ -205,6 +211,8 @@ class TransactionService {
       note: note,
       status: TransactionStatus.none,
       step: step,
+      recurringTransactionId: recurringTransactionId,
+      externalEntityId: externalEntityId,
       splits: transactionSplits,
     );
 
@@ -377,6 +385,7 @@ class TransactionService {
     TransactionStep? step,
     String? category,
     String? note,
+    String? externalEntityId,
   }) async {
     final user = ref.read(firebaseAuthProvider).currentUser;
     if (user == null) throw Exception("User not authenticated");
@@ -406,16 +415,12 @@ class TransactionService {
 
     switch (type) {
       case TransactionType.debit:
-        realAmountSigned = targetStep == TransactionStep.pending
-            ? 0.0
-            : -amount.abs();
+        realAmountSigned = -amount.abs();
         virtualAmountSigned = -amount.abs();
         counterpartyAmountSigned = amount.abs();
         break;
       case TransactionType.credit:
-        realAmountSigned = targetStep == TransactionStep.pending
-            ? 0.0
-            : amount.abs();
+        realAmountSigned = amount.abs();
         virtualAmountSigned = amount.abs();
         counterpartyAmountSigned = -amount.abs();
         break;
@@ -438,6 +443,9 @@ class TransactionService {
       note: note,
       status: originalTransaction.status, // Keep status? Or reset?
       step: targetStep,
+      recurringTransactionId: originalTransaction.recurringTransactionId,
+      externalEntityId:
+          externalEntityId ?? originalTransaction.externalEntityId,
       splits: [
         TransactionSplit(
           virtualAccountId: targetVirtualAccount.id,
@@ -469,6 +477,7 @@ class TransactionService {
     TransactionStep? step,
     String? category,
     String? note,
+    String? externalEntityId,
   }) async {
     final user = ref.read(firebaseAuthProvider).currentUser;
     if (user == null) throw Exception("User not authenticated");
@@ -539,8 +548,8 @@ class TransactionService {
       ownerId: user.uid,
       realAccountId: realAccount.id,
       amount: type == TransactionType.debit
-          ? (targetStep == TransactionStep.pending ? 0.0 : -totalAmount.abs())
-          : (targetStep == TransactionStep.pending ? 0.0 : totalAmount.abs()),
+          ? -totalAmount.abs()
+          : totalAmount.abs(),
       type: type,
       transactionDate: date,
       label: label,
@@ -548,6 +557,9 @@ class TransactionService {
       note: note,
       status: originalTransaction.status,
       step: targetStep,
+      recurringTransactionId: originalTransaction.recurringTransactionId,
+      externalEntityId:
+          externalEntityId ?? originalTransaction.externalEntityId,
       splits: transactionSplits,
     );
 
@@ -570,10 +582,21 @@ class TransactionService {
     if (user == null) throw Exception("User not authenticated");
 
     final repository = ref.read(transactionRepositoryProvider);
+    final accountRepo = ref.read(accountRepositoryProvider);
+
+    final committedAccount = await accountRepo.getVirtualAccountByType(
+      user.uid,
+      originalTransaction.realAccountId,
+      VirtualAccountType.systemCommitted,
+    );
+    if (committedAccount == null) {
+      throw Exception("System committed account not found.");
+    }
+    final committedAccountId = committedAccount.id;
 
     // Swap the counterparty split to external
     final newSplits = originalTransaction.splits.map((s) {
-      if (s.isSystem) {
+      if (s.virtualAccountId == committedAccountId || s.isSystem) {
         return TransactionSplit(
           virtualAccountId: SystemAccounts.external,
           amount: s.amount,
@@ -582,29 +605,11 @@ class TransactionService {
       return s;
     }).toList();
 
-    // The real amount now actually impacts the bank account
-    double newAmount = 0.0;
-    if (originalTransaction.type == TransactionType.debit) {
-      // Find the envelope split to know the total amount
-      final envelopeSplit = newSplits.firstWhere((s) => !s.isSystem);
-      newAmount = envelopeSplit.amount; // Already negative
-    } else if (originalTransaction.type == TransactionType.credit) {
-      final envelopeSplit = newSplits.firstWhere((s) => !s.isSystem);
-      newAmount = envelopeSplit.amount; // Already positive
-    }
-
-    // Edge case if splits are complex (split transaction): sum of non-system
-    if (newSplits.length > 2) {
-      newAmount = newSplits
-          .where((s) => !s.isSystem)
-          .fold(0.0, (p, s) => p + s.amount);
-    }
-
     final updatedTransaction = TransactionModel(
       id: originalTransaction.id,
       ownerId: originalTransaction.ownerId,
       realAccountId: originalTransaction.realAccountId,
-      amount: newAmount,
+      amount: originalTransaction.amount,
       type: originalTransaction.type,
       transactionDate: originalTransaction.transactionDate,
       label: originalTransaction.label,
@@ -620,6 +625,74 @@ class TransactionService {
       provisionDate: originalTransaction.provisionDate,
       splits: newSplits,
       importHash: originalTransaction.importHash,
+    );
+
+    assert(updatedTransaction.isBalanced);
+    await repository.updateTransaction(
+      user.uid,
+      originalTransaction,
+      updatedTransaction,
+    );
+  }
+
+  /// Provisions a planned transaction, changing its step to pending and moving its
+  /// counterparty split from 'system:external' to 'Solde Engagé'.
+  Future<void> provisionTransaction(
+    TransactionModel originalTransaction,
+  ) async {
+    if (originalTransaction.step != TransactionStep.planned &&
+        originalTransaction.step != TransactionStep.scheduled) {
+      return;
+    }
+
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) throw Exception("User not authenticated");
+
+    final repository = ref.read(transactionRepositoryProvider);
+    final accountRepo = ref.read(accountRepositoryProvider);
+
+    final committedAccount = await accountRepo.getVirtualAccountByType(
+      user.uid,
+      originalTransaction.realAccountId,
+      VirtualAccountType.systemCommitted,
+    );
+    if (committedAccount == null) {
+      throw Exception("System committed account not found.");
+    }
+    final committedAccountId = committedAccount.id;
+
+    // Swap the counterparty split to solde_engage
+    final newSplits = originalTransaction.splits.map((s) {
+      if (s.isSystem && s.virtualAccountId == SystemAccounts.external) {
+        return TransactionSplit(
+          virtualAccountId: committedAccountId,
+          amount: s.amount,
+        );
+      }
+      return s;
+    }).toList();
+
+    final updatedTransaction = TransactionModel(
+      id: originalTransaction.id,
+      ownerId: originalTransaction.ownerId,
+      realAccountId: originalTransaction.realAccountId,
+      amount: originalTransaction.amount,
+      type: originalTransaction.type,
+      transactionDate: originalTransaction.transactionDate,
+      label: originalTransaction.label,
+      note: originalTransaction.note,
+      payee: originalTransaction.payee,
+      category: originalTransaction.category,
+      status: originalTransaction.status,
+      step: TransactionStep.pending, // Now pending!
+      externalEntityId: originalTransaction.externalEntityId,
+      valueDate: originalTransaction.valueDate,
+      visibilityDate: originalTransaction.visibilityDate,
+      syncDate: originalTransaction.syncDate,
+      provisionDate: DateTime.now(), // set provision date
+      splits: newSplits,
+      importHash: originalTransaction.importHash,
+      recurringTransactionId: originalTransaction.recurringTransactionId,
     );
 
     assert(updatedTransaction.isBalanced);

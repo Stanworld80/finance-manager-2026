@@ -78,28 +78,31 @@ class TransactionRepository {
 
     tx.set(txRef, transaction.toMap());
 
-    // 2. Update Real Account Balance
-    double realImpact = transaction.amount;
-
-    final realAccountRef = _firestore
-        .collection('accounts')
-        .doc(transaction.realAccountId);
-
-    tx.update(realAccountRef, {'balance': FieldValue.increment(realImpact)});
-
-    // 3. Update Virtual Accounts (Splits)
-    for (var split in transaction.splits) {
-      if (SystemAccounts.isSystem(split.virtualAccountId)) continue;
-
-      final virtualAccountRef = _firestore
+    // 2. Update Real Account Balance (ONLY if completed)
+    if (transaction.step == TransactionStep.completed) {
+      double realImpact = transaction.amount;
+      final realAccountRef = _firestore
           .collection('accounts')
-          .doc(transaction.realAccountId)
-          .collection('virtual_accounts')
-          .doc(split.virtualAccountId);
+          .doc(transaction.realAccountId);
+      tx.update(realAccountRef, {'balance': FieldValue.increment(realImpact)});
+    }
 
-      tx.update(virtualAccountRef, {
-        'balance': FieldValue.increment(split.amount),
-      });
+    // 3. Update Virtual Accounts (Splits) (ONLY if completed or pending)
+    if (transaction.step == TransactionStep.completed ||
+        transaction.step == TransactionStep.pending) {
+      for (var split in transaction.splits) {
+        if (SystemAccounts.isSystem(split.virtualAccountId)) continue;
+
+        final virtualAccountRef = _firestore
+            .collection('accounts')
+            .doc(transaction.realAccountId)
+            .collection('virtual_accounts')
+            .doc(split.virtualAccountId);
+
+        tx.update(virtualAccountRef, {
+          'balance': FieldValue.increment(split.amount),
+        });
+      }
     }
   }
 
@@ -117,26 +120,31 @@ class TransactionRepository {
       tx.delete(txRef);
 
       // Inverse of creation logic
-      double realImpact = -transaction.amount;
-
-      final realAccountRef = _firestore
-          .collection('accounts')
-          .doc(transaction.realAccountId);
-
-      tx.update(realAccountRef, {'balance': FieldValue.increment(realImpact)});
-
-      for (var split in transaction.splits) {
-        if (SystemAccounts.isSystem(split.virtualAccountId)) continue;
-
-        final virtualAccountRef = _firestore
+      if (transaction.step == TransactionStep.completed) {
+        double realImpact = -transaction.amount;
+        final realAccountRef = _firestore
             .collection('accounts')
-            .doc(transaction.realAccountId)
-            .collection('virtual_accounts')
-            .doc(split.virtualAccountId);
-
-        tx.update(virtualAccountRef, {
-          'balance': FieldValue.increment(-split.amount),
+            .doc(transaction.realAccountId);
+        tx.update(realAccountRef, {
+          'balance': FieldValue.increment(realImpact),
         });
+      }
+
+      if (transaction.step == TransactionStep.completed ||
+          transaction.step == TransactionStep.pending) {
+        for (var split in transaction.splits) {
+          if (SystemAccounts.isSystem(split.virtualAccountId)) continue;
+
+          final virtualAccountRef = _firestore
+              .collection('accounts')
+              .doc(transaction.realAccountId)
+              .collection('virtual_accounts')
+              .doc(split.virtualAccountId);
+
+          tx.update(virtualAccountRef, {
+            'balance': FieldValue.increment(-split.amount),
+          });
+        }
       }
     });
   }
@@ -268,62 +276,59 @@ class TransactionRepository {
     TransactionModel updated,
   ) async {
     return _firestore.runTransaction((tx) async {
-      // 1. Revert Original
-      // Only revert balance impacts. The doc will be overwritten.
-
-      double revertRealImpact = -original.amount;
-
-      final realAccountRef = _firestore
-          .collection('accounts')
-          .doc(original.realAccountId);
-
-      tx.update(realAccountRef, {
-        'balance': FieldValue.increment(revertRealImpact),
-      });
-
-      for (var split in original.splits) {
-        if (SystemAccounts.isSystem(split.virtualAccountId)) continue;
-
-        final virtualAccountRef = _firestore
+      // 1. Revert Original (Only if it affected balances)
+      if (original.step == TransactionStep.completed) {
+        double revertRealImpact = -original.amount;
+        final realAccountRef = _firestore
             .collection('accounts')
-            .doc(original.realAccountId)
-            .collection('virtual_accounts')
-            .doc(split.virtualAccountId);
-
-        tx.update(virtualAccountRef, {
-          'balance': FieldValue.increment(-split.amount),
+            .doc(original.realAccountId);
+        tx.update(realAccountRef, {
+          'balance': FieldValue.increment(revertRealImpact),
         });
       }
 
-      // 2. Apply New (Updated)
-      // Check if RealAccount changed? If so, we need to handle moving across accounts.
-      // For now, let's assume Real Account cannot change easily in UI or is handled.
-      // If Real Account changes, we should revert old real account and apply to new real account.
-      // The code above assumes original.realAccountId.
+      if (original.step == TransactionStep.completed ||
+          original.step == TransactionStep.pending) {
+        for (var split in original.splits) {
+          if (SystemAccounts.isSystem(split.virtualAccountId)) continue;
 
-      final newRealAccountRef = _firestore
-          .collection('accounts')
-          .doc(updated.realAccountId);
+          final virtualAccountRef = _firestore
+              .collection('accounts')
+              .doc(original.realAccountId)
+              .collection('virtual_accounts')
+              .doc(split.virtualAccountId);
 
-      tx.update(newRealAccountRef, {
-        'balance': FieldValue.increment(updated.amount),
-      });
+          tx.update(virtualAccountRef, {
+            'balance': FieldValue.increment(-split.amount),
+          });
+        }
+      }
 
-      for (var split in updated.splits) {
-        if (SystemAccounts.isSystem(split.virtualAccountId)) continue;
-
-        final virtualAccountRef = _firestore
+      // 2. Apply New (Updated) (Only if it affects balances)
+      if (updated.step == TransactionStep.completed) {
+        final newRealAccountRef = _firestore
             .collection('accounts')
-            .doc(updated.realAccountId)
-            .collection('virtual_accounts')
-            .doc(split.virtualAccountId);
-
-        // If doc doesn't exist (e.g. creating new on the fly?), this might fail if not created yet.
-        // We assume logic handles creation before this call or set vs update.
-        // For simple update, 'update' is safer if exists.
-        tx.update(virtualAccountRef, {
-          'balance': FieldValue.increment(split.amount),
+            .doc(updated.realAccountId);
+        tx.update(newRealAccountRef, {
+          'balance': FieldValue.increment(updated.amount),
         });
+      }
+
+      if (updated.step == TransactionStep.completed ||
+          updated.step == TransactionStep.pending) {
+        for (var split in updated.splits) {
+          if (SystemAccounts.isSystem(split.virtualAccountId)) continue;
+
+          final virtualAccountRef = _firestore
+              .collection('accounts')
+              .doc(updated.realAccountId)
+              .collection('virtual_accounts')
+              .doc(split.virtualAccountId);
+
+          tx.update(virtualAccountRef, {
+            'balance': FieldValue.increment(split.amount),
+          });
+        }
       }
 
       // 3. Update Transaction Doc

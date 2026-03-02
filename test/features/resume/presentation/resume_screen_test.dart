@@ -25,7 +25,12 @@ void main() {
           if (isLoading) {
             await Completer<ResumeData>().future;
           }
-          return data ?? ResumeData(envelopeStats: [], accountStats: []);
+          return data ??
+              ResumeData(
+                envelopeStats: [],
+                systemEnvelopeStats: [],
+                accountStats: [],
+              );
         }),
         resumeExportServiceProvider.overrideWith((ref) => mockExportService),
       ],
@@ -56,6 +61,7 @@ void main() {
             endBalance: 130.0,
           ),
         ],
+        systemEnvelopeStats: [],
         accountStats: [
           AccountStat(
             accountId: 'real-1',
@@ -124,6 +130,7 @@ void main() {
             endBalance: 40.0,
           ),
         ],
+        systemEnvelopeStats: [],
         accountStats: [
           AccountStat(
             accountId: 'real-1',
@@ -210,7 +217,11 @@ void main() {
 
       await tester.pumpWidget(
         createWidgetUnderTest(
-          data: ResumeData(envelopeStats: stats, accountStats: []),
+          data: ResumeData(
+            envelopeStats: stats,
+            systemEnvelopeStats: [],
+            accountStats: [],
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -261,7 +272,11 @@ void main() {
 
       await tester.pumpWidget(
         createWidgetUnderTest(
-          data: ResumeData(envelopeStats: stats, accountStats: accountStats),
+          data: ResumeData(
+            envelopeStats: stats,
+            systemEnvelopeStats: [],
+            accountStats: accountStats,
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -275,7 +290,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify exportToCsv was called
-      verify(mockExportService.exportToCsv(any, any, any, any)).called(1);
+      verify(mockExportService.exportToCsv(any, any, any, any, any)).called(1);
     });
   });
 }
