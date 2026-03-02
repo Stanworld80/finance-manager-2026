@@ -203,6 +203,95 @@ if ($Platform -eq "android" -or $Platform -eq "all") {
     }
 }
 
-Write-Host "=================================================="
-Write-Host " SUCCESS" -ForegroundColor Green
+# 7. Firestore Index Verification (web deploys only)
+if (-not $NoDeploy -and ($Platform -eq "web" -or $Platform -eq "all")) {
+    Write-Host ""
+    Write-Host "-> Step 7: Verifying Firestore Indexes..." -ForegroundColor Yellow
+
+    try {
+        # Fetch live indexes as JSON from Firebase
+        $LiveJson = firebase firestore:indexes --project $EnvConfig.ProjectId 2>&1 | Out-String
+
+        # Strip any non-JSON preamble lines (firebase CLI sometimes prints warnings)
+        $JsonStart = $LiveJson.IndexOf('{')
+        if ($JsonStart -ge 0) { $LiveJson = $LiveJson.Substring($JsonStart) }
+
+        $Live = $LiveJson | ConvertFrom-Json
+
+        # Build a lookup set of live composite indexes:
+        # key = "<collectionGroup>|<queryScope>|<field1:order1,field2:order2,...>"
+        $LiveIndexKeys = @{}
+        foreach ($idx in $Live.indexes) {
+            $fieldSig = ($idx.fields | ForEach-Object {
+                $f = $_
+                $part = $f.fieldPath
+                if ($f.order)       { $part += ":$($f.order)" }
+                elseif ($f.arrayConfig) { $part += ":$($f.arrayConfig)" }
+                $part
+            }) -join ","
+            $key = "$($idx.collectionGroup)|$($idx.queryScope)|$fieldSig"
+            $LiveIndexKeys[$key] = $true
+        }
+
+        # Build a lookup set of live fieldOverrides:
+        # key = "<collectionGroup>|<fieldPath>"
+        $LiveOverrideKeys = @{}
+        if ($Live.fieldOverrides) {
+            foreach ($fo in $Live.fieldOverrides) {
+                $key = "$($fo.collectionGroup)|$($fo.fieldPath)"
+                $LiveOverrideKeys[$key] = $true
+            }
+        }
+
+        # Load local firestore.indexes.json
+        $Local = Get-Content "firestore.indexes.json" -Raw | ConvertFrom-Json
+
+        $Missing = @()
+
+        # Check composite indexes
+        foreach ($idx in $Local.indexes) {
+            $fieldSig = ($idx.fields | ForEach-Object {
+                $f = $_
+                $part = $f.fieldPath
+                if ($f.order)       { $part += ":$($f.order)" }
+                elseif ($f.arrayConfig) { $part += ":$($f.arrayConfig)" }
+                $part
+            }) -join ","
+            $key = "$($idx.collectionGroup)|$($idx.queryScope)|$fieldSig"
+            if (-not $LiveIndexKeys.ContainsKey($key)) {
+                $Missing += "  [COMPOSITE MISSING] $key"
+            }
+        }
+
+        # Check field overrides
+        if ($Local.fieldOverrides) {
+            foreach ($fo in $Local.fieldOverrides) {
+                $key = "$($fo.collectionGroup)|$($fo.fieldPath)"
+                if (-not $LiveOverrideKeys.ContainsKey($key)) {
+                    $Missing += "  [FIELD OVERRIDE MISSING] $key"
+                }
+            }
+        }
+
+        if ($Missing.Count -gt 0) {
+            Write-Host ""
+            Write-Host "   *** INDEX VERIFICATION FAILED ***" -ForegroundColor Red
+            $Missing | ForEach-Object { Write-Host $_ -ForegroundColor Red }
+            Write-Host ""
+            Write-Host "   Run: firebase deploy --only firestore:indexes --project $($EnvConfig.ProjectId)" -ForegroundColor Yellow
+            Exit 1
+        }
+        else {
+            $TotalLocal = $Local.indexes.Count + ($Local.fieldOverrides ? $Local.fieldOverrides.Count : 0)
+            Write-Host "   Index verification OK — $TotalLocal index definitions confirmed live on $($EnvConfig.ProjectId)." -ForegroundColor Green
+        }
+    }
+    catch {
+        Write-Warning "   Could not verify indexes: $_"
+    }
+}
+
+Write-Host ""
+Write-Host "==================================================" -ForegroundColor Cyan
+Write-Host " ALL DONE" -ForegroundColor Green
 Write-Host "=================================================="
