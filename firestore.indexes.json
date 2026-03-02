@@ -1,48 +1,72 @@
-  {
-    "indexes": [
-      {
-        "collectionGroup": "transactions",
-        "queryScope": "COLLECTION_GROUP",
-        "fields": [
-          {
-            "fieldPath": "ownerId",
-            "order": "ASCENDING"
-          },
-          {
-            "fieldPath": "transactionDate",
-            "order": "DESCENDING"
-          }
-        ]
-      },
-      {
-        "collectionGroup": "transactions",
-        "queryScope": "COLLECTION_GROUP",
-        "fields": [
-          {
-            "fieldPath": "ownerId",
-            "order": "ASCENDING"
-          },
-          {
-            "fieldPath": "id",
-            "order": "ASCENDING"
-          }
-        ]
-      }
-    ],
-    "fieldOverrides": [
-      {
-        "collectionGroup": "virtual_accounts",
-        "fieldPath": "userId",
-        "indexes": [
-          {
-            "order": "ASCENDING",
-            "queryScope": "COLLECTION_GROUP"
-          },
-          {
-            "order": "DESCENDING",
-            "queryScope": "COLLECTION_GROUP"
-          }
-        ]
-      }
-    ]
-  }
+{
+  "indexes": [
+    {
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "ownerId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "transactionDate",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "ownerId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "projects",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "accessibleUserIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "virtual_accounts",
+      "fieldPath": "userId",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        },
+        {
+          "order": "DESCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "transactions",
+      "fieldPath": "ownerId",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    }
+  ]
+}

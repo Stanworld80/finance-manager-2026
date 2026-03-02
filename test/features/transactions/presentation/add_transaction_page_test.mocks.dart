@@ -36,9 +36,14 @@ class _FakeAutoDisposeProviderRef_0<State> extends _i1.SmartFake
     : super(parent, parentInvocation);
 }
 
-class _FakeVirtualAccount_1 extends _i1.SmartFake
+class _FakeRealAccount_1 extends _i1.SmartFake implements _i3.RealAccount {
+  _FakeRealAccount_1(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeVirtualAccount_2 extends _i1.SmartFake
     implements _i3.VirtualAccount {
-  _FakeVirtualAccount_1(Object parent, Invocation parentInvocation)
+  _FakeVirtualAccount_2(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
@@ -70,9 +75,12 @@ class MockTransactionService extends _i1.Mock
     required DateTime? date,
     required _i3.RealAccount? realAccount,
     required _i3.VirtualAccount? targetVirtualAccount,
-    _i6.TransactionStep? step = _i6.TransactionStep.completed,
     String? category,
     String? note,
+    _i6.TransactionStep? step = _i6.TransactionStep.completed,
+    _i6.TransactionStatus? status = _i6.TransactionStatus.none,
+    String? recurringTransactionId,
+    String? externalEntityId,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#addTransaction, [], {
@@ -82,9 +90,12 @@ class MockTransactionService extends _i1.Mock
               #date: date,
               #realAccount: realAccount,
               #targetVirtualAccount: targetVirtualAccount,
-              #step: step,
               #category: category,
               #note: note,
+              #step: step,
+              #status: status,
+              #recurringTransactionId: recurringTransactionId,
+              #externalEntityId: externalEntityId,
             }),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
@@ -99,9 +110,12 @@ class MockTransactionService extends _i1.Mock
     required DateTime? date,
     required _i3.RealAccount? realAccount,
     required List<({_i3.VirtualAccount account, double amount})>? splits,
-    _i6.TransactionStep? step = _i6.TransactionStep.completed,
     String? category,
     String? note,
+    _i6.TransactionStep? step = _i6.TransactionStep.completed,
+    _i6.TransactionStatus? status = _i6.TransactionStatus.none,
+    String? recurringTransactionId,
+    String? externalEntityId,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#addSplitTransaction, [], {
@@ -111,9 +125,12 @@ class MockTransactionService extends _i1.Mock
               #date: date,
               #realAccount: realAccount,
               #splits: splits,
-              #step: step,
               #category: category,
               #note: note,
+              #step: step,
+              #status: status,
+              #recurringTransactionId: recurringTransactionId,
+              #externalEntityId: externalEntityId,
             }),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
@@ -185,6 +202,7 @@ class MockTransactionService extends _i1.Mock
     _i6.TransactionStep? step,
     String? category,
     String? note,
+    String? externalEntityId,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#updateTransaction, [], {
@@ -198,6 +216,7 @@ class MockTransactionService extends _i1.Mock
               #step: step,
               #category: category,
               #note: note,
+              #externalEntityId: externalEntityId,
             }),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
@@ -216,6 +235,7 @@ class MockTransactionService extends _i1.Mock
     _i6.TransactionStep? step,
     String? category,
     String? note,
+    String? externalEntityId,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#updateSplitTransaction, [], {
@@ -229,6 +249,7 @@ class MockTransactionService extends _i1.Mock
               #step: step,
               #category: category,
               #note: note,
+              #externalEntityId: externalEntityId,
             }),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
@@ -241,6 +262,17 @@ class MockTransactionService extends _i1.Mock
   ) =>
       (super.noSuchMethod(
             Invocation.method(#confirmTransaction, [originalTransaction]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> provisionTransaction(
+    _i6.TransactionModel? originalTransaction,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#provisionTransaction, [originalTransaction]),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
@@ -287,6 +319,27 @@ class MockAccountService extends _i1.Mock implements _i7.AccountService {
           as _i5.Future<void>);
 
   @override
+  _i5.Stream<List<_i3.RealAccount>> watchExternalEntities() =>
+      (super.noSuchMethod(
+            Invocation.method(#watchExternalEntities, []),
+            returnValue: _i5.Stream<List<_i3.RealAccount>>.empty(),
+          )
+          as _i5.Stream<List<_i3.RealAccount>>);
+
+  @override
+  _i5.Future<_i3.RealAccount> createExternalEntity(String? name) =>
+      (super.noSuchMethod(
+            Invocation.method(#createExternalEntity, [name]),
+            returnValue: _i5.Future<_i3.RealAccount>.value(
+              _FakeRealAccount_1(
+                this,
+                Invocation.method(#createExternalEntity, [name]),
+              ),
+            ),
+          )
+          as _i5.Future<_i3.RealAccount>);
+
+  @override
   _i5.Future<void> createRealAccount({
     required String? name,
     required String? bankName,
@@ -316,7 +369,7 @@ class MockAccountService extends _i1.Mock implements _i7.AccountService {
               #type: type,
             }),
             returnValue: _i5.Future<_i3.VirtualAccount>.value(
-              _FakeVirtualAccount_1(
+              _FakeVirtualAccount_2(
                 this,
                 Invocation.method(#createVirtualAccount, [], {
                   #realAccountId: realAccountId,
@@ -348,6 +401,7 @@ class MockAccountService extends _i1.Mock implements _i7.AccountService {
     String? iban,
     String? bic,
     String? swift,
+    bool? isPrincipal,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#updateRealAccountMetadata, [], {
@@ -360,6 +414,7 @@ class MockAccountService extends _i1.Mock implements _i7.AccountService {
               #iban: iban,
               #bic: bic,
               #swift: swift,
+              #isPrincipal: isPrincipal,
             }),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
@@ -411,6 +466,15 @@ class MockAccountService extends _i1.Mock implements _i7.AccountService {
   _i5.Future<void> deleteRealAccount(_i3.RealAccount? account) =>
       (super.noSuchMethod(
             Invocation.method(#deleteRealAccount, [account]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> setPrincipalAccount(String? accountId) =>
+      (super.noSuchMethod(
+            Invocation.method(#setPrincipalAccount, [accountId]),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )

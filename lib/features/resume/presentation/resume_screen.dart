@@ -212,17 +212,22 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
               return PopupMenuButton<String>(
                 icon: const Icon(Icons.download, color: Colors.white),
                 onSelected: (value) async {
-                  final processedEnvelopeStats = _getProcessedEnvelopeStats(
-                    data.envelopeStats,
-                  );
                   final processedAccountStats = _getProcessedAccountStats(
                     data.accountStats,
+                  );
+                  final processedSystemEnvelopeStats =
+                      _getProcessedSystemEnvelopeStats(
+                        data.systemEnvelopeStats,
+                      );
+                  final processedEnvelopeStats = _getProcessedEnvelopeStats(
+                    data.envelopeStats,
                   );
 
                   if (value == 'csv') {
                     await exportService.exportToCsv(
                       context,
                       processedAccountStats,
+                      processedSystemEnvelopeStats,
                       processedEnvelopeStats,
                       _selectedDateRange,
                     );
@@ -230,6 +235,7 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                     await exportService.exportToPdf(
                       context,
                       processedAccountStats,
+                      processedSystemEnvelopeStats,
                       processedEnvelopeStats,
                       _selectedDateRange,
                     );

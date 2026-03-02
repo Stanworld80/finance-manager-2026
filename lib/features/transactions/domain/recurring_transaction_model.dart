@@ -20,6 +20,7 @@ class RecurringTransaction {
   final String label;
   final String? note;
   final TransactionType type;
+  final String? externalEntityId;
 
   // Template for splits (to support complex recurrences)
   final List<TransactionSplit> splits;
@@ -39,6 +40,7 @@ class RecurringTransaction {
     this.note,
     required this.type,
     this.splits = const [],
+    this.externalEntityId,
   });
 
   Map<String, dynamic> toMap() {
@@ -57,6 +59,7 @@ class RecurringTransaction {
       'note': note,
       'type': type.name,
       'splits': splits.map((x) => x.toMap()).toList(),
+      'externalEntityId': externalEntityId,
     };
   }
 
@@ -90,6 +93,7 @@ class RecurringTransaction {
           (x) => TransactionSplit.fromMap(x as Map<String, dynamic>),
         ),
       ),
+      externalEntityId: map['externalEntityId'] as String?,
     );
   }
 

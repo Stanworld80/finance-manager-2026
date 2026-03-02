@@ -88,6 +88,9 @@ class TransactionModel {
   // Import Dedup
   final String? importHash;
 
+  // Recurrency Link
+  final String? recurringTransactionId;
+
   TransactionModel({
     required this.id,
     required this.ownerId,
@@ -108,6 +111,7 @@ class TransactionModel {
     this.provisionDate,
     this.splits = const [],
     this.importHash,
+    this.recurringTransactionId,
   });
 
   /// A transaction is balanced if the sum of all splits is 0.
@@ -146,6 +150,7 @@ class TransactionModel {
       'provisionDate': provisionDate?.toIso8601String(),
       'splits': splits.map((x) => x.toMap()).toList(),
       'importHash': importHash,
+      'recurringTransactionId': recurringTransactionId,
     };
   }
 
@@ -206,6 +211,7 @@ class TransactionModel {
         ),
       ),
       importHash: map['importHash'] as String?,
+      recurringTransactionId: map['recurringTransactionId'] as String?,
     );
   }
 }

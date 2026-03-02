@@ -39,6 +39,7 @@ class MockResumeExportService extends _i1.Mock
   _i3.Future<void> exportToCsv(
     _i4.BuildContext? context,
     List<_i5.AccountStat>? accountStats,
+    List<_i5.EnvelopeStat>? systemEnvelopeStats,
     List<_i5.EnvelopeStat>? envelopeStats,
     _i4.DateTimeRange<DateTime>? period,
   ) =>
@@ -46,6 +47,7 @@ class MockResumeExportService extends _i1.Mock
             Invocation.method(#exportToCsv, [
               context,
               accountStats,
+              systemEnvelopeStats,
               envelopeStats,
               period,
             ]),
@@ -58,6 +60,7 @@ class MockResumeExportService extends _i1.Mock
   _i3.Future<void> exportToPdf(
     _i4.BuildContext? context,
     List<_i5.AccountStat>? accountStats,
+    List<_i5.EnvelopeStat>? systemEnvelopeStats,
     List<_i5.EnvelopeStat>? envelopeStats,
     _i4.DateTimeRange<DateTime>? period,
   ) =>
@@ -65,6 +68,7 @@ class MockResumeExportService extends _i1.Mock
             Invocation.method(#exportToPdf, [
               context,
               accountStats,
+              systemEnvelopeStats,
               envelopeStats,
               period,
             ]),

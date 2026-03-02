@@ -67,6 +67,7 @@ class MockRecurringTransactionService extends _i1.Mock
     String? note,
     required _i6.TransactionType? type,
     List<_i6.TransactionSplit>? splits = const [],
+    String? externalEntityId,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#addRecurringTransaction, [], {
@@ -80,6 +81,7 @@ class MockRecurringTransactionService extends _i1.Mock
               #note: note,
               #type: type,
               #splits: splits,
+              #externalEntityId: externalEntityId,
             }),
             returnValue: _i4.Future<void>.value(),
             returnValueForMissingStub: _i4.Future<void>.value(),
@@ -106,4 +108,15 @@ class MockRecurringTransactionService extends _i1.Mock
             ),
           )
           as _i4.Future<List<_i6.TransactionModel>>);
+
+  @override
+  _i4.Future<void> processUpcomingRecurrences({DateTime? upToDate}) =>
+      (super.noSuchMethod(
+            Invocation.method(#processUpcomingRecurrences, [], {
+              #upToDate: upToDate,
+            }),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
 }

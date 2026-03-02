@@ -90,7 +90,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 );
               }
 
-              final globalRealBalance = accounts.fold(
+              // Separate internal from external accounts
+              final internalAccounts = accounts
+                  .where((a) => a.type == RealAccountType.internal)
+                  .toList();
+              final externalAccounts = accounts
+                  .where(
+                    (a) =>
+                        a.type == RealAccountType.external ||
+                        a.type == RealAccountType.externalGeneric,
+                  )
+                  .toList();
+
+              final globalRealBalance = internalAccounts.fold(
                 0.0,
                 (sum, acc) => sum + acc.balance,
               );
@@ -260,9 +272,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             crossAxisSpacing: 16,
                             mainAxisSpacing: 16,
                           ),
-                      itemCount: accounts.length,
-                      itemBuilder: (context, index) =>
-                          _buildAccountCard(context, ref, accounts[index]),
+                      itemCount: internalAccounts.length,
+                      itemBuilder: (context, index) => _buildAccountCard(
+                        context,
+                        ref,
+                        internalAccounts[index],
+                      ),
                     )
                   else
                     SizedBox(
@@ -270,9 +285,81 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: accounts.length,
-                        itemBuilder: (context, index) =>
-                            _buildAccountCard(context, ref, accounts[index]),
+                        itemCount: internalAccounts.length,
+                        itemBuilder: (context, index) => _buildAccountCard(
+                          context,
+                          ref,
+                          internalAccounts[index],
+                        ),
+                      ),
+                    ),
+
+                  // External Accounts grouped section
+                  if (externalAccounts.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isDesktop ? 24 : 16,
+                        vertical: 8,
+                      ),
+                      child: ExpansionTile(
+                        leading: const Icon(Icons.public, color: Colors.teal),
+                        title: const Text(
+                          "Monde Extérieur",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Text(
+                          "${externalAccounts.length} entité${externalAccounts.length > 1 ? 's' : ''}",
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        initiallyExpanded: false,
+                        tilePadding: EdgeInsets.zero,
+                        childrenPadding: EdgeInsets.zero,
+                        children: [
+                          if (isDesktop)
+                            GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 0,
+                                vertical: 8,
+                              ),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 3,
+                                    childAspectRatio: 2.5,
+                                    crossAxisSpacing: 16,
+                                    mainAxisSpacing: 12,
+                                  ),
+                              itemCount: externalAccounts.length,
+                              itemBuilder: (context, index) =>
+                                  _buildExternalAccountCard(
+                                    context,
+                                    ref,
+                                    externalAccounts[index],
+                                  ),
+                            )
+                          else
+                            SizedBox(
+                              height: 100,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                padding: const EdgeInsets.only(
+                                  top: 4,
+                                  bottom: 8,
+                                ),
+                                itemCount: externalAccounts.length,
+                                itemBuilder: (context, index) =>
+                                    _buildExternalAccountCard(
+                                      context,
+                                      ref,
+                                      externalAccounts[index],
+                                    ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
 
@@ -332,6 +419,70 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Erreur: $err')),
+      ),
+    );
+  }
+
+  Widget _buildExternalAccountCard(
+    BuildContext context,
+    WidgetRef ref,
+    RealAccount account,
+  ) {
+    return GestureDetector(
+      onTap: () => context.push('/exterieur'),
+      child: Container(
+        width: 160,
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.teal.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.teal.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.teal.withOpacity(0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  account.type == RealAccountType.externalGeneric
+                      ? Icons.public
+                      : Icons.store,
+                  size: 14,
+                  color: Colors.teal.shade700,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    account.name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Colors.teal.shade900,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Text(
+              "${account.balance.toStringAsFixed(2)} €",
+              style: TextStyle(
+                color: Colors.teal.shade700,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -121,6 +121,7 @@ class MockRecurringTransactionService extends _i1.Mock
     String? note,
     required _i9.TransactionType? type,
     List<_i9.TransactionSplit>? splits = const [],
+    String? externalEntityId,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#addRecurringTransaction, [], {
@@ -134,6 +135,7 @@ class MockRecurringTransactionService extends _i1.Mock
               #note: note,
               #type: type,
               #splits: splits,
+              #externalEntityId: externalEntityId,
             }),
             returnValue: _i7.Future<void>.value(),
             returnValueForMissingStub: _i7.Future<void>.value(),
@@ -160,6 +162,17 @@ class MockRecurringTransactionService extends _i1.Mock
             ),
           )
           as _i7.Future<List<_i9.TransactionModel>>);
+
+  @override
+  _i7.Future<void> processUpcomingRecurrences({DateTime? upToDate}) =>
+      (super.noSuchMethod(
+            Invocation.method(#processUpcomingRecurrences, [], {
+              #upToDate: upToDate,
+            }),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 }
 
 /// A class which mocks [FirebaseAuth].

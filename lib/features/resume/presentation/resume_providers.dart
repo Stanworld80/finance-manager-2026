@@ -4,6 +4,7 @@ import '../../accounts/domain/account_models.dart';
 import '../../transactions/data/transaction_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers.dart';
+import '../../transactions/domain/transaction_model.dart';
 import '../application/resume_export_service.dart';
 
 final resumeExportServiceProvider = Provider<ResumeExportService>((ref) {
@@ -18,8 +19,12 @@ class EnvelopeStat {
   final double startBalance;
   final double income;
   final double expense;
-  final double endBalance;
+  final double endBalance; // Current actual balance
+  final double plannedIncome;
+  final double plannedExpense;
   final VirtualAccountType accountType;
+
+  double get forecastedBalance => endBalance + plannedIncome + plannedExpense;
 
   EnvelopeStat({
     required this.virtualAccountId,
@@ -30,6 +35,8 @@ class EnvelopeStat {
     required this.income,
     required this.expense,
     required this.endBalance,
+    this.plannedIncome = 0.0,
+    this.plannedExpense = 0.0,
     this.accountType = VirtualAccountType.userBudget,
   });
 
@@ -113,6 +120,8 @@ final resumeDataProvider = FutureProvider.family<ResumeData, DateTimeRange>((
     double endBalance = currentBalance;
     double periodIncome = 0;
     double periodExpense = 0;
+    double periodPlannedIncome = 0;
+    double periodPlannedExpense = 0;
 
     for (final tx in allTransactions) {
       double impact = 0;
@@ -124,14 +133,30 @@ final resumeDataProvider = FutureProvider.family<ResumeData, DateTimeRange>((
 
       if (impact == 0) continue;
 
+      bool doesImpactBalance =
+          tx.step == TransactionStep.completed ||
+          tx.step == TransactionStep.pending;
+      bool isPlanned =
+          tx.step == TransactionStep.planned ||
+          tx.step == TransactionStep.scheduled ||
+          tx.step == TransactionStep.toSchedule;
+
       if (tx.transactionDate.isAfter(period.end)) {
-        endBalance -= impact;
+        if (doesImpactBalance) endBalance -= impact;
       } else if (tx.transactionDate.isAfter(period.start) ||
           tx.transactionDate.isAtSameMomentAs(period.start)) {
-        if (impact > 0) {
-          periodIncome += impact;
-        } else {
-          periodExpense += impact;
+        if (doesImpactBalance) {
+          if (impact > 0) {
+            periodIncome += impact;
+          } else {
+            periodExpense += impact;
+          }
+        } else if (isPlanned) {
+          if (impact > 0) {
+            periodPlannedIncome += impact;
+          } else {
+            periodPlannedExpense += impact;
+          }
         }
       }
     }
@@ -147,6 +172,8 @@ final resumeDataProvider = FutureProvider.family<ResumeData, DateTimeRange>((
       income: periodIncome,
       expense: periodExpense,
       endBalance: endBalance,
+      plannedIncome: periodPlannedIncome,
+      plannedExpense: periodPlannedExpense,
       accountType: virtualAcc.type,
     );
 

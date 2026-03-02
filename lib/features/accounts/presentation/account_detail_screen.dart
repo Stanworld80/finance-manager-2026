@@ -397,6 +397,27 @@ class AccountDetailScreen extends ConsumerWidget {
                 decoration: const InputDecoration(labelText: "BIC / SWIFT"),
                 style: const TextStyle(fontFamily: 'monospace'),
               ),
+              const SizedBox(height: 16),
+              SwitchListTile(
+                title: const Text("Compte Principal"),
+                subtitle: const Text(
+                  "Utilisé par défaut pour les nouvelles transactions",
+                ),
+                value: account.isPrincipal,
+                onChanged: (value) async {
+                  if (value) {
+                    await ref
+                        .read(accountServiceProvider)
+                        .setPrincipalAccount(account.id);
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  } else {
+                    // Logic to unset principal if needed,
+                    // but usually you just set another one as principal.
+                    // For now, let's just allow setting it to true.
+                    // If they want to unset, they set another account.
+                  }
+                },
+              ),
             ],
           ),
         ),

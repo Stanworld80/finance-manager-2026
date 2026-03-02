@@ -7,6 +7,7 @@ import '../../accounts/application/account_service.dart';
 import '../../transactions/data/transaction_repository.dart';
 import '../../transactions/domain/transaction_model.dart';
 import '../../transactions/presentation/widgets/transaction_list.dart';
+import '../../analytics/application/analytics_providers.dart';
 
 class EnvelopeDetailScreen extends ConsumerWidget {
   final VirtualAccount envelope;
@@ -44,51 +45,110 @@ class EnvelopeDetailScreen extends ConsumerWidget {
             ),
         ],
       ),
-      body: Column(
-        children: [
-          // Header
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            color: color.withOpacity(0.1),
-            child: Column(
-              children: [
-                CircleAvatar(
-                  backgroundColor: color.withOpacity(0.2),
-                  child: Icon(
-                    UiUtils.getVirtualAccountIcon(envelope.type),
-                    color: color,
+      body: DefaultTabController(
+        length: 2,
+        child: Column(
+          children: [
+            // Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              color: color.withOpacity(0.1),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: color.withOpacity(0.2),
+                    child: Icon(
+                      UiUtils.getVirtualAccountIcon(envelope.type),
+                      color: color,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  "${envelope.balance.toStringAsFixed(2)} €",
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: envelope.balance < 0 ? Colors.red : null,
+                  const SizedBox(height: 16),
+                  Text(
+                    "${envelope.balance.toStringAsFixed(2)} €",
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: envelope.balance < 0 ? Colors.red : null,
+                    ),
                   ),
-                ),
-                Text(
-                  "Solde Actuel",
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodySmall?.color,
+                  Text(
+                    "Solde Actuel",
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
                   ),
-                ),
+                ],
+              ),
+            ),
+            const TabBar(
+              tabs: [
+                Tab(text: "Transactions"),
+                Tab(text: "Provenance des fonds"),
               ],
             ),
-          ),
-          const Divider(height: 1),
-          // Transactions List
-          Expanded(
-            child: transactionsFuture.when(
-              data: (transactions) =>
-                  TransactionList(transactions: transactions),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, s) => Center(child: Text("Erreur: $e")),
+            // Tab Views
+            Expanded(
+              child: TabBarView(
+                children: [
+                  // -- TAB 1: Transactions --
+                  transactionsFuture.when(
+                    data: (transactions) =>
+                        TransactionList(transactions: transactions),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (e, s) => Center(child: Text("Erreur: $e")),
+                  ),
+                  // -- TAB 2: Provenance --
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final sourcesAsync = ref.watch(
+                        envelopeFundSourcesProvider(envelope.id),
+                      );
+                      return sourcesAsync.when(
+                        data: (sources) {
+                          if (sources.isEmpty) {
+                            return const Center(
+                              child: Text(
+                                "Aucune donnée de provenance disponible.",
+                              ),
+                            );
+                          }
+                          return ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: sources.length,
+                            itemBuilder: (context, index) {
+                              final s = sources[index];
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  child: Text("${index + 1}"),
+                                ),
+                                title: Text(s.name),
+                                subtitle: LinearProgressIndicator(
+                                  value: s.percentage / 100,
+                                  backgroundColor: Colors.grey.shade200,
+                                ),
+                                trailing: Text(
+                                  "${s.percentage.toStringAsFixed(1)}%",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (e, s) => Center(child: Text("Erreur: $e")),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
