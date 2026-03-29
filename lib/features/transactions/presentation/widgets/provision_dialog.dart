@@ -51,25 +51,21 @@ class _ProvisionDialogState extends ConsumerState<ProvisionDialog> {
     List<SelectableAccount> items,
   ) {
     if (_envelope == null) return null;
-    final realAccountId = _envelope!.virtualAccount?.realAccountId;
-    if (realAccountId == null) return null;
 
     final targetType = _step == TransactionStep.completed
         ? VirtualAccountType.systemFree
         : VirtualAccountType.systemCommitted;
 
     try {
+      // Priorité absolue au compte principal
       return items.firstWhere(
-        (i) =>
-            i.virtualAccount?.realAccountId == realAccountId &&
-            i.virtualAccount?.type == targetType,
+        (i) => i.isPrincipal && i.virtualAccount?.type == targetType,
       );
     } catch (_) {
-      // Fallback : cherche dans le compte principal
+      // Si pas de compte principal (cas rare), on cherche le premier compte system qui correspond
       try {
         return items.firstWhere(
-          (i) =>
-              i.isPrincipal && i.virtualAccount?.type == targetType,
+          (i) => i.virtualAccount?.type == targetType,
         );
       } catch (_) {
         return null;
