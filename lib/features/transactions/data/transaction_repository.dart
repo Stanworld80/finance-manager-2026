@@ -195,6 +195,21 @@ class TransactionRepository {
         });
   }
 
+  Stream<List<TransactionModel>> watchTransactionsByRealAccount(
+      String userId, String realAccountId) {
+    return _firestore
+        .collection('accounts')
+        .doc(realAccountId)
+        .collection('transactions')
+        .orderBy('transactionDate', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => TransactionModel.fromMap(doc.data()))
+              .toList(),
+        );
+  }
+
   Future<List<TransactionModel>> getTransactionsByRealAccount(
     String userId,
     String realAccountId,

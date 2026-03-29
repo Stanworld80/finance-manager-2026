@@ -1,6 +1,7 @@
-import 'package:finance_manager_2026/features/accounts/presentation/account_detail_screen.dart';
 import 'package:finance_manager_2026/features/accounts/domain/account_models.dart';
 import 'package:finance_manager_2026/features/accounts/data/account_providers.dart';
+import 'package:finance_manager_2026/features/accounts/presentation/account_detail_screen.dart';
+import 'package:finance_manager_2026/features/transactions/data/transaction_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -28,9 +29,9 @@ void main() {
           virtualAccountsProvider(
             accountId,
           ).overrideWith((ref) => Stream.value([])),
-          accountTransactionsProvider(
+          filteredAccountTransactionsProvider(
             accountId,
-          ).overrideWith((ref) async => []),
+          ).overrideWith((ref) => Stream.value([])),
           // We need to override auth provider or ensure it doesn't crash?
           // The screen might need it for some checks, but typically providers handle the logic.
           // However, the providers use ref.read(firebaseAuthProvider), so we might need to mock it if they are instantiated.

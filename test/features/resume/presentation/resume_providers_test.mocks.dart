@@ -156,6 +156,20 @@ class MockTransactionRepository extends _i1.Mock
           as _i6.Stream<_i7.TransactionModel?>);
 
   @override
+  _i6.Stream<List<_i7.TransactionModel>> watchTransactionsByRealAccount(
+    String? userId,
+    String? realAccountId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#watchTransactionsByRealAccount, [
+              userId,
+              realAccountId,
+            ]),
+            returnValue: _i6.Stream<List<_i7.TransactionModel>>.empty(),
+          )
+          as _i6.Stream<List<_i7.TransactionModel>>);
+
+  @override
   _i6.Future<List<_i7.TransactionModel>> getTransactionsByRealAccount(
     String? userId,
     String? realAccountId,

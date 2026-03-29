@@ -140,17 +140,24 @@ void main() {
       expect(resumeData.envelopeStats.length, 1);
       final stat = resumeData.envelopeStats.first;
 
-      expect(stat.income, 100.0);
-      expect(stat.expense, -20.0);
-      expect(stat.plannedIncome, 200.0);
-      expect(stat.plannedExpense, -50.0);
+      // Only *completed* transactions count as income/expense (aligns with dashboard)
+      expect(stat.income, 0.0); // t2 is pending → not in income
+      expect(stat.expense, -20.0); // t1 completed debit
 
-      // startBalance = endBalance(100) - (income + expense) = 100 - (80) = 20
+      // Pending (t2 +100) + planned (t3 -50, t4 +200) all go to planned buckets
+      expect(
+        stat.plannedIncome,
+        300.0,
+      ); // pending t2(+100) + scheduled t4(+200)
+      expect(stat.plannedExpense, -50.0); // planned t3(-50)
+
+      // endBalance = virtualAcc.balance(100), no post-period completed/pending txs to rewind
       expect(stat.endBalance, 100.0);
-      expect(stat.startBalance, 20.0);
+      // startBalance = endBalance(100) - (income(0) + expense(-20)) = 120
+      expect(stat.startBalance, 120.0);
 
-      // forecasted = endBalance(100) + plannedIncome(200) + plannedExpense(-50) = 250
-      expect(stat.forecastedBalance, 250.0);
+      // forecasted = endBalance(100) + plannedIncome(300) + plannedExpense(-50) = 350
+      expect(stat.forecastedBalance, 350.0);
     },
   );
 }

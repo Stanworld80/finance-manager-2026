@@ -317,9 +317,13 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                 final processedAccountStats = _getProcessedAccountStats(
                   data.accountStats,
                 );
+                final processedExternalStats = _getProcessedEnvelopeStats(
+                  data.externalEnvelopeStats,
+                );
 
                 if (data.envelopeStats.isEmpty &&
                     data.systemEnvelopeStats.isEmpty &&
+                    data.externalEnvelopeStats.isEmpty &&
                     data.accountStats.isEmpty) {
                   return const Center(
                     child: Text('Aucune donnée disponible pour cette période.'),
@@ -427,6 +431,41 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                           ],
                         ),
                       ),
+
+                      const SizedBox(height: 32),
+
+                      // Section: External Accounts
+                      KeyedSubtree(
+                        key: const Key('external-accounts-section'),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionHeader(
+                              context,
+                              'Comptes Extérieurs',
+                              Icons.public,
+                              color: Colors.teal,
+                            ),
+                            if (processedExternalStats.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: Text('Aucun compte extérieur trouvé.'),
+                              )
+                            else
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: _buildEnvelopeTable(
+                                  context,
+                                  processedExternalStats,
+                                  numberFormat,
+                                  headerColor: Colors.teal.withValues(
+                                    alpha: 0.12,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 );
@@ -510,7 +549,10 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
             DataCell(
               Text(
                 numberFormat.format(stat.endBalance),
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: stat.endBalance < 0 ? Colors.red : null,
+                ),
               ),
             ),
           ],
@@ -564,7 +606,10 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
             DataCell(
               Text(
                 numberFormat.format(stat.endBalance),
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: stat.endBalance < 0 ? Colors.red : null,
+                ),
               ),
             ),
           ],

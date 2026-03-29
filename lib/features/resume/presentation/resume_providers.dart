@@ -65,13 +65,18 @@ class AccountStat {
 }
 
 class ResumeData {
-  final List<EnvelopeStat> envelopeStats; // user envelopes only
-  final List<EnvelopeStat> systemEnvelopeStats; // system envelopes
+  final List<EnvelopeStat>
+  envelopeStats; // user envelopes only (internal accounts)
+  final List<EnvelopeStat>
+  systemEnvelopeStats; // system envelopes (internal accounts)
+  final List<EnvelopeStat>
+  externalEnvelopeStats; // all envelopes from external accounts
   final List<AccountStat> accountStats;
 
   ResumeData({
     required this.envelopeStats,
     required this.systemEnvelopeStats,
+    required this.externalEnvelopeStats,
     required this.accountStats,
   });
 }
@@ -86,9 +91,27 @@ final resumeDataProvider = FutureProvider.family<ResumeData, DateTimeRange>((
     return ResumeData(
       envelopeStats: [],
       systemEnvelopeStats: [],
+      externalEnvelopeStats: [],
       accountStats: [],
     );
   }
+
+  // Normalize period boundaries to full days so same-day transactions
+  // are never misclassified as "after" the period (period.end was midnight).
+  final periodStart = DateTime(
+    period.start.year,
+    period.start.month,
+    period.start.day,
+  );
+  final periodEnd = DateTime(
+    period.end.year,
+    period.end.month,
+    period.end.day,
+    23,
+    59,
+    59,
+    999,
+  );
 
   // 1. Fetch all accessible real accounts
   final realAccountsList = await ref.watch(realAccountsProvider.future);
@@ -106,7 +129,18 @@ final resumeDataProvider = FutureProvider.family<ResumeData, DateTimeRange>((
 
   final List<EnvelopeStat> envelopeStats = [];
   final List<EnvelopeStat> systemEnvelopeStats = [];
+  final List<EnvelopeStat> externalEnvelopeStats = [];
   final Map<String, AccountStat> accountStatsMap = {};
+
+  // Build a fast lookup for external account IDs
+  final externalAccountIds = realAccountsList
+      .where(
+        (a) =>
+            a.type == RealAccountType.external ||
+            a.type == RealAccountType.externalGeneric,
+      )
+      .map((a) => a.id)
+      .toSet();
 
   for (final virtualAcc in virtualAccountsList) {
     if (!realAccountNames.containsKey(virtualAcc.realAccountId)) {
@@ -133,25 +167,30 @@ final resumeDataProvider = FutureProvider.family<ResumeData, DateTimeRange>((
 
       if (impact == 0) continue;
 
-      bool doesImpactBalance =
-          tx.step == TransactionStep.completed ||
-          tx.step == TransactionStep.pending;
-      bool isPlanned =
+      // completed: booked in both RealAccount.balance AND virtualAcc.balance
+      // pending:   booked only in virtualAcc.balance (committed envelope)
+      // planned/scheduled/toSchedule: not booked yet
+      final bool isCompleted = tx.step == TransactionStep.completed;
+      final bool isPending = tx.step == TransactionStep.pending;
+      final bool isPlanned =
           tx.step == TransactionStep.planned ||
           tx.step == TransactionStep.scheduled ||
           tx.step == TransactionStep.toSchedule;
 
-      if (tx.transactionDate.isAfter(period.end)) {
-        if (doesImpactBalance) endBalance -= impact;
-      } else if (tx.transactionDate.isAfter(period.start) ||
-          tx.transactionDate.isAtSameMomentAs(period.start)) {
-        if (doesImpactBalance) {
+      if (tx.transactionDate.isAfter(periodEnd)) {
+        // Post-period: rewind from virtualAcc.balance to reach period-end balance.
+        // Both completed and pending update virtualAcc.balance immediately in Firestore,
+        // so both must be rewound here to match what the balance WAS at period.end.
+        if (isCompleted || isPending) endBalance -= impact;
+      } else if (!tx.transactionDate.isBefore(periodStart)) {
+        // In-period transaction
+        if (isCompleted) {
           if (impact > 0) {
             periodIncome += impact;
           } else {
             periodExpense += impact;
           }
-        } else if (isPlanned) {
+        } else if (isPending || isPlanned) {
           if (impact > 0) {
             periodPlannedIncome += impact;
           } else {
@@ -177,40 +216,65 @@ final resumeDataProvider = FutureProvider.family<ResumeData, DateTimeRange>((
       accountType: virtualAcc.type,
     );
 
-    // Separate system vs user envelopes
-    if (stat.isSystem) {
+    // Route to correct bucket — no AccountStat aggregation here (done below)
+    if (externalAccountIds.contains(realAccountId)) {
+      externalEnvelopeStats.add(stat);
+    } else if (stat.isSystem) {
       systemEnvelopeStats.add(stat);
     } else {
       envelopeStats.add(stat);
     }
+  }
 
-    // Aggregate into account stats
-    final existingAccountStat = accountStatsMap[realAccountId];
-    if (existingAccountStat == null) {
-      accountStatsMap[realAccountId] = AccountStat(
-        accountId: realAccountId,
-        accountName: realAccountName,
-        startBalance: startBalance,
-        income: periodIncome,
-        expense: periodExpense,
-        endBalance: endBalance,
-      );
-    } else {
-      accountStatsMap[realAccountId] = AccountStat(
-        accountId: realAccountId,
-        accountName: realAccountName,
-        startBalance: existingAccountStat.startBalance + startBalance,
-        income: existingAccountStat.income + periodIncome,
-        expense: existingAccountStat.expense + periodExpense,
-        endBalance: existingAccountStat.endBalance + endBalance,
-      );
+  // ── AccountStat: computed directly from RealAccount.balance ──────────────
+  // This ensures the "Solde fin" in the account-totals table always matches
+  // the dashboard even when virtual accounts are out of sync with the real
+  // account (e.g. initial balance, untracked CSV imports, etc.)
+  for (final realAcc in realAccountsList) {
+    if (externalAccountIds.contains(realAcc.id))
+      continue; // external shown elsewhere
+
+    double endBalance =
+        realAcc.balance; // ground truth (completed only, same as dashboard)
+    double periodIncome = 0;
+    double periodExpense = 0;
+
+    for (final tx in allTransactions) {
+      if (tx.realAccountId != realAcc.id) continue;
+      if (tx.step != TransactionStep.completed) continue;
+
+      final double impact = tx.amount;
+
+      if (tx.transactionDate.isAfter(periodEnd)) {
+        // Post-period: rewind from current balance to get period-end balance
+        endBalance -= impact;
+      } else if (!tx.transactionDate.isBefore(periodStart)) {
+        // In-period completed transaction
+        if (impact > 0) {
+          periodIncome += impact;
+        } else {
+          periodExpense += impact;
+        }
+      }
     }
+
+    final double startBalance = endBalance - (periodIncome + periodExpense);
+    accountStatsMap[realAcc.id] = AccountStat(
+      accountId: realAcc.id,
+      accountName: realAcc.name,
+      startBalance: startBalance,
+      income: periodIncome,
+      expense: periodExpense,
+      endBalance: endBalance,
+    );
   }
 
   return ResumeData(
     envelopeStats: envelopeStats
       ..sort((a, b) => a.realAccountName.compareTo(b.realAccountName)),
     systemEnvelopeStats: systemEnvelopeStats
+      ..sort((a, b) => a.realAccountName.compareTo(b.realAccountName)),
+    externalEnvelopeStats: externalEnvelopeStats
       ..sort((a, b) => a.realAccountName.compareTo(b.realAccountName)),
     accountStats: accountStatsMap.values.toList()
       ..sort((a, b) => a.accountName.compareTo(b.accountName)),

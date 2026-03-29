@@ -361,6 +361,48 @@ class AccountRepository {
           'balance': balance,
         });
   }
+
+  /// Compares the sum of all virtual account balances for [realAccountId]
+  /// against [realBalance] (= RealAccount.balance, the ground truth).
+  ///
+  /// If the difference exceeds 0.01, it atomically sets the `Libre`
+  /// (systemFree) envelope balance to absorb the gap:
+  ///
+  ///   Libre.balance = realBalance - sum(all other virtual accounts)
+  ///
+  /// Returns `true` when a repair was written to Firestore.
+  Future<bool> repairLibreBalanceIfNeeded({
+    required String userId,
+    required String realAccountId,
+    required List<VirtualAccount> virtualAccounts,
+    required double realBalance,
+  }) async {
+    // Find Libre (systemFree) envelope — bail if missing (will be created by repairVirtualAccounts)
+    final libre = virtualAccounts
+        .where((v) => v.type == VirtualAccountType.systemFree)
+        .firstOrNull;
+    if (libre == null) return false;
+
+    // Sum of ALL other envelopes (committed, flow, userBudget…)
+    final sumOthers = virtualAccounts
+        .where((v) => v.id != libre.id)
+        .fold(0.0, (s, v) => s + v.balance);
+
+    final expectedLibre = realBalance - sumOthers;
+    final gap = (expectedLibre - libre.balance).abs();
+
+    if (gap < 0.01) return false; // already in sync — nothing to do
+
+    // Atomically update only the Libre balance field
+    await _firestore
+        .collection('accounts')
+        .doc(realAccountId)
+        .collection('virtual_accounts')
+        .doc(libre.id)
+        .update({'balance': expectedLibre});
+
+    return true;
+  }
 }
 
 @riverpod

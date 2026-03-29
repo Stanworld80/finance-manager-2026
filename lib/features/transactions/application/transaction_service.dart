@@ -284,6 +284,7 @@ class TransactionService {
     required VirtualAccount targetVirtualAccount,
     String? category,
     String? note,
+    TransactionStep step = TransactionStep.completed,
   }) async {
     final user = ref.read(firebaseAuthProvider).currentUser;
     if (user == null) throw Exception("User not authenticated");
@@ -305,7 +306,7 @@ class TransactionService {
         category: category,
         note: note,
         status: TransactionStatus.transferred,
-        step: TransactionStep.completed,
+        step: step,
         splits: [
           TransactionSplit(
             virtualAccountId: sourceVirtualAccount.id,

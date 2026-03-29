@@ -174,6 +174,7 @@ class MockTransactionService extends _i1.Mock
     required _i3.VirtualAccount? targetVirtualAccount,
     String? category,
     String? note,
+    _i6.TransactionStep? step = _i6.TransactionStep.completed,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#addTransfer, [], {
@@ -184,6 +185,7 @@ class MockTransactionService extends _i1.Mock
               #targetVirtualAccount: targetVirtualAccount,
               #category: category,
               #note: note,
+              #step: step,
             }),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
@@ -449,6 +451,14 @@ class MockAccountService extends _i1.Mock implements _i7.AccountService {
             returnValue: _i5.Future<Map<String, int>>.value(<String, int>{}),
           )
           as _i5.Future<Map<String, int>>);
+
+  @override
+  _i5.Future<int> repairAllLibreBalances() =>
+      (super.noSuchMethod(
+            Invocation.method(#repairAllLibreBalances, []),
+            returnValue: _i5.Future<int>.value(0),
+          )
+          as _i5.Future<int>);
 
   @override
   _i5.Future<void> renameVirtualAccount(

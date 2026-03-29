@@ -451,6 +451,40 @@ class AccountService {
     return repairResult;
   }
 
+  /// Checks every internal real account and auto-repairs any Libre balance
+  /// discrepancy (sum of virtual envelopes ≠ RealAccount.balance).
+  ///
+  /// This is called automatically on app load so that CSV imports or other
+  /// book-keeping gaps are transparently healed without user action.
+  ///
+  /// Returns the number of accounts that were repaired.
+  Future<int> repairAllLibreBalances() async {
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) return 0;
+
+    final repository = ref.read(accountRepositoryProvider);
+    final allReal = await repository.getRealAccounts(user.uid);
+    final internalAccounts = allReal
+        .where((a) => a.type == RealAccountType.internal)
+        .toList();
+
+    int repaired = 0;
+    for (final realAcc in internalAccounts) {
+      final virtuals = await repository
+          .watchVirtualAccounts(user.uid, realAcc.id)
+          .first;
+
+      final wasRepaired = await repository.repairLibreBalanceIfNeeded(
+        userId: user.uid,
+        realAccountId: realAcc.id,
+        virtualAccounts: virtuals,
+        realBalance: realAcc.balance,
+      );
+      if (wasRepaired) repaired++;
+    }
+    return repaired;
+  }
+
   Future<void> renameVirtualAccount(
     VirtualAccount account,
     String newName,

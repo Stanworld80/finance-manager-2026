@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers.dart';
+import '../../features/accounts/data/account_providers.dart';
+import '../../features/transactions/presentation/widgets/provision_dialog.dart';
 
 class AppShell extends ConsumerWidget {
   final Widget child;
@@ -16,6 +18,9 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Hook auto-repair so it runs silently in the background
+    ref.watch(autoRepairLibreProvider);
+
     final isDesktop = MediaQuery.of(context).size.width > 900;
 
     // Helper to safely extract current real account id from route
@@ -60,6 +65,18 @@ class AppShell extends ConsumerWidget {
             type: 'transfer',
             color: Colors.blue,
             accountId: currentAccountId,
+          ),
+          const SizedBox(width: 8),
+          ActionChip(
+            avatar: const Icon(Icons.savings_outlined, size: 16, color: Colors.purple),
+            label: const Text('Provision'),
+            surfaceTintColor: Colors.purple.withOpacity(0.1),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => const ProvisionDialog(),
+              );
+            },
           ),
           const SizedBox(width: 16),
         ],

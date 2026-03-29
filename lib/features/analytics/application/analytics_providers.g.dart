@@ -7,7 +7,7 @@ part of 'analytics_providers.dart';
 // **************************************************************************
 
 String _$envelopeFundSourcesHash() =>
-    r'5e3d016cd8fb3be5c450bb4d84129da057a1fb98';
+    r'6a9d6e4d651f7ea8dfb830bff4483e8cf524f1c0';
 
 /// Copied from Dart SDK
 class _SystemHash {

@@ -187,5 +187,32 @@ final allVirtualAccountsProvider =
 // ignore: unused_element
 typedef AllVirtualAccountsRef =
     AutoDisposeStreamProviderRef<List<VirtualAccount>>;
+String _$autoRepairLibreHash() => r'd61a93e6812baa543bc1dd193501984f1bf59434';
+
+/// Automatically repairs Libre balance discrepancies whenever accounts load.
+///
+/// This provider watches `realAccountsProvider` (which already streams from
+/// Firestore) and triggers a background repair pass the first time a non-empty
+/// list arrives.  Each account's Libre envelope is patched silently if:
+///   sum(all other envelopes) + Libre ≠ RealAccount.balance
+///
+/// The result (number of accounts repaired) is logged in debug builds but is
+/// otherwise invisible to the user.
+///
+/// Copied from [autoRepairLibre].
+@ProviderFor(autoRepairLibre)
+final autoRepairLibreProvider = AutoDisposeFutureProvider<int>.internal(
+  autoRepairLibre,
+  name: r'autoRepairLibreProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$autoRepairLibreHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AutoRepairLibreRef = AutoDisposeFutureProviderRef<int>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

@@ -29,6 +29,7 @@ void main() {
               ResumeData(
                 envelopeStats: [],
                 systemEnvelopeStats: [],
+                externalEnvelopeStats: [],
                 accountStats: [],
               );
         }),
@@ -62,6 +63,7 @@ void main() {
           ),
         ],
         systemEnvelopeStats: [],
+        externalEnvelopeStats: [],
         accountStats: [
           AccountStat(
             accountId: 'real-1',
@@ -131,6 +133,7 @@ void main() {
           ),
         ],
         systemEnvelopeStats: [],
+        externalEnvelopeStats: [],
         accountStats: [
           AccountStat(
             accountId: 'real-1',
@@ -220,6 +223,7 @@ void main() {
           data: ResumeData(
             envelopeStats: stats,
             systemEnvelopeStats: [],
+            externalEnvelopeStats: [],
             accountStats: [],
           ),
         ),
@@ -275,6 +279,7 @@ void main() {
           data: ResumeData(
             envelopeStats: stats,
             systemEnvelopeStats: [],
+            externalEnvelopeStats: [],
             accountStats: accountStats,
           ),
         ),

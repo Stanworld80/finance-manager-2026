@@ -223,12 +223,12 @@ if (-not $NoDeploy -and ($Platform -eq "web" -or $Platform -eq "all")) {
         $LiveIndexKeys = @{}
         foreach ($idx in $Live.indexes) {
             $fieldSig = ($idx.fields | ForEach-Object {
-                $f = $_
-                $part = $f.fieldPath
-                if ($f.order)       { $part += ":$($f.order)" }
-                elseif ($f.arrayConfig) { $part += ":$($f.arrayConfig)" }
-                $part
-            }) -join ","
+                    $f = $_
+                    $part = $f.fieldPath
+                    if ($f.order) { $part += ":$($f.order)" }
+                    elseif ($f.arrayConfig) { $part += ":$($f.arrayConfig)" }
+                    $part
+                }) -join ","
             $key = "$($idx.collectionGroup)|$($idx.queryScope)|$fieldSig"
             $LiveIndexKeys[$key] = $true
         }
@@ -251,12 +251,12 @@ if (-not $NoDeploy -and ($Platform -eq "web" -or $Platform -eq "all")) {
         # Check composite indexes
         foreach ($idx in $Local.indexes) {
             $fieldSig = ($idx.fields | ForEach-Object {
-                $f = $_
-                $part = $f.fieldPath
-                if ($f.order)       { $part += ":$($f.order)" }
-                elseif ($f.arrayConfig) { $part += ":$($f.arrayConfig)" }
-                $part
-            }) -join ","
+                    $f = $_
+                    $part = $f.fieldPath
+                    if ($f.order) { $part += ":$($f.order)" }
+                    elseif ($f.arrayConfig) { $part += ":$($f.arrayConfig)" }
+                    $part
+                }) -join ","
             $key = "$($idx.collectionGroup)|$($idx.queryScope)|$fieldSig"
             if (-not $LiveIndexKeys.ContainsKey($key)) {
                 $Missing += "  [COMPOSITE MISSING] $key"
@@ -282,8 +282,10 @@ if (-not $NoDeploy -and ($Platform -eq "web" -or $Platform -eq "all")) {
             Exit 1
         }
         else {
-            $TotalLocal = $Local.indexes.Count + ($Local.fieldOverrides ? $Local.fieldOverrides.Count : 0)
-            Write-Host "   Index verification OK — $TotalLocal index definitions confirmed live on $($EnvConfig.ProjectId)." -ForegroundColor Green
+            $overrideCount = 0
+            if ($Local.fieldOverrides) { $overrideCount = $Local.fieldOverrides.Count }
+            $TotalLocal = $Local.indexes.Count + $overrideCount
+            Write-Host "   Index verification OK - $TotalLocal index definitions confirmed live on $($EnvConfig.ProjectId)." -ForegroundColor Green
         }
     }
     catch {

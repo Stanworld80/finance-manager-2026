@@ -6,27 +6,8 @@ part of 'transaction_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$recentTransactionsHash() =>
-    r'74b32cb3fffbdc757a9bb7ec95f6d84fa9d13c85';
-
-/// See also [recentTransactions].
-@ProviderFor(recentTransactions)
-final recentTransactionsProvider =
-    AutoDisposeStreamProvider<List<TransactionModel>>.internal(
-      recentTransactions,
-      name: r'recentTransactionsProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$recentTransactionsHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef RecentTransactionsRef =
-    AutoDisposeStreamProviderRef<List<TransactionModel>>;
-String _$transactionByIdHash() => r'74439927d8deca58375a49ba45799fda9c44e9c4';
+String _$filteredAccountTransactionsHash() =>
+    r'466b138d06e3106ae775ed51f8c150aec5974828';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -48,6 +29,157 @@ class _SystemHash {
     return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
   }
 }
+
+/// See also [filteredAccountTransactions].
+@ProviderFor(filteredAccountTransactions)
+const filteredAccountTransactionsProvider = FilteredAccountTransactionsFamily();
+
+/// See also [filteredAccountTransactions].
+class FilteredAccountTransactionsFamily
+    extends Family<AsyncValue<List<TransactionModel>>> {
+  /// See also [filteredAccountTransactions].
+  const FilteredAccountTransactionsFamily();
+
+  /// See also [filteredAccountTransactions].
+  FilteredAccountTransactionsProvider call(String realAccountId) {
+    return FilteredAccountTransactionsProvider(realAccountId);
+  }
+
+  @override
+  FilteredAccountTransactionsProvider getProviderOverride(
+    covariant FilteredAccountTransactionsProvider provider,
+  ) {
+    return call(provider.realAccountId);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'filteredAccountTransactionsProvider';
+}
+
+/// See also [filteredAccountTransactions].
+class FilteredAccountTransactionsProvider
+    extends AutoDisposeStreamProvider<List<TransactionModel>> {
+  /// See also [filteredAccountTransactions].
+  FilteredAccountTransactionsProvider(String realAccountId)
+    : this._internal(
+        (ref) => filteredAccountTransactions(
+          ref as FilteredAccountTransactionsRef,
+          realAccountId,
+        ),
+        from: filteredAccountTransactionsProvider,
+        name: r'filteredAccountTransactionsProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$filteredAccountTransactionsHash,
+        dependencies: FilteredAccountTransactionsFamily._dependencies,
+        allTransitiveDependencies:
+            FilteredAccountTransactionsFamily._allTransitiveDependencies,
+        realAccountId: realAccountId,
+      );
+
+  FilteredAccountTransactionsProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.realAccountId,
+  }) : super.internal();
+
+  final String realAccountId;
+
+  @override
+  Override overrideWith(
+    Stream<List<TransactionModel>> Function(
+      FilteredAccountTransactionsRef provider,
+    )
+    create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: FilteredAccountTransactionsProvider._internal(
+        (ref) => create(ref as FilteredAccountTransactionsRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        realAccountId: realAccountId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeStreamProviderElement<List<TransactionModel>> createElement() {
+    return _FilteredAccountTransactionsProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is FilteredAccountTransactionsProvider &&
+        other.realAccountId == realAccountId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, realAccountId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin FilteredAccountTransactionsRef
+    on AutoDisposeStreamProviderRef<List<TransactionModel>> {
+  /// The parameter `realAccountId` of this provider.
+  String get realAccountId;
+}
+
+class _FilteredAccountTransactionsProviderElement
+    extends AutoDisposeStreamProviderElement<List<TransactionModel>>
+    with FilteredAccountTransactionsRef {
+  _FilteredAccountTransactionsProviderElement(super.provider);
+
+  @override
+  String get realAccountId =>
+      (origin as FilteredAccountTransactionsProvider).realAccountId;
+}
+
+String _$recentTransactionsHash() =>
+    r'74b32cb3fffbdc757a9bb7ec95f6d84fa9d13c85';
+
+/// See also [recentTransactions].
+@ProviderFor(recentTransactions)
+final recentTransactionsProvider =
+    AutoDisposeStreamProvider<List<TransactionModel>>.internal(
+      recentTransactions,
+      name: r'recentTransactionsProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$recentTransactionsHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef RecentTransactionsRef =
+    AutoDisposeStreamProviderRef<List<TransactionModel>>;
+String _$transactionByIdHash() => r'74439927d8deca58375a49ba45799fda9c44e9c4';
 
 /// See also [transactionById].
 @ProviderFor(transactionById)
@@ -318,5 +450,56 @@ class _ExternalTransactionsProviderElement
       (origin as ExternalTransactionsProvider).externalEntityId;
 }
 
+String _$transactionSearchQueryHash() =>
+    r'7d8839975c8af423b230c1baaffb2a132ff8f053';
+
+/// See also [TransactionSearchQuery].
+@ProviderFor(TransactionSearchQuery)
+final transactionSearchQueryProvider =
+    AutoDisposeNotifierProvider<TransactionSearchQuery, String>.internal(
+      TransactionSearchQuery.new,
+      name: r'transactionSearchQueryProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$transactionSearchQueryHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$TransactionSearchQuery = AutoDisposeNotifier<String>;
+String _$transactionDateFilterHash() =>
+    r'86932d97d824d0c9121315535e747eff0df22897';
+
+/// See also [TransactionDateFilter].
+@ProviderFor(TransactionDateFilter)
+final transactionDateFilterProvider =
+    AutoDisposeNotifierProvider<TransactionDateFilter, DateTimeRange?>.internal(
+      TransactionDateFilter.new,
+      name: r'transactionDateFilterProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$transactionDateFilterHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$TransactionDateFilter = AutoDisposeNotifier<DateTimeRange?>;
+String _$transactionSortOrderHash() =>
+    r'f73fd498a47ae0949681b3ab24443679e4799e7a';
+
+/// See also [TransactionSortOrder].
+@ProviderFor(TransactionSortOrder)
+final transactionSortOrderProvider =
+    AutoDisposeNotifierProvider<TransactionSortOrder, TransactionSort>.internal(
+      TransactionSortOrder.new,
+      name: r'transactionSortOrderProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$transactionSortOrderHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$TransactionSortOrder = AutoDisposeNotifier<TransactionSort>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

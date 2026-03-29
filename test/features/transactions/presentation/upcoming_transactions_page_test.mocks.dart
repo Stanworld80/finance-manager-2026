@@ -161,6 +161,7 @@ class MockTransactionService extends _i1.Mock
     required _i6.VirtualAccount? targetVirtualAccount,
     String? category,
     String? note,
+    _i5.TransactionStep? step = _i5.TransactionStep.completed,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#addTransfer, [], {
@@ -171,6 +172,7 @@ class MockTransactionService extends _i1.Mock
               #targetVirtualAccount: targetVirtualAccount,
               #category: category,
               #note: note,
+              #step: step,
             }),
             returnValue: _i4.Future<void>.value(),
             returnValueForMissingStub: _i4.Future<void>.value(),

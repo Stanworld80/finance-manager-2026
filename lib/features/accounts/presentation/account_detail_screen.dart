@@ -1,22 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../accounts/data/account_providers.dart';
 import '../../accounts/domain/account_models.dart';
 import '../../accounts/application/account_service.dart';
 import '../../../core/presentation/ui_utils.dart';
 import '../../transactions/presentation/widgets/transaction_list.dart';
 import 'envelope_detail_screen.dart';
-import '../../transactions/data/transaction_repository.dart';
-import '../../transactions/domain/transaction_model.dart';
-import '../../../core/providers.dart';
+import '../../transactions/data/transaction_providers.dart';
 
-final accountTransactionsProvider =
-    FutureProvider.family<List<TransactionModel>, String>((ref, realAccountId) {
-      final repository = ref.read(transactionRepositoryProvider);
-      final user = ref.read(firebaseAuthProvider).currentUser;
-      if (user == null) return [];
-      return repository.getTransactionsByRealAccount(user.uid, realAccountId);
-    });
 
 class AccountDetailScreen extends ConsumerWidget {
   final String accountId;
@@ -313,21 +305,7 @@ class AccountDetailScreen extends ConsumerWidget {
                       ),
 
                       // -- TAB 2: Transactions --
-                      Consumer(
-                        builder: (context, ref, child) {
-                          final transactionsAsync = ref.watch(
-                            accountTransactionsProvider(accountId),
-                          );
-                          return transactionsAsync.when(
-                            data: (transactions) =>
-                                TransactionList(transactions: transactions),
-                            loading: () => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                            error: (e, s) => Center(child: Text("Erreur: $e")),
-                          );
-                        },
-                      ),
+                      _AccountTransactionsTab(accountId: accountId),
                     ],
                   ),
                 ),
@@ -564,5 +542,333 @@ class AccountDetailScreen extends ConsumerWidget {
         }
       }
     }
+  }
+}
+
+class _AccountTransactionsTab extends ConsumerStatefulWidget {
+  final String accountId;
+
+  const _AccountTransactionsTab({required this.accountId});
+
+  @override
+  ConsumerState<_AccountTransactionsTab> createState() =>
+      _AccountTransactionsTabState();
+}
+
+class _AccountTransactionsTabState
+    extends ConsumerState<_AccountTransactionsTab> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _searchController.text = ref.read(transactionSearchQueryProvider);
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final transactionsAsync = ref.watch(
+      filteredAccountTransactionsProvider(widget.accountId),
+    );
+    final dateRange = ref.watch(transactionDateFilterProvider);
+    final sort = ref.watch(transactionSortOrderProvider);
+
+    return Column(
+      children: [
+        // --- Filter & Search Header ---
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged:
+                            (val) => ref
+                                .read(transactionSearchQueryProvider.notifier)
+                                .set(val),
+                        decoration: InputDecoration(
+                          hintText: 'Rechercher un libellé...',
+                          hintStyle: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                            fontSize: 14,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                          suffixIcon:
+                              _searchController.text.isNotEmpty
+                                  ? IconButton(
+                                    icon: const Icon(Icons.clear, size: 18),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      ref
+                                          .read(
+                                            transactionSearchQueryProvider
+                                                .notifier,
+                                          )
+                                          .set('');
+                                    },
+                                  )
+                                  : null,
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Date Picker Button
+                  _FilterBadge(
+                    icon: Icons.calendar_today,
+                    isActive: dateRange != null,
+                    onTap: () async {
+                      final picked = await showDateRangePicker(
+                        context: context,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                        initialDateRange: dateRange,
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: Theme.of(context).colorScheme.copyWith(
+                                primary: Theme.of(context).primaryColor,
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
+                      );
+                      if (picked != null) {
+                        ref
+                            .read(transactionDateFilterProvider.notifier)
+                            .set(picked);
+                      }
+                    },
+                    onLongPress:
+                        dateRange != null
+                            ? () => ref
+                                .read(transactionDateFilterProvider.notifier)
+                                .set(null)
+                            : null,
+                  ),
+                  const SizedBox(width: 8),
+                  // Sort Button
+                  _SortPopupMenu(
+                    currentSort: sort,
+                    onSelected:
+                        (newSort) => ref
+                            .read(transactionSortOrderProvider.notifier)
+                            .set(newSort),
+                  ),
+                ],
+              ),
+              if (dateRange != null) ...[
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4.0),
+                  child: InputChip(
+                    label: Text(
+                      '${DateFormat('dd/MM/yy').format(dateRange.start)} - ${DateFormat('dd/MM/yy').format(dateRange.end)}',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    onDeleted:
+                        () => ref
+                            .read(transactionDateFilterProvider.notifier)
+                            .set(null),
+                    deleteIconColor: Colors.red.shade300,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).primaryColor.withOpacity(0.1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+              transactionsAsync.when(
+                data:
+                    (txs) => Padding(
+                      padding: const EdgeInsets.only(left: 4.0),
+                      child: Text(
+                        txs.isEmpty
+                            ? 'Aucune transaction trouvée'
+                            : '${txs.length} transaction${txs.length > 1 ? 's' : ''} trouvée${txs.length > 1 ? 's' : ''}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
+
+        // --- Transaction List ---
+        Expanded(
+          child: transactionsAsync.when(
+            data:
+                (transactions) => TransactionList(transactions: transactions),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, s) => Center(child: Text("Erreur: $e")),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FilterBadge extends StatelessWidget {
+  final IconData icon;
+  final bool isActive;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+
+  const _FilterBadge({
+    required this.icon,
+    required this.isActive,
+    required this.onTap,
+    this.onLongPress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 48,
+        width: 48,
+        decoration: BoxDecoration(
+          color:
+              isActive
+                  ? Theme.of(context).primaryColor
+                  : Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          color:
+              isActive
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.onSurface,
+          size: 20,
+        ),
+      ),
+    );
+  }
+}
+
+class _SortPopupMenu extends StatelessWidget {
+  final TransactionSort currentSort;
+  final ValueChanged<TransactionSort> onSelected;
+
+  const _SortPopupMenu({required this.currentSort, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<TransactionSort>(
+      icon: Container(
+        height: 48,
+        width: 48,
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Icon(
+          Icons.sort_rounded,
+          color: Theme.of(context).colorScheme.onSurface,
+          size: 20,
+        ),
+      ),
+      padding: EdgeInsets.zero,
+      onSelected: onSelected,
+      itemBuilder:
+          (context) => [
+            const PopupMenuItem(
+              value: TransactionSort.dateDesc,
+              child: ListTile(
+                leading: Icon(Icons.calendar_month),
+                title: Text('Date (Récent en premier)'),
+                dense: true,
+              ),
+            ),
+            const PopupMenuItem(
+              value: TransactionSort.dateAsc,
+              child: ListTile(
+                leading: Icon(Icons.calendar_today),
+                title: Text('Date (Ancien en premier)'),
+                dense: true,
+              ),
+            ),
+            const PopupMenuItem(
+              value: TransactionSort.amountDesc,
+              child: ListTile(
+                leading: Icon(Icons.arrow_upward),
+                title: Text('Montant (Décroissant)'),
+                dense: true,
+              ),
+            ),
+            const PopupMenuItem(
+              value: TransactionSort.amountAsc,
+              child: ListTile(
+                leading: Icon(Icons.arrow_downward),
+                title: Text('Montant (Croissant)'),
+                dense: true,
+              ),
+            ),
+          ],
+    );
   }
 }

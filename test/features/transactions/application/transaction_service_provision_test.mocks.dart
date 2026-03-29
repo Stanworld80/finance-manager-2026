@@ -160,6 +160,20 @@ class MockTransactionRepository extends _i1.Mock
           as _i6.Stream<_i7.TransactionModel?>);
 
   @override
+  _i6.Stream<List<_i7.TransactionModel>> watchTransactionsByRealAccount(
+    String? userId,
+    String? realAccountId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#watchTransactionsByRealAccount, [
+              userId,
+              realAccountId,
+            ]),
+            returnValue: _i6.Stream<List<_i7.TransactionModel>>.empty(),
+          )
+          as _i6.Stream<List<_i7.TransactionModel>>);
+
+  @override
   _i6.Future<List<_i7.TransactionModel>> getTransactionsByRealAccount(
     String? userId,
     String? realAccountId,
@@ -407,6 +421,24 @@ class MockAccountRepository extends _i1.Mock implements _i9.AccountRepository {
             returnValue: _i6.Future<Map<String, int>>.value(<String, int>{}),
           )
           as _i6.Future<Map<String, int>>);
+
+  @override
+  _i6.Future<bool> repairLibreBalanceIfNeeded({
+    required String? userId,
+    required String? realAccountId,
+    required List<_i10.VirtualAccount>? virtualAccounts,
+    required double? realBalance,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#repairLibreBalanceIfNeeded, [], {
+              #userId: userId,
+              #realAccountId: realAccountId,
+              #virtualAccounts: virtualAccounts,
+              #realBalance: realBalance,
+            }),
+            returnValue: _i6.Future<bool>.value(false),
+          )
+          as _i6.Future<bool>);
 }
 
 /// A class which mocks [FirebaseAuth].
