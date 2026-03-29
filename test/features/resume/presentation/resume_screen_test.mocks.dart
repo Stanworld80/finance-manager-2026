@@ -62,16 +62,23 @@ class MockResumeExportService extends _i1.Mock
     List<_i5.AccountStat>? accountStats,
     List<_i5.EnvelopeStat>? systemEnvelopeStats,
     List<_i5.EnvelopeStat>? envelopeStats,
-    _i4.DateTimeRange<DateTime>? period,
-  ) =>
+    List<_i5.EnvelopeStat>? externalEnvelopeStats,
+    _i4.DateTimeRange<DateTime>? period, {
+    required Map<String, bool>? includedSections,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#exportToPdf, [
-              context,
-              accountStats,
-              systemEnvelopeStats,
-              envelopeStats,
-              period,
-            ]),
+            Invocation.method(
+              #exportToPdf,
+              [
+                context,
+                accountStats,
+                systemEnvelopeStats,
+                envelopeStats,
+                externalEnvelopeStats,
+                period,
+              ],
+              {#includedSections: includedSections},
+            ),
             returnValue: _i3.Future<void>.value(),
             returnValueForMissingStub: _i3.Future<void>.value(),
           )

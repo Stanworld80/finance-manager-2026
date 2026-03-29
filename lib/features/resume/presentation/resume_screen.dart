@@ -19,6 +19,30 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
+  final Map<String, bool> _expandedSections = {
+    'account-totals': true,
+    'system-envelopes': true,
+    'envelope-details': true,
+    'external-accounts': true,
+  };
+
+  final Map<String, bool> _includedInExport = {
+    'account-totals': true,
+    'system-envelopes': true,
+    'envelope-details': true,
+    'external-accounts': true,
+  };
+
+  Color? _getValueColor(double value) {
+    if (value > 0.005) return Colors.green;
+    if (value < -0.005) return Colors.red;
+    return null; // Neutral color (Theme default, usually black/white)
+  }
+
+  double _normalizeValue(double value) {
+    return value.abs() < 0.005 ? 0.0 : value;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -206,7 +230,9 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
           resumeDataAsync.maybeWhen(
             data: (data) {
               if (data.envelopeStats.isEmpty &&
-                  data.systemEnvelopeStats.isEmpty) {
+                  data.systemEnvelopeStats.isEmpty &&
+                  data.externalEnvelopeStats.isEmpty &&
+                  data.accountStats.isEmpty) {
                 return const SizedBox.shrink();
               }
               return PopupMenuButton<String>(
@@ -221,6 +247,9 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                       );
                   final processedEnvelopeStats = _getProcessedEnvelopeStats(
                     data.envelopeStats,
+                  );
+                  final processedExternalStats = _getProcessedEnvelopeStats(
+                    data.externalEnvelopeStats,
                   );
 
                   if (value == 'csv') {
@@ -237,7 +266,9 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                       processedAccountStats,
                       processedSystemEnvelopeStats,
                       processedEnvelopeStats,
+                      processedExternalStats,
                       _selectedDateRange,
+                      includedSections: _includedInExport,
                     );
                   }
                 },
@@ -345,21 +376,24 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                               context,
                               'Totaux par Compte Réel',
                               Icons.account_balance,
+                              sectionKey: 'account-totals',
                             ),
-                            if (processedAccountStats.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.all(16.0),
-                                child: Text('Aucun compte trouvé.'),
-                              )
-                            else
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: _buildAccountTable(
-                                  context,
-                                  processedAccountStats,
-                                  numberFormat,
+                            if (_expandedSections['account-totals'] == true) ...[
+                              if (processedAccountStats.isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.all(16.0),
+                                  child: Text('Aucun compte trouvé.'),
+                                )
+                              else
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: _buildAccountTable(
+                                    context,
+                                    processedAccountStats,
+                                    numberFormat,
+                                  ),
                                 ),
-                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -377,26 +411,30 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                               'Enveloppes Système',
                               Icons.settings,
                               color: Colors.amber.shade700,
+                              sectionKey: 'system-envelopes',
                             ),
-                            if (processedSystemEnvelopeStats.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.all(16.0),
-                                child: Text(
-                                  'Aucune enveloppe système trouvée.',
-                                ),
-                              )
-                            else
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: _buildEnvelopeTable(
-                                  context,
-                                  processedSystemEnvelopeStats,
-                                  numberFormat,
-                                  headerColor: Colors.amber.shade700.withValues(
-                                    alpha: 0.12,
+                            if (_expandedSections['system-envelopes'] == true) ...[
+                              if (processedSystemEnvelopeStats.isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.all(16.0),
+                                  child: Text(
+                                    'Aucune enveloppe système trouvée.',
+                                  ),
+                                )
+                              else
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: _buildEnvelopeTable(
+                                    context,
+                                    processedSystemEnvelopeStats,
+                                    numberFormat,
+                                    headerColor:
+                                        Colors.amber.shade700.withValues(
+                                      alpha: 0.12,
+                                    ),
                                   ),
                                 ),
-                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -413,21 +451,24 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                               context,
                               'Détails par Enveloppe',
                               Icons.account_tree,
+                              sectionKey: 'envelope-details',
                             ),
-                            if (processedEnvelopeStats.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.all(16.0),
-                                child: Text('Aucune enveloppe trouvée.'),
-                              )
-                            else
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: _buildEnvelopeTable(
-                                  context,
-                                  processedEnvelopeStats,
-                                  numberFormat,
+                            if (_expandedSections['envelope-details'] == true) ...[
+                              if (processedEnvelopeStats.isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.all(16.0),
+                                  child: Text('Aucune enveloppe trouvée.'),
+                                )
+                              else
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: _buildEnvelopeTable(
+                                    context,
+                                    processedEnvelopeStats,
+                                    numberFormat,
+                                  ),
                                 ),
-                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -445,24 +486,27 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                               'Comptes Extérieurs',
                               Icons.public,
                               color: Colors.teal,
+                              sectionKey: 'external-accounts',
                             ),
-                            if (processedExternalStats.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.all(16.0),
-                                child: Text('Aucun compte extérieur trouvé.'),
-                              )
-                            else
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: _buildEnvelopeTable(
-                                  context,
-                                  processedExternalStats,
-                                  numberFormat,
-                                  headerColor: Colors.teal.withValues(
-                                    alpha: 0.12,
+                            if (_expandedSections['external-accounts'] == true) ...[
+                              if (processedExternalStats.isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.all(16.0),
+                                  child: Text('Aucun compte extérieur trouvé.'),
+                                )
+                              else
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: _buildEnvelopeTable(
+                                    context,
+                                    processedExternalStats,
+                                    numberFormat,
+                                    headerColor: Colors.teal.withValues(
+                                      alpha: 0.12,
+                                    ),
                                   ),
                                 ),
-                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -482,22 +526,57 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
     String title,
     IconData icon, {
     Color? color,
+    required String sectionKey,
   }) {
     final effectiveColor = color ?? Theme.of(context).primaryColor;
+    final isExpanded = _expandedSections[sectionKey] ?? true;
+    final isIncluded = _includedInExport[sectionKey] ?? true;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: effectiveColor),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: effectiveColor,
-            ),
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _expandedSections[sectionKey] = !isExpanded;
+          });
+        },
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: effectiveColor),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: effectiveColor,
+                      ),
+                ),
+              ),
+              // PDF Export Toggle
+              Tooltip(
+                message: 'Inclure dans l\'export PDF',
+                child: Checkbox(
+                  value: isIncluded,
+                  activeColor: effectiveColor,
+                  onChanged: (value) {
+                    setState(() {
+                      _includedInExport[sectionKey] = value ?? false;
+                    });
+                  },
+                ),
+              ),
+              // Expansion Toggle Icon
+              Icon(
+                isExpanded ? Icons.expand_less : Icons.expand_more,
+                color: effectiveColor,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -516,7 +595,6 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
       columns: _buildColumns(isAccount: true),
       rows: stats.map((stat) {
         final diff = stat.income + stat.expense;
-        final diffColor = diff >= 0 ? Colors.green : Colors.red;
 
         return DataRow(
           cells: [
@@ -527,31 +605,34 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
               ),
             ),
             const DataCell(Text('---')), // No linked account for totals
-            DataCell(Text(numberFormat.format(stat.startBalance))),
+            DataCell(Text(numberFormat.format(_normalizeValue(stat.startBalance)))),
             DataCell(
               Text(
-                numberFormat.format(stat.income),
-                style: const TextStyle(color: Colors.green),
+                numberFormat.format(_normalizeValue(stat.income)),
+                style: TextStyle(color: _getValueColor(stat.income)),
               ),
             ),
             DataCell(
               Text(
-                numberFormat.format(stat.expense),
-                style: const TextStyle(color: Colors.red),
+                numberFormat.format(_normalizeValue(stat.expense)),
+                style: TextStyle(color: _getValueColor(stat.expense)),
               ),
             ),
             DataCell(
               Text(
-                numberFormat.format(diff),
-                style: TextStyle(color: diffColor, fontWeight: FontWeight.bold),
+                numberFormat.format(_normalizeValue(diff)),
+                style: TextStyle(
+                  color: _getValueColor(diff),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             DataCell(
               Text(
-                numberFormat.format(stat.endBalance),
+                numberFormat.format(_normalizeValue(stat.endBalance)),
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: stat.endBalance < 0 ? Colors.red : null,
+                  color: _getValueColor(stat.endBalance),
                 ),
               ),
             ),
@@ -578,37 +659,39 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
       columns: _buildColumns(isAccount: false),
       rows: stats.map((stat) {
         final diff = stat.income + stat.expense;
-        final diffColor = diff >= 0 ? Colors.green : Colors.red;
 
         return DataRow(
           cells: [
             DataCell(Text(stat.envelopeName)),
             DataCell(Text(stat.realAccountName)),
-            DataCell(Text(numberFormat.format(stat.startBalance))),
+            DataCell(Text(numberFormat.format(_normalizeValue(stat.startBalance)))),
             DataCell(
               Text(
-                numberFormat.format(stat.income),
-                style: const TextStyle(color: Colors.green),
+                numberFormat.format(_normalizeValue(stat.income)),
+                style: TextStyle(color: _getValueColor(stat.income)),
               ),
             ),
             DataCell(
               Text(
-                numberFormat.format(stat.expense),
-                style: const TextStyle(color: Colors.red),
+                numberFormat.format(_normalizeValue(stat.expense)),
+                style: TextStyle(color: _getValueColor(stat.expense)),
               ),
             ),
             DataCell(
               Text(
-                numberFormat.format(diff),
-                style: TextStyle(color: diffColor, fontWeight: FontWeight.bold),
+                numberFormat.format(_normalizeValue(diff)),
+                style: TextStyle(
+                  color: _getValueColor(diff),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             DataCell(
               Text(
-                numberFormat.format(stat.endBalance),
+                numberFormat.format(_normalizeValue(stat.endBalance)),
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: stat.endBalance < 0 ? Colors.red : null,
+                  color: _getValueColor(stat.endBalance),
                 ),
               ),
             ),

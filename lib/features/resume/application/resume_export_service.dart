@@ -145,8 +145,10 @@ class ResumeExportService {
     List<AccountStat> accountStats,
     List<EnvelopeStat> systemEnvelopeStats,
     List<EnvelopeStat> envelopeStats,
-    DateTimeRange period,
-  ) async {
+    List<EnvelopeStat> externalEnvelopeStats,
+    DateTimeRange period, {
+    required Map<String, bool> includedSections,
+  }) async {
     try {
       final pdf = pw.Document();
 
@@ -169,45 +171,6 @@ class ResumeExportService {
         'Différence',
         'Solde fin',
       ];
-
-      final accountData = accountStats.map((AccountStat stat) {
-        final diff = stat.income + stat.expense;
-        return [
-          stat.accountName,
-          '---',
-          _numberFormat.format(stat.startBalance),
-          _numberFormat.format(stat.income),
-          _numberFormat.format(stat.expense),
-          _numberFormat.format(diff),
-          _numberFormat.format(stat.endBalance),
-        ];
-      }).toList();
-
-      final systemEnvelopeData = systemEnvelopeStats.map((EnvelopeStat stat) {
-        final diff = stat.income + stat.expense;
-        return [
-          stat.envelopeName,
-          stat.realAccountName,
-          _numberFormat.format(stat.startBalance),
-          _numberFormat.format(stat.income),
-          _numberFormat.format(stat.expense),
-          _numberFormat.format(diff),
-          _numberFormat.format(stat.endBalance),
-        ];
-      }).toList();
-
-      final envelopeData = envelopeStats.map((EnvelopeStat stat) {
-        final diff = stat.income + stat.expense;
-        return [
-          stat.envelopeName,
-          stat.realAccountName,
-          _numberFormat.format(stat.startBalance),
-          _numberFormat.format(stat.income),
-          _numberFormat.format(stat.expense),
-          _numberFormat.format(diff),
-          _numberFormat.format(stat.endBalance),
-        ];
-      }).toList();
 
       pdf.addPage(
         pw.MultiPage(
@@ -234,7 +197,8 @@ class ResumeExportService {
                 ],
               ),
             ),
-            if (accountStats.isNotEmpty) ...[
+            if (includedSections['account-totals'] == true &&
+                accountStats.isNotEmpty) ...[
               pw.Padding(
                 padding: const pw.EdgeInsets.symmetric(vertical: 10),
                 child: pw.Text(
@@ -246,10 +210,25 @@ class ResumeExportService {
                   ),
                 ),
               ),
-              _buildPdfTable(accountHeaders, accountData),
+              _buildPdfTable(
+                accountHeaders,
+                accountStats.map((stat) {
+                  final diff = stat.income + stat.expense;
+                  return [
+                    stat.accountName,
+                    '---',
+                    stat.startBalance,
+                    stat.income,
+                    stat.expense,
+                    diff,
+                    stat.endBalance,
+                  ];
+                }).toList(),
+              ),
               pw.SizedBox(height: 20),
             ],
-            if (systemEnvelopeStats.isNotEmpty) ...[
+            if (includedSections['system-envelopes'] == true &&
+                systemEnvelopeStats.isNotEmpty) ...[
               pw.Padding(
                 padding: const pw.EdgeInsets.symmetric(vertical: 10),
                 child: pw.Text(
@@ -257,30 +236,87 @@ class ResumeExportService {
                   style: pw.TextStyle(
                     fontSize: 14,
                     fontWeight: pw.FontWeight.bold,
-                    color:
-                        PdfColors.orange800, // Matching UI color Amber/Orange
+                    color: PdfColors.orange800,
                   ),
                 ),
               ),
               _buildPdfTable(
                 envelopeHeaders,
-                systemEnvelopeData,
+                systemEnvelopeStats.map((stat) {
+                  final diff = stat.income + stat.expense;
+                  return [
+                    stat.envelopeName,
+                    stat.realAccountName,
+                    stat.startBalance,
+                    stat.income,
+                    stat.expense,
+                    diff,
+                    stat.endBalance,
+                  ];
+                }).toList(),
                 headerColor: PdfColors.orange800,
               ),
               pw.SizedBox(height: 20),
             ],
-            pw.Padding(
-              padding: const pw.EdgeInsets.symmetric(vertical: 10),
-              child: pw.Text(
-                'Détails par Enveloppe',
-                style: pw.TextStyle(
-                  fontSize: 14,
-                  fontWeight: pw.FontWeight.bold,
-                  color: PdfColors.blueGrey800,
+            if (includedSections['envelope-details'] == true &&
+                envelopeStats.isNotEmpty) ...[
+              pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(vertical: 10),
+                child: pw.Text(
+                  'Détails par Enveloppe',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.blueGrey800,
+                  ),
                 ),
               ),
-            ),
-            _buildPdfTable(envelopeHeaders, envelopeData),
+              _buildPdfTable(
+                envelopeHeaders,
+                envelopeStats.map((stat) {
+                  final diff = stat.income + stat.expense;
+                  return [
+                    stat.envelopeName,
+                    stat.realAccountName,
+                    stat.startBalance,
+                    stat.income,
+                    stat.expense,
+                    diff,
+                    stat.endBalance,
+                  ];
+                }).toList(),
+              ),
+              pw.SizedBox(height: 20),
+            ],
+            if (includedSections['external-accounts'] == true &&
+                externalEnvelopeStats.isNotEmpty) ...[
+              pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(vertical: 10),
+                child: pw.Text(
+                  'Comptes Externes',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.blueGrey800,
+                  ),
+                ),
+              ),
+              _buildPdfTable(
+                envelopeHeaders,
+                externalEnvelopeStats.map((stat) {
+                  final diff = stat.income + stat.expense;
+                  return [
+                    stat.envelopeName,
+                    stat.realAccountName,
+                    stat.startBalance,
+                    stat.income,
+                    stat.expense,
+                    diff,
+                    stat.endBalance,
+                  ];
+                }).toList(),
+              ),
+            ],
           ],
         ),
       );
@@ -299,29 +335,80 @@ class ResumeExportService {
     }
   }
 
+  PdfColor _getPdfValueColor(double value) {
+    if (value > 0.005) return PdfColors.green;
+    if (value < -0.005) return PdfColors.red;
+    return PdfColors.black;
+  }
+
+  double _normalizeValue(double value) {
+    return value.abs() < 0.005 ? 0.0 : value;
+  }
+
   pw.Widget _buildPdfTable(
     List<String> headers,
-    List<List<String>> data, {
+    List<List<dynamic>> data, {
     PdfColor headerColor = PdfColors.blueGrey800,
   }) {
-    return pw.TableHelper.fromTextArray(
-      headers: headers,
-      data: data,
+    return pw.Table(
       border: pw.TableBorder.all(color: PdfColors.grey300),
-      headerStyle: pw.TextStyle(
-        fontWeight: pw.FontWeight.bold,
-        color: PdfColors.white,
-        fontSize: 9,
-      ),
-      headerDecoration: pw.BoxDecoration(color: headerColor),
-      rowDecoration: const pw.BoxDecoration(
-        border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey200)),
-      ),
-      cellAlignment: pw.Alignment.centerRight,
-      cellAlignments: {0: pw.Alignment.centerLeft, 1: pw.Alignment.centerLeft},
-      cellStyle: const pw.TextStyle(color: PdfColors.black, fontSize: 8),
-      headerHeight: 20,
-      cellHeight: 18,
+      columnWidths: {
+        0: const pw.FlexColumnWidth(3),
+        1: const pw.FlexColumnWidth(2),
+        2: const pw.FlexColumnWidth(1.5),
+        3: const pw.FlexColumnWidth(1.5),
+        4: const pw.FlexColumnWidth(1.5),
+        5: const pw.FlexColumnWidth(1.5),
+        6: const pw.FlexColumnWidth(1.5),
+      },
+      children: [
+        // Header Row
+        pw.TableRow(
+          decoration: pw.BoxDecoration(color: headerColor),
+          children: headers.map((header) {
+            return pw.Padding(
+              padding: const pw.EdgeInsets.all(4),
+              child: pw.Text(
+                header,
+                style: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.white,
+                  fontSize: 7,
+                ),
+                textAlign: pw.TextAlign.center,
+              ),
+            );
+          }).toList(),
+        ),
+        // Data Rows
+        ...data.map((row) {
+          return pw.TableRow(
+            children: row.asMap().entries.map((entry) {
+              final index = entry.key;
+              final value = entry.value;
+
+              final isNumeric = index >= 2;
+              final doubleValue = isNumeric && value is double ? _normalizeValue(value) : 0.0;
+              final text = isNumeric && value is double
+                  ? _numberFormat.format(doubleValue)
+                  : value.toString();
+
+              return pw.Padding(
+                padding: const pw.EdgeInsets.all(3),
+                child: pw.Text(
+                  text,
+                  style: pw.TextStyle(
+                    fontSize: 7,
+                    color: isNumeric ? _getPdfValueColor(doubleValue) : PdfColors.black,
+                    fontWeight: index >= 5 ? pw.FontWeight.bold : pw.FontWeight.normal,
+                  ),
+                  textAlign: isNumeric ? pw.TextAlign.right : pw.TextAlign.left,
+                ),
+              );
+            }).toList(),
+          );
+        }),
+      ],
     );
   }
 }
