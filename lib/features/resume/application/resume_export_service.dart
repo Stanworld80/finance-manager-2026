@@ -186,13 +186,13 @@ class ResumeExportService {
                   pw.Text(
                     'Résumé Finance',
                     style: pw.TextStyle(
-                      fontSize: 18,
+                      fontSize: 31.5,
                       fontWeight: pw.FontWeight.bold,
                     ),
                   ),
                   pw.Text(
                     _formatPeriod(period),
-                    style: const pw.TextStyle(fontSize: 10),
+                    style: const pw.TextStyle(fontSize: 17.5),
                   ),
                 ],
               ),
@@ -204,7 +204,7 @@ class ResumeExportService {
                 child: pw.Text(
                   'Totaux par Compte Réel',
                   style: pw.TextStyle(
-                    fontSize: 14,
+                    fontSize: 24.5,
                     fontWeight: pw.FontWeight.bold,
                     color: PdfColors.blueGrey800,
                   ),
@@ -234,7 +234,7 @@ class ResumeExportService {
                 child: pw.Text(
                   'Enveloppes Système',
                   style: pw.TextStyle(
-                    fontSize: 14,
+                    fontSize: 24.5,
                     fontWeight: pw.FontWeight.bold,
                     color: PdfColors.orange800,
                   ),
@@ -265,7 +265,7 @@ class ResumeExportService {
                 child: pw.Text(
                   'Détails par Enveloppe',
                   style: pw.TextStyle(
-                    fontSize: 14,
+                    fontSize: 24.5,
                     fontWeight: pw.FontWeight.bold,
                     color: PdfColors.blueGrey800,
                   ),
@@ -295,7 +295,7 @@ class ResumeExportService {
                 child: pw.Text(
                   'Comptes Externes',
                   style: pw.TextStyle(
-                    fontSize: 14,
+                    fontSize: 24.5,
                     fontWeight: pw.FontWeight.bold,
                     color: PdfColors.blueGrey800,
                   ),
@@ -373,7 +373,7 @@ class ResumeExportService {
                 style: pw.TextStyle(
                   fontWeight: pw.FontWeight.bold,
                   color: PdfColors.white,
-                  fontSize: 7,
+                  fontSize: 12.25,
                 ),
                 textAlign: pw.TextAlign.center,
               ),
@@ -398,7 +398,7 @@ class ResumeExportService {
                 child: pw.Text(
                   text,
                   style: pw.TextStyle(
-                    fontSize: 7,
+                    fontSize: 12.25,
                     color: isNumeric ? _getPdfValueColor(doubleValue) : PdfColors.black,
                     fontWeight: index >= 5 ? pw.FontWeight.bold : pw.FontWeight.normal,
                   ),

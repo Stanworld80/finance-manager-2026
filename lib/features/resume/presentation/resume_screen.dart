@@ -376,6 +376,7 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                               context,
                               'Totaux par Compte Réel',
                               Icons.account_balance,
+                              color: Colors.blue.shade400,
                               sectionKey: 'account-totals',
                             ),
                             if (_expandedSections['account-totals'] == true) ...[
@@ -410,7 +411,7 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                               context,
                               'Enveloppes Système',
                               Icons.settings,
-                              color: Colors.amber.shade700,
+                              color: Colors.amber,
                               sectionKey: 'system-envelopes',
                             ),
                             if (_expandedSections['system-envelopes'] == true) ...[
@@ -428,8 +429,7 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                                     context,
                                     processedSystemEnvelopeStats,
                                     numberFormat,
-                                    headerColor:
-                                        Colors.amber.shade700.withValues(
+                                    headerColor: Colors.amber.withValues(
                                       alpha: 0.12,
                                     ),
                                   ),
@@ -451,6 +451,7 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                               context,
                               'Détails par Enveloppe',
                               Icons.account_tree,
+                              color: Colors.orange.shade400,
                               sectionKey: 'envelope-details',
                             ),
                             if (_expandedSections['envelope-details'] == true) ...[
@@ -485,7 +486,7 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                               context,
                               'Comptes Extérieurs',
                               Icons.public,
-                              color: Colors.teal,
+                              color: Colors.teal.shade300,
                               sectionKey: 'external-accounts',
                             ),
                             if (_expandedSections['external-accounts'] == true) ...[
@@ -528,7 +529,19 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
     Color? color,
     required String sectionKey,
   }) {
-    final effectiveColor = color ?? Theme.of(context).primaryColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // If no color provided, use a high-contrast theme color
+    Color effectiveColor = color ?? (isDark 
+        ? Theme.of(context).colorScheme.primaryContainer 
+        : Theme.of(context).primaryColor);
+        
+    // In dark mode, ensure the provided color isn't too dark
+    if (isDark && color != null) {
+      // We could use HSL to lighten it, but for simplicity we rely on the caller
+      // or common sense. shade400/shade300 are usually good.
+    }
+
     final isExpanded = _expandedSections[sectionKey] ?? true;
     final isIncluded = _includedInExport[sectionKey] ?? true;
 
@@ -545,14 +558,18 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
           padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: effectiveColor),
+              Icon(
+                icon,
+                size: 20,
+                color: isExpanded ? effectiveColor : effectiveColor.withValues(alpha: 0.7),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   title,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: effectiveColor,
+                        color: isExpanded ? effectiveColor : effectiveColor.withValues(alpha: 0.7),
                       ),
                 ),
               ),
@@ -562,6 +579,7 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                 child: Checkbox(
                   value: isIncluded,
                   activeColor: effectiveColor,
+                  checkColor: Colors.white,
                   onChanged: (value) {
                     setState(() {
                       _includedInExport[sectionKey] = value ?? false;
@@ -572,7 +590,7 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
               // Expansion Toggle Icon
               Icon(
                 isExpanded ? Icons.expand_less : Icons.expand_more,
-                color: effectiveColor,
+                color: isExpanded ? effectiveColor : effectiveColor.withValues(alpha: 0.7),
               ),
             ],
           ),
