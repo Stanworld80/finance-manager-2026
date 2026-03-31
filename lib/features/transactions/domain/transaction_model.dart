@@ -28,6 +28,7 @@ enum TransactionStep {
 class SystemAccounts {
   static const String external = 'system:external';
   static const String externalAdjustment = 'system:external-adjustment';
+  static const String transferTransit = 'system:transfer-transit';
 
   static bool isSystem(String id) => id.startsWith('system:');
 }
@@ -88,8 +89,9 @@ class TransactionModel {
   // Import Dedup
   final String? importHash;
 
-  // Recurrency Link
+  // Recurrency & Transfers Link
   final String? recurringTransactionId;
+  final String? linkedTransactionId; // ID of the opposite side of a transfer
 
   TransactionModel({
     required this.id,
@@ -112,6 +114,7 @@ class TransactionModel {
     this.splits = const [],
     this.importHash,
     this.recurringTransactionId,
+    this.linkedTransactionId,
   });
 
   /// A transaction is balanced if the sum of all splits is 0.
@@ -151,6 +154,7 @@ class TransactionModel {
       'splits': splits.map((x) => x.toMap()).toList(),
       'importHash': importHash,
       'recurringTransactionId': recurringTransactionId,
+      'linkedTransactionId': linkedTransactionId,
     };
   }
 
@@ -212,6 +216,7 @@ class TransactionModel {
       ),
       importHash: map['importHash'] as String?,
       recurringTransactionId: map['recurringTransactionId'] as String?,
+      linkedTransactionId: map['linkedTransactionId'] as String?,
     );
   }
 }

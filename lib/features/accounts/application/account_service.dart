@@ -526,7 +526,7 @@ class AccountService {
       account.id,
     );
     for (final tx in transactions) {
-      await txService.deleteTransaction(tx);
+      await txService.deleteTransaction(transaction: tx);
     }
 
     // 2. Delete all virtual accounts

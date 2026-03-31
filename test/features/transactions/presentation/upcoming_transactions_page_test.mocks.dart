@@ -144,9 +144,15 @@ class MockTransactionService extends _i1.Mock
           as _i4.Future<void>);
 
   @override
-  _i4.Future<void> deleteTransaction(_i5.TransactionModel? transaction) =>
+  _i4.Future<void> deleteTransaction({
+    required _i5.TransactionModel? transaction,
+    bool? deleteLinked = true,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#deleteTransaction, [transaction]),
+            Invocation.method(#deleteTransaction, [], {
+              #transaction: transaction,
+              #deleteLinked: deleteLinked,
+            }),
             returnValue: _i4.Future<void>.value(),
             returnValueForMissingStub: _i4.Future<void>.value(),
           )
@@ -192,6 +198,7 @@ class MockTransactionService extends _i1.Mock
     String? category,
     String? note,
     String? externalEntityId,
+    bool? updateLinked = true,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#updateTransaction, [], {
@@ -206,6 +213,20 @@ class MockTransactionService extends _i1.Mock
               #category: category,
               #note: note,
               #externalEntityId: externalEntityId,
+              #updateLinked: updateLinked,
+            }),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
+  _i4.Future<void> unlinkTransactions({
+    required _i5.TransactionModel? transaction,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#unlinkTransactions, [], {
+              #transaction: transaction,
             }),
             returnValue: _i4.Future<void>.value(),
             returnValueForMissingStub: _i4.Future<void>.value(),

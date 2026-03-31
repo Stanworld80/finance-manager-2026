@@ -195,6 +195,22 @@ class TransactionRepository {
         });
   }
 
+  Future<TransactionModel?> getTransactionById(
+    String userId,
+    String transactionId,
+  ) async {
+    final snapshot = await _firestore
+        .collectionGroup('transactions')
+        .where('ownerId', isEqualTo: userId)
+        .where('id', isEqualTo: transactionId)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) return null;
+    final data = snapshot.docs.first.data();
+    return TransactionModel.fromMap(data);
+  }
+
   Stream<List<TransactionModel>> watchTransactionsByRealAccount(
       String userId, String realAccountId) {
     return _firestore

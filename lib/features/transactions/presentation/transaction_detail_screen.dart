@@ -62,6 +62,14 @@ class TransactionDetailScreen extends ConsumerWidget {
               });
             },
           ),
+          if (transactionAsync.value != null && transactionAsync.value!.linkedTransactionId != null)
+            IconButton(
+              icon: const Icon(Icons.link_off),
+              tooltip: "Délier le virement",
+              onPressed: () {
+                _confirmUnlink(context, ref, transactionAsync.value!);
+              },
+            ),
         ],
       ),
       extendBodyBehindAppBar: true,
@@ -187,6 +195,32 @@ class TransactionDetailScreen extends ConsumerWidget {
                       child: Text(
                         tx.status.toString().split('.').last,
                         style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                if (tx.linkedTransactionId != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blueAccent.withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white, width: 1),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.link, color: Colors.white, size: 16),
+                          SizedBox(width: 4),
+                          Text(
+                            "Virement Lié",
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -425,7 +459,9 @@ class TransactionDetailScreen extends ConsumerWidget {
               foregroundColor: Colors.white,
             ),
             onPressed: () async {
-              await ref.read(transactionServiceProvider).deleteTransaction(tx);
+              await ref.read(transactionServiceProvider).deleteTransaction(
+                transaction: tx,
+              );
               if (ctx.mounted) {
                 Navigator.pop(ctx); // Close Dialog
                 context.pop(); // Go back to Dashboard
@@ -467,6 +503,41 @@ class TransactionDetailScreen extends ConsumerWidget {
               }
             },
             child: const Text("Annuler l'opération"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmUnlink(
+    BuildContext context,
+    WidgetRef ref,
+    TransactionModel tx,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Délier le virement ?"),
+        content: const Text(
+          "Cette action va séparer les deux opérations liées. Elles redeviendront de simples dépenses/revenus.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Annuler"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              await ref.read(transactionServiceProvider).unlinkTransactions(transaction: tx);
+              if (ctx.mounted) {
+                Navigator.pop(ctx);
+              }
+            },
+            child: const Text("Délier"),
           ),
         ],
       ),

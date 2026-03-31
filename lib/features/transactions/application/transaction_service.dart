@@ -265,11 +265,30 @@ class TransactionService {
     await repository.createTransaction(user.uid, transaction);
   }
 
-  Future<void> deleteTransaction(TransactionModel transaction) async {
+  Future<void> deleteTransaction({
+    required TransactionModel transaction,
+    bool deleteLinked = true,
+  }) async {
     final user = ref.read(firebaseAuthProvider).currentUser;
     if (user == null) throw Exception("User not authenticated");
 
     final repository = ref.read(transactionRepositoryProvider);
+    
+    // Si c'est un virement lié et qu'on doit supprimer l'autre côté
+    if (deleteLinked && transaction.linkedTransactionId != null) {
+      final linkedTx = await repository.getTransactionById(
+          user.uid, transaction.linkedTransactionId!);
+      
+      if (linkedTx != null) {
+        // Pour éviter une récursion infinie ou une corruption on passe cascade
+        // Normalement un runTransaction groupé serait parfait, mais la méthode 
+        // deleteTransactions du repo n'existe pas encore.
+        // Faisons la suppression séquentielle ou via ajout d'une méthode repo deleteTransactions.
+        // En attendant, appel simple :
+        await repository.deleteTransaction(user.uid, linkedTx);
+      }
+    }
+
     await repository.deleteTransaction(user.uid, transaction);
   }
 
@@ -321,9 +340,12 @@ class TransactionService {
       await repository.createTransaction(user.uid, transaction);
     } else {
       // Cross-account transfer (Two bank movements)
+      final idSource = uuid.v4();
+      final idTarget = uuid.v4();
+
       // 1. Debit Source Account
       final txSource = TransactionModel(
-        id: uuid.v4(),
+        id: idSource,
         ownerId: user.uid,
         realAccountId: sourceVirtualAccount.realAccountId,
         amount: -amount.abs(),
@@ -334,13 +356,14 @@ class TransactionService {
         note: note,
         status: TransactionStatus.toTransfer,
         step: TransactionStep.completed,
+        linkedTransactionId: idTarget,
         splits: [
           TransactionSplit(
             virtualAccountId: sourceVirtualAccount.id,
             amount: -amount.abs(),
           ),
           TransactionSplit(
-            virtualAccountId: SystemAccounts.external,
+            virtualAccountId: SystemAccounts.transferTransit,
             amount: amount.abs(),
           ),
         ],
@@ -348,7 +371,7 @@ class TransactionService {
 
       // 2. Credit Target Account
       final txTarget = TransactionModel(
-        id: uuid.v4(),
+        id: idTarget,
         ownerId: user.uid,
         realAccountId: targetVirtualAccount.realAccountId,
         amount: amount.abs(),
@@ -359,13 +382,14 @@ class TransactionService {
         note: note,
         status: TransactionStatus.transferred,
         step: TransactionStep.completed,
+        linkedTransactionId: idSource,
         splits: [
           TransactionSplit(
             virtualAccountId: targetVirtualAccount.id,
             amount: amount.abs(),
           ),
           TransactionSplit(
-            virtualAccountId: SystemAccounts.external,
+            virtualAccountId: SystemAccounts.transferTransit,
             amount: -amount.abs(),
           ),
         ],
@@ -387,6 +411,7 @@ class TransactionService {
     String? category,
     String? note,
     String? externalEntityId,
+    bool updateLinked = true,
   }) async {
     final user = ref.read(firebaseAuthProvider).currentUser;
     if (user == null) throw Exception("User not authenticated");
@@ -399,6 +424,10 @@ class TransactionService {
     double virtualAmountSigned;
     double counterpartyAmountSigned;
     String counterpartyAccountId = SystemAccounts.external;
+
+    if (originalTransaction.linkedTransactionId != null) {
+      counterpartyAccountId = SystemAccounts.transferTransit;
+    }
 
     final targetStep = step ?? originalTransaction.step;
 
@@ -442,9 +471,10 @@ class TransactionService {
       label: label,
       category: category,
       note: note,
-      status: originalTransaction.status, // Keep status? Or reset?
+      status: originalTransaction.status,
       step: targetStep,
       recurringTransactionId: originalTransaction.recurringTransactionId,
+      linkedTransactionId: originalTransaction.linkedTransactionId,
       externalEntityId:
           externalEntityId ?? originalTransaction.externalEntityId,
       splits: [
@@ -465,6 +495,125 @@ class TransactionService {
       originalTransaction,
       updatedTransaction,
     );
+
+    // Update Linked Transaction
+    if (updateLinked && originalTransaction.linkedTransactionId != null) {
+      final linkedTx = await repository.getTransactionById(
+          user.uid, originalTransaction.linkedTransactionId!);
+      if (linkedTx != null) {
+        final newLinkedRealAmountSigned = -realAmountSigned;
+
+        final newLinkedSplits = linkedTx.splits.map((s) {
+           if (s.virtualAccountId == SystemAccounts.transferTransit) {
+              return TransactionSplit(virtualAccountId: s.virtualAccountId, amount: -newLinkedRealAmountSigned);
+           } else {
+              return TransactionSplit(virtualAccountId: s.virtualAccountId, amount: newLinkedRealAmountSigned);
+           }
+        }).toList();
+
+        String rawLabel = label;
+        if (rawLabel.startsWith("[Transfert Out] ")) rawLabel = rawLabel.substring(16);
+        if (rawLabel.startsWith("[Transfert In] ")) rawLabel = rawLabel.substring(15);
+        final linkedLabel = "[Transfert ${newLinkedRealAmountSigned > 0 ? 'In' : 'Out'}] $rawLabel";
+
+        final updatedLinkedTx = TransactionModel(
+          id: linkedTx.id,
+          ownerId: linkedTx.ownerId,
+          realAccountId: linkedTx.realAccountId,
+          amount: newLinkedRealAmountSigned,
+          type: linkedTx.type, // type shouldn't change for linked, but it's fine
+          transactionDate: date,
+          label: linkedLabel,
+          category: category,
+          note: note,
+          status: linkedTx.status,
+          step: linkedTx.step,
+          recurringTransactionId: linkedTx.recurringTransactionId,
+          linkedTransactionId: linkedTx.linkedTransactionId,
+          splits: newLinkedSplits,
+          externalEntityId: linkedTx.externalEntityId,
+        );
+
+        await repository.updateTransaction(user.uid, linkedTx, updatedLinkedTx);
+      }
+    }
+  }
+
+  Future<void> unlinkTransactions({
+    required TransactionModel transaction,
+  }) async {
+    final user = ref.read(firebaseAuthProvider).currentUser;
+    if (user == null) throw Exception("User not authenticated");
+
+    if (transaction.linkedTransactionId == null) return;
+
+    final repository = ref.read(transactionRepositoryProvider);
+
+    final linkedTx = await repository.getTransactionById(
+          user.uid, transaction.linkedTransactionId!);
+
+    final newSplitsOriginal = transaction.splits.map((s) {
+      if (s.virtualAccountId == SystemAccounts.transferTransit) {
+        return TransactionSplit(virtualAccountId: SystemAccounts.external, amount: s.amount);
+      }
+      return s;
+    }).toList();
+
+    String cleanLabel(String lbl) {
+      String r = lbl;
+      if (r.startsWith("[Transfert Out] ")) r = r.substring(16);
+      if (r.startsWith("[Transfert In] ")) r = r.substring(15);
+      return r;
+    }
+
+    final tx1 = TransactionModel(
+      id: transaction.id,
+      ownerId: transaction.ownerId,
+      realAccountId: transaction.realAccountId,
+      amount: transaction.amount,
+      type: transaction.type,
+      transactionDate: transaction.transactionDate,
+      label: cleanLabel(transaction.label ?? ""),
+      note: transaction.note,
+      category: transaction.category,
+      status: transaction.status,
+      step: transaction.step,
+      recurringTransactionId: transaction.recurringTransactionId,
+      linkedTransactionId: null, // Unlinked
+      splits: newSplitsOriginal,
+    );
+
+    TransactionModel? tx2;
+    if (linkedTx != null) {
+      final newSplitsLinked = linkedTx.splits.map((s) {
+        if (s.virtualAccountId == SystemAccounts.transferTransit) {
+          return TransactionSplit(virtualAccountId: SystemAccounts.external, amount: s.amount);
+        }
+        return s;
+      }).toList();
+
+      tx2 = TransactionModel(
+        id: linkedTx.id,
+        ownerId: linkedTx.ownerId,
+        realAccountId: linkedTx.realAccountId,
+        amount: linkedTx.amount,
+        type: linkedTx.type,
+        transactionDate: linkedTx.transactionDate,
+        label: cleanLabel(linkedTx.label ?? ""),
+        note: linkedTx.note,
+        category: linkedTx.category,
+        status: linkedTx.status,
+        step: linkedTx.step,
+        recurringTransactionId: linkedTx.recurringTransactionId,
+        linkedTransactionId: null, // Unlinked
+        splits: newSplitsLinked,
+      );
+    }
+
+    await repository.updateTransaction(user.uid, transaction, tx1);
+    if (tx2 != null && linkedTx != null) {
+      await repository.updateTransaction(user.uid, linkedTx, tx2);
+    }
   }
 
   Future<void> updateSplitTransaction({
