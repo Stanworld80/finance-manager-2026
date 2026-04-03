@@ -77,7 +77,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
   String _label = "";
   String? _note;
   DateTime _date = DateTime.now();
-  TransactionStep _step = TransactionStep.pending;
+  TransactionStep _step = TransactionStep.completed;
 
   SelectableAccount? _origin;
   SelectableAccount? _destination;
