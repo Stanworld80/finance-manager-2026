@@ -6,7 +6,9 @@ import '../../application/transaction_service.dart';
 import '../../domain/transaction_model.dart';
 import '../add_transaction_page.dart';
 import '../../../../../core/presentation/utils/decimal_text_input_formatter.dart';
+import '../models/transaction_ui_models.dart';
 import 'searchable_account_selector.dart';
+
 
 /// Dialog Provision : virement simplifié depuis une enveloppe vers "Libre" (ou "Solde Engagé")
 /// du compte par défaut.

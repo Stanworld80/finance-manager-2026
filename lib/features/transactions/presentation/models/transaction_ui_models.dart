@@ -1,5 +1,5 @@
-import '../../accounts/domain/account_models.dart';
-import '../domain/transaction_model.dart';
+import '../../../accounts/domain/account_models.dart';
+import '../../domain/transaction_model.dart';
 import 'package:flutter/material.dart';
 
 class SelectableAccount {
