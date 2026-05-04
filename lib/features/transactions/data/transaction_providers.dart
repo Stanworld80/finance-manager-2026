@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/providers.dart';
 import '../domain/transaction_model.dart';
@@ -36,7 +37,7 @@ class TransactionSortOrder extends _$TransactionSortOrder {
 
 @riverpod
 Stream<List<TransactionModel>> filteredAccountTransactions(
-  FilteredAccountTransactionsRef ref,
+  Ref ref,
   String realAccountId,
 ) {
   final user = ref.watch(firebaseAuthProvider).currentUser;
@@ -106,14 +107,14 @@ Stream<List<TransactionModel>> filteredAccountTransactions(
 }
 
 @riverpod
-Stream<List<TransactionModel>> recentTransactions(RecentTransactionsRef ref) {
+Stream<List<TransactionModel>> recentTransactions(Ref ref) {
   final user = ref.watch(firebaseAuthProvider).currentUser;
   if (user == null) return Stream.value([]);
   return ref.watch(transactionRepositoryProvider).watchTransactions(user.uid);
 }
 
 @riverpod
-Stream<TransactionModel?> transactionById(TransactionByIdRef ref, String id) {
+Stream<TransactionModel?> transactionById(Ref ref, String id) {
   final user = ref.watch(firebaseAuthProvider).currentUser;
   if (user == null) return Stream.value(null);
   return ref
@@ -123,7 +124,7 @@ Stream<TransactionModel?> transactionById(TransactionByIdRef ref, String id) {
 
 @riverpod
 Stream<List<TransactionModel>> upcomingTransactions(
-  UpcomingTransactionsRef ref,
+  Ref ref,
 ) {
   final user = ref.watch(firebaseAuthProvider).currentUser;
   if (user == null) return Stream.value([]);
@@ -147,7 +148,7 @@ Stream<List<TransactionModel>> upcomingTransactions(
 
 @riverpod
 Stream<List<TransactionModel>> externalTransactions(
-  ExternalTransactionsRef ref,
+  Ref ref,
   String externalEntityId,
 ) {
   final user = ref.watch(firebaseAuthProvider).currentUser;

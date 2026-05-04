@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/providers.dart';
 import '../application/account_service.dart';
@@ -7,7 +8,7 @@ import 'account_repository.dart';
 part 'account_providers.g.dart';
 
 @riverpod
-Stream<List<RealAccount>> realAccounts(RealAccountsRef ref) {
+Stream<List<RealAccount>> realAccounts(Ref ref) {
   final user = ref.watch(firebaseAuthProvider).currentUser;
   if (user == null) return Stream.value([]);
   return ref.watch(accountRepositoryProvider).watchRealAccounts(user.uid);
@@ -15,7 +16,7 @@ Stream<List<RealAccount>> realAccounts(RealAccountsRef ref) {
 
 @riverpod
 Stream<List<VirtualAccount>> virtualAccounts(
-  VirtualAccountsRef ref,
+  Ref ref,
   String realAccountId,
 ) {
   final user = ref.watch(firebaseAuthProvider).currentUser;
@@ -26,7 +27,7 @@ Stream<List<VirtualAccount>> virtualAccounts(
 }
 
 @riverpod
-Stream<List<VirtualAccount>> allVirtualAccounts(AllVirtualAccountsRef ref) {
+Stream<List<VirtualAccount>> allVirtualAccounts(Ref ref) {
   final user = ref.watch(firebaseAuthProvider).currentUser;
   if (user == null) return Stream.value([]);
   return ref.watch(accountRepositoryProvider).watchAllVirtualAccounts(user.uid);
@@ -42,7 +43,7 @@ Stream<List<VirtualAccount>> allVirtualAccounts(AllVirtualAccountsRef ref) {
 /// The result (number of accounts repaired) is logged in debug builds but is
 /// otherwise invisible to the user.
 @riverpod
-Future<int> autoRepairLibre(AutoRepairLibreRef ref) async {
+Future<int> autoRepairLibre(Ref ref) async {
   // Wait until at least one real account is available before running
   final accounts = await ref.watch(realAccountsProvider.future);
   if (accounts.isEmpty) return 0;

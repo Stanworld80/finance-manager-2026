@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/providers.dart';
 import '../domain/user_profile.dart';
@@ -30,6 +31,6 @@ class UserRepository {
 }
 
 @riverpod
-UserRepository userRepository(UserRepositoryRef ref) {
+UserRepository userRepository(Ref ref) {
   return UserRepository(ref.watch(firestoreProvider));
 }

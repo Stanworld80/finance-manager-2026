@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/providers.dart';
@@ -8,7 +9,7 @@ part 'recurring_transaction_providers.g.dart';
 
 @riverpod
 Stream<List<RecurringTransaction>> recurringTransactions(
-  RecurringTransactionsRef ref,
+  Ref ref,
 ) {
   final user = ref.watch(firebaseAuthProvider).currentUser;
   if (user == null) return Stream.value([]);

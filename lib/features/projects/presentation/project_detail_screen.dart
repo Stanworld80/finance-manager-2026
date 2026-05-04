@@ -155,7 +155,7 @@ class _ProjectContent extends ConsumerWidget {
   Widget _buildHeader(BuildContext context) {
     return Card(
       elevation: 0,
-      color: Theme.of(context).primaryColor.withOpacity(0.05),
+      color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

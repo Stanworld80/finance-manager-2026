@@ -30,7 +30,8 @@ param(
     [switch]$NoDeploy,
     [switch]$NoClean,
     [switch]$BypassTest,
-    [switch]$NoGit
+    [switch]$NoGit,
+    [string]$WebRenderer = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -135,7 +136,11 @@ $CommonArgs = @(
 if ($Platform -eq "web" -or $Platform -eq "all") {
     Write-Host "   Building Web..."
     # Web does not support --flavor
-    flutter build web @CommonArgs
+    $WebArgs = $CommonArgs
+    if (-not [string]::IsNullOrWhiteSpace($WebRenderer)) {
+        $WebArgs += "--web-renderer", $WebRenderer
+    }
+    flutter build web @WebArgs
     if ($LASTEXITCODE -ne 0) { throw "Web Build Failed" }
 }
 

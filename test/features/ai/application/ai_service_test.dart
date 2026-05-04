@@ -22,7 +22,7 @@ void main() {
 
   test('sendMessage adds user message and awaits response', () async {
     // Keep provider alive (AutoDispose)
-    container.listen(aiServiceProvider, (_, __) {});
+    container.listen(aiServiceProvider, (p, n) {});
 
     final notifier = container.read(aiServiceProvider.notifier);
 

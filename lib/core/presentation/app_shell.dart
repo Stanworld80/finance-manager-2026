@@ -70,7 +70,7 @@ class AppShell extends ConsumerWidget {
           ActionChip(
             avatar: const Icon(Icons.savings_outlined, size: 16, color: Colors.purple),
             label: const Text('Provision'),
-            surfaceTintColor: Colors.purple.withOpacity(0.1),
+            surfaceTintColor: Colors.purple.withValues(alpha: 0.1),
             onPressed: () {
               showDialog(
                 context: context,
@@ -99,13 +99,13 @@ class AppShell extends ConsumerWidget {
     return Container(
       width: 250,
       decoration: BoxDecoration(
-        border: Border(right: BorderSide(color: Colors.white.withOpacity(0.1))),
+        border: Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
       ),
       child: ClipRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             child: Column(
               children: [
                 const SizedBox(height: 40),
@@ -191,12 +191,12 @@ class AppShell extends ConsumerWidget {
                       data: (info) => Text(
                         "v${info.version} (${info.buildNumber})",
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.3),
+                          color: Colors.white.withValues(alpha: 0.3),
                           fontSize: 12,
                         ),
                       ),
                       loading: () => const SizedBox.shrink(),
-                      error: (_, __) => const SizedBox.shrink(),
+                      error: (_, _) => const SizedBox.shrink(),
                     ),
                 const SizedBox(height: 16),
               ],
@@ -243,7 +243,7 @@ class AppShell extends ConsumerWidget {
     return ActionChip(
       avatar: Icon(icon, size: 16, color: color),
       label: Text(label),
-      surfaceTintColor: color.withOpacity(0.1),
+      surfaceTintColor: color.withValues(alpha: 0.1),
       onPressed: () {
         final query = {'type': type};
         if (accountId != null) {
@@ -283,7 +283,7 @@ class _SidebarItem extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: isSelected
-                ? Colors.blue.withOpacity(0.1)
+                ? Colors.blue.withValues(alpha: 0.1)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/providers.dart';
@@ -8,7 +9,7 @@ part 'recurring_transaction_repository.g.dart';
 
 @riverpod
 RecurringTransactionRepository recurringTransactionRepository(
-  RecurringTransactionRepositoryRef ref,
+  Ref ref,
 ) {
   final firestore = ref.watch(firestoreProvider);
   return RecurringTransactionRepository(firestore);

@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/providers.dart';
@@ -10,7 +11,7 @@ import '../../auth/data/user_repository.dart';
 part 'account_service.g.dart';
 
 @riverpod
-AccountService accountService(AccountServiceRef ref) {
+AccountService accountService(Ref ref) {
   return AccountService(ref);
 }
 
@@ -27,7 +28,7 @@ AccountService accountService(AccountServiceRef ref) {
 /// - **Solde Engagé (Committed)**: Funds reserved for pending transactions
 /// - **À Distribuer (To Distribute)**: Income waiting to be allocated
 class AccountService {
-  final AccountServiceRef ref;
+  final Ref ref;
 
   /// Creates an AccountService with the given Riverpod reference.
   AccountService(this.ref);

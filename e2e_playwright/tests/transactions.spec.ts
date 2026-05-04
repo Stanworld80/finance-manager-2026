@@ -1,96 +1,158 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Transactions E2E', () => {
+test.describe('Transactions CRUD E2E', () => {
 
     test.beforeEach(async ({ page }) => {
-        // Go to the dashboard
-        await page.goto(process.env.BASE_URL || 'http://localhost:3000');
-        // Wait for initial load
-        await page.waitForTimeout(3000);
+        await page.goto(process.env.BASE_URL || 'https://finance-manager-2026-stg.web.app');
+        // Wait for the dashboard to be fully loaded
+        await expect(page.getByText('Résumé (Statistiques des Enveloppes)', { exact: false })).toBeVisible({ timeout: 15000 });
+        await page.waitForTimeout(2000);
     });
 
-    test('Create, Modify, and Delete Transaction', async ({ page }) => {
-        // Note: This test relies on the app being run with HTML renderer:
-        // flutter run -d web-server --web-hostname localhost --web-port 3000 --web-renderer html
+    test('CRUD Dépense', async ({ page }) => {
+        const uniqueLabel = `Depense TEST ${Date.now()}`;
+        console.log(`Creating expense: ${uniqueLabel}`);
 
-        // --- CREATE TRANSACTION ---
-        console.log('Creating a new transaction...');
-        // In Flutter, floating action buttons usually have tooltip or readable text/icons
-        // Using a generic approach. Adjust selector based on actual semantic output:
-        // e.g. await page.getByRole('button', { name: "Nouvelle Transaction" }).click();
-        // Assuming there's a button with text "Nouvelle Transaction" or a FAB icon.
-        // We try to find a link or button that says 'Nouvelles Transactions' or similar.
-        // If the FAB only has an icon, it should have a tooltip. Let's try to click New Transaction.
-        const newTxButton = page.locator('button', { hasText: /Nouvelle|Transaction/i }).first();
-        // Wait for it, fallback to the generic FAB wrapper if available
-        await newTxButton.waitFor({ state: 'attached', timeout: 10000 }).catch(() => { });
-        await newTxButton.click().catch(() => page.mouse.click(page.viewportSize()!.width - 50, page.viewportSize()!.height - 50));
-        // Fallback: click bottom right if button not found (common FAB location)
+        // Click 'Dépense' button in top bar
+        await page.getByRole('button', { name: 'Dépense' }).click();
+        await page.waitForTimeout(1000);
 
-        // Wait for the form to appear
-        await page.waitForTimeout(2000);
+        // Verify we are on Add Transaction page with Dépense selected
+        await expect(page.getByText('Nouvelle Transaction')).toBeVisible();
 
-        // Fill the transaction form
-        // Amount
-        await page.getByLabel('Montant', { exact: false }).fill('50.00').catch(() => page.locator('input[type="text"]').first().fill('50.00'));
+        // Fill Montant Total
+        await page.getByLabel('Montant Total', { exact: false }).click();
+        await page.keyboard.type('42.50', { delay: 50 });
 
-        // Label/Title
-        const uniqueLabel = `Playwright E2E Test ${Date.now()}`;
-        await page.getByLabel('Titre', { exact: false }).fill(uniqueLabel).catch(() => page.locator('input[type="text"]').nth(1).fill(uniqueLabel));
+        // Fill Libellé
+        await page.getByLabel('Libellé', { exact: false }).click();
+        await page.keyboard.type(uniqueLabel, { delay: 50 });
 
-        // Save
+        // Select an origin account (e.g., first non-external)
+        // Note: Flutter dropdowns in web can be tricky, using getByLabel for the SearchableAccountSelector
+        // await page.getByLabel('De (Origine)').click();
+        // Skip specific selection for now if default is OK, or try to click it
+
+        // Click Save
         await page.getByRole('button', { name: /Ajouter|Enregistrer|Save/i }).first().click();
+        await page.waitForTimeout(4000);
 
-        // Give time to save and return
-        await page.waitForTimeout(3000);
+        // Verify creation in list
+        await expect(page.getByText(uniqueLabel).first()).toBeVisible({ timeout: 10000 });
 
-        // Verify creation
-        await expect(page.getByText(uniqueLabel)).toBeVisible({ timeout: 10000 });
-
-        // --- MODIFY TRANSACTION ---
-        console.log('Modifying the transaction...');
-        // Click on the transaction we just created
-        await page.getByText(uniqueLabel).click();
+        // --- VERIFY DETAILS ---
+        console.log('Verifying the expense details...');
+        await page.getByText(uniqueLabel).first().click();
         await page.waitForTimeout(2000);
 
-        // Edit button or form immediately opens. Let's assume there's an edit icon/button
-        const editBtn = page.getByRole('button', { name: /Modifier|Edit/i }).first();
-        if (await editBtn.isVisible()) {
-            await editBtn.click();
-            await page.waitForTimeout(1000);
-        }
+        // Verify Amount and Type
+        await expect(page.getByText('42.50').first()).toBeVisible();
+        await expect(page.getByText('SOURCE').first()).toBeVisible();
+        await expect(page.getByText('DESTINATION').first()).toBeVisible();
 
-        // Change the label
-        const modifiedLabel = `${uniqueLabel} Modified`;
-        await page.getByLabel('Titre', { exact: false }).fill(modifiedLabel).catch(() => page.locator('input[type="text"]').nth(1).fill(modifiedLabel));
+        // --- MODIFY ---
+        console.log('Modifying the expense...');
+        await page.locator('button i').filter({ hasText: 'edit' }).first().click().catch(() => page.getByRole('button', { name: 'Modifier' }).click());
+        await page.waitForTimeout(1000);
 
-        // Save changes
+        const modifiedLabel = `${uniqueLabel} MOD`;
+        await page.getByLabel('Libellé', { exact: false }).click();
+        await page.keyboard.down('Control');
+        await page.keyboard.press('A');
+        await page.keyboard.up('Control');
+        await page.keyboard.press('Backspace');
+        await page.keyboard.type(modifiedLabel, { delay: 50 });
+
+        // Change amount
+        await page.getByLabel('Montant Total', { exact: false }).click();
+        await page.keyboard.down('Control');
+        await page.keyboard.press('A');
+        await page.keyboard.up('Control');
+        await page.keyboard.press('Backspace');
+        await page.keyboard.type('100.00', { delay: 50 });
+
         await page.getByRole('button', { name: /Sauvegarder|Enregistrer|Update/i }).first().click();
-        await page.waitForTimeout(3000);
+        await page.waitForTimeout(4000);
 
         // Verify modification
-        await expect(page.getByText(modifiedLabel)).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText(modifiedLabel).first()).toBeVisible({ timeout: 10000 });
 
-        // --- DELETE TRANSACTION ---
+        // --- DELETE ---
         console.log('Deleting the transaction...');
-        // Open the transaction details again
-        await page.getByText(modifiedLabel).click();
-        await page.waitForTimeout(2000);
-
-        // Click delete
-        await page.getByRole('button', { name: /Supprimer|Delete/i }).first().click();
-
-        // Wait for confirmation dialog if any
+        await page.getByText(modifiedLabel).first().click();
         await page.waitForTimeout(1000);
-        const confirmBtn = page.getByRole('button', { name: /Confirmer|Oui/, exact: false }).first();
-        if (await confirmBtn.isVisible()) {
-            await confirmBtn.click();
-        }
-
-        // Wait for deletion
-        await page.waitForTimeout(3000);
+        await page.locator('button i').filter({ hasText: 'delete' }).first().click().catch(() => page.getByRole('button', { name: 'Supprimer' }).click());
+        await page.waitForTimeout(1000);
+        await page.getByRole('button', { name: /Supprimer|Confirmer|Oui/, exact: false }).first().click();
+        await page.waitForTimeout(4000);
 
         // Verify deletion
-        await expect(page.getByText(modifiedLabel)).toBeHidden();
+        await expect(page.getByText(modifiedLabel).first()).toBeHidden({ timeout: 10000 });
+    });
+
+    test('CRUD Revenu', async ({ page }) => {
+        const uniqueLabel = `Revenu TEST ${Date.now()}`;
+        console.log(`Creating income: ${uniqueLabel}`);
+
+        await page.getByRole('button', { name: 'Revenu' }).click();
+        await page.waitForTimeout(1000);
+
+        await page.getByLabel('Montant Total', { exact: false }).click();
+        await page.keyboard.type('1500.00', { delay: 50 });
+
+        await page.getByLabel('Libellé', { exact: false }).click();
+        await page.keyboard.type(uniqueLabel, { delay: 50 });
+
+        await page.getByRole('button', { name: /Ajouter|Enregistrer|Save/i }).first().click();
+        await page.waitForTimeout(4000);
+
+        await expect(page.getByText(uniqueLabel).first()).toBeVisible({ timeout: 10000 });
+
+        // Verify and delete
+        await page.getByText(uniqueLabel).first().click();
+        await expect(page.getByText('1500.00').first()).toBeVisible();
+        
+        await page.locator('button i').filter({ hasText: 'delete' }).first().click();
+        await page.waitForTimeout(500);
+        await page.getByRole('button', { name: /Supprimer|Confirmer|Oui/, exact: false }).first().click();
+        await page.waitForTimeout(4000);
+        await expect(page.getByText(uniqueLabel).first()).toBeHidden();
+    });
+
+    test('CRUD Virement', async ({ page }) => {
+        const uniqueLabel = `Virement TEST ${Date.now()}`;
+        console.log(`Creating transfer: ${uniqueLabel}`);
+
+        // Click 'Virement' (Transfer) button
+        await page.getByRole('button', { name: 'Virement' }).click();
+        await page.waitForTimeout(1000);
+
+        await page.getByLabel('Montant Total', { exact: false }).click();
+        await page.keyboard.type('50.00', { delay: 50 });
+
+        await page.getByLabel('Libellé', { exact: false }).click();
+        await page.keyboard.type(uniqueLabel, { delay: 50 });
+
+        // By default, Virement should have two internal accounts. 
+        // We assume staging has at least two envelopes.
+        
+        await page.getByRole('button', { name: /Ajouter|Enregistrer|Save/i }).first().click();
+        await page.waitForTimeout(4000);
+
+        await expect(page.getByText(uniqueLabel).first()).toBeVisible({ timeout: 10000 });
+
+        // Verify details
+        await page.getByText(uniqueLabel).first().click();
+        await page.waitForTimeout(1000);
+        await expect(page.getByText('50.00').first()).toBeVisible();
+        // Check "Virement Lié" or specific labels if applicable
+        
+        // --- DELETE ---
+        console.log('Deleting transfer...');
+        await page.locator('button i').filter({ hasText: 'delete' }).first().click();
+        await page.waitForTimeout(500);
+        await page.getByRole('button', { name: /Supprimer|Confirmer|Oui/, exact: false }).first().click();
+        await page.waitForTimeout(4000);
+        await expect(page.getByText(uniqueLabel).first()).toBeHidden();
     });
 });

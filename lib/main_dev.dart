@@ -17,7 +17,7 @@ void main() async {
       options: StagingFirebaseOptions.currentPlatform,
     );
   } catch (e) {
-    print("Firebase init failed (expected if not configured): $e");
+    debugPrint("Firebase init failed (expected if not configured): $e");
   }
 
   runApp(const ProviderScope(child: FinanceManagerApp()));

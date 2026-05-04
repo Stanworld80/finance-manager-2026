@@ -231,8 +231,9 @@ final resumeDataProvider = FutureProvider.family<ResumeData, DateTimeRange>((
   // the dashboard even when virtual accounts are out of sync with the real
   // account (e.g. initial balance, untracked CSV imports, etc.)
   for (final realAcc in realAccountsList) {
-    if (externalAccountIds.contains(realAcc.id))
+    if (externalAccountIds.contains(realAcc.id)) {
       continue; // external shown elsewhere
+    }
 
     double endBalance =
         realAcc.balance; // ground truth (completed only, same as dashboard)

@@ -15,14 +15,6 @@ void main() {
     await tester.pumpAndSettle();
 
     // 2. Login
-    final emailField = find.descendant(
-      of: find.byType(TextField),
-      matching: find.byWidgetPredicate(
-        (widget) =>
-            widget is TextField &&
-            widget.decoration?.labelText?.contains('Email') == true,
-      ),
-    );
     await tester.enterText(
       find.byType(TextField).at(0),
       'comptetechnique001@stanworld.org',

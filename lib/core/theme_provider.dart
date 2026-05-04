@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'theme.dart';
 
@@ -30,13 +31,13 @@ class ThemeModeController extends _$ThemeModeController {
 
 // Derived providers for easy use in MaterialApp
 @riverpod
-ThemeData lightTheme(LightThemeRef ref) {
+ThemeData lightTheme(Ref ref) {
   final style = ref.watch(themeStyleProvider);
   return AppTheme.getTheme(style, Brightness.light);
 }
 
 @riverpod
-ThemeData darkTheme(DarkThemeRef ref) {
+ThemeData darkTheme(Ref ref) {
   final style = ref.watch(themeStyleProvider);
   return AppTheme.getTheme(style, Brightness.dark);
 }

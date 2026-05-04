@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../accounts/data/account_providers.dart';
 import '../application/recurring_transaction_service.dart';
@@ -5,7 +6,7 @@ import '../application/recurring_transaction_service.dart';
 part 'projected_balance_provider.g.dart';
 
 @riverpod
-Future<double> projectedBalance(ProjectedBalanceRef ref) async {
+Future<double> projectedBalance(Ref ref) async {
   // 1. Get current actual balance from all Real Accounts
   final accounts = await ref.watch(realAccountsProvider.future);
   final currentBalance = accounts.fold(0.0, (sum, acc) => sum + acc.balance);

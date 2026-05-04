@@ -42,6 +42,16 @@ class TransactionSplit {
 
   TransactionSplit({required this.virtualAccountId, required this.amount});
 
+  TransactionSplit copyWith({
+    String? virtualAccountId,
+    double? amount,
+  }) {
+    return TransactionSplit(
+      virtualAccountId: virtualAccountId ?? this.virtualAccountId,
+      amount: amount ?? this.amount,
+    );
+  }
+
   bool get isSystem => SystemAccounts.isSystem(virtualAccountId);
 
   Map<String, dynamic> toMap() {
@@ -116,6 +126,55 @@ class TransactionModel {
     this.recurringTransactionId,
     this.linkedTransactionId,
   });
+
+  TransactionModel copyWith({
+    String? id,
+    String? ownerId,
+    String? realAccountId,
+    double? amount,
+    String? label,
+    String? note,
+    String? payee,
+    String? category,
+    TransactionType? type,
+    TransactionStatus? status,
+    TransactionStep? step,
+    String? externalEntityId,
+    DateTime? transactionDate,
+    DateTime? valueDate,
+    DateTime? visibilityDate,
+    DateTime? syncDate,
+    DateTime? provisionDate,
+    List<TransactionSplit>? splits,
+    String? importHash,
+    String? recurringTransactionId,
+    String? linkedTransactionId,
+  }) {
+    return TransactionModel(
+      id: id ?? this.id,
+      ownerId: ownerId ?? this.ownerId,
+      realAccountId: realAccountId ?? this.realAccountId,
+      amount: amount ?? this.amount,
+      label: label ?? this.label,
+      note: note ?? this.note,
+      payee: payee ?? this.payee,
+      category: category ?? this.category,
+      type: type ?? this.type,
+      status: status ?? this.status,
+      step: step ?? this.step,
+      externalEntityId: externalEntityId ?? this.externalEntityId,
+      transactionDate: transactionDate ?? this.transactionDate,
+      valueDate: valueDate ?? this.valueDate,
+      visibilityDate: visibilityDate ?? this.visibilityDate,
+      syncDate: syncDate ?? this.syncDate,
+      provisionDate: provisionDate ?? this.provisionDate,
+      splits: splits ?? this.splits,
+      importHash: importHash ?? this.importHash,
+      recurringTransactionId:
+          recurringTransactionId ?? this.recurringTransactionId,
+      linkedTransactionId: linkedTransactionId ?? this.linkedTransactionId,
+    );
+  }
 
   /// A transaction is balanced if the sum of all splits is 0.
   /// This is the core principle of double-entry accounting.

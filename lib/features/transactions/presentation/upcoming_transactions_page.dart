@@ -137,7 +137,7 @@ class UpcomingTransactionsPage extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               margin: const EdgeInsets.only(left: 8.0),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.2),
+                color: Colors.blue.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text(

@@ -20,13 +20,13 @@ void main() async {
       try {
         FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
         await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
-        print('Using Firebase Emulators');
+        debugPrint('Using Firebase Emulators');
       } catch (e) {
-        print('Emulator connection failed (non-critical): $e');
+        debugPrint('Emulator connection failed (non-critical): $e');
       }
     }
   } catch (e) {
-    print("Firebase init failed: $e");
+    debugPrint("Firebase init failed: $e");
   }
 
   runApp(const ProviderScope(child: FinanceManagerApp()));

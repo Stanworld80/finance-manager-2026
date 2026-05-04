@@ -1,5 +1,4 @@
-import 'dart:convert';
-import 'dart:io';
+// ignore_for_file: avoid_print
 
 Future<void> main() async {
   print("Ce script ne peut pas être exécuté facilement via dart pur sans la configuration Desktop de Firebase.");

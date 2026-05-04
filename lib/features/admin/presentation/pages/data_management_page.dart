@@ -70,7 +70,10 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                         : () async {
                             _handleAction(() async {
                               final stats = await accountService.repairData();
-                              if (mounted) {
+                              // The stats message is unique, but _handleAction takes a static string.
+                              // Let's modify _handleAction to accept an optional success message builder or just handle it here correctly.
+                              // Actually, I'll just fix the lint here by using context.mounted.
+                              if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(

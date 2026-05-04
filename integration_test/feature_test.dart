@@ -32,16 +32,6 @@ void main() {
     await tester.pumpAndSettle();
 
     // 2. Find Login Fields (Firebase UI uses specific Types/Keys)
-    // Looking for Email field
-    final emailField = find.descendant(
-      of: find.byType(TextField),
-      matching: find.byWidgetPredicate(
-        (widget) =>
-            widget is TextField &&
-            widget.decoration?.labelText?.contains('Email') == true,
-      ),
-    );
-
     // If simple find fails, try by type index (0 is email, 1 is password usually)
     await tester.enterText(
       find.byType(TextField).at(0),

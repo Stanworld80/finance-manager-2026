@@ -9,7 +9,7 @@ class AdminDashboardScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Admin Playground'),
-        backgroundColor: Colors.red.withOpacity(0.8),
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

@@ -138,7 +138,7 @@ class TransactionDetailScreen extends ConsumerWidget {
             ),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [color.withOpacity(0.8), color],
+                colors: [color.withValues(alpha: 0.8), color],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -148,7 +148,7 @@ class TransactionDetailScreen extends ConsumerWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: color.withOpacity(0.3),
+                  color: color.withValues(alpha: 0.3),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -157,7 +157,7 @@ class TransactionDetailScreen extends ConsumerWidget {
             child: Column(
               children: [
                 CircleAvatar(
-                  backgroundColor: Colors.white.withOpacity(0.2),
+                  backgroundColor: Colors.white.withValues(alpha: 0.2),
                   radius: 32,
                   child: Icon(icon, color: Colors.white, size: 36),
                 ),
@@ -189,7 +189,7 @@ class TransactionDetailScreen extends ConsumerWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -218,7 +218,7 @@ class TransactionDetailScreen extends ConsumerWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.blueAccent.withOpacity(0.8),
+                          color: Colors.blueAccent.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: Colors.white, width: 1),
                         ),
@@ -350,8 +350,8 @@ class TransactionDetailScreen extends ConsumerWidget {
                   child: ListTile(
                     leading: CircleAvatar(
                       backgroundColor: isSource
-                          ? Colors.red.withOpacity(0.1)
-                          : Colors.green.withOpacity(0.1),
+                          ? Colors.red.withValues(alpha: 0.1)
+                          : Colors.green.withValues(alpha: 0.1),
                       child: Icon(
                         isSource ? Icons.upload : Icons.download,
                         color: isSource ? Colors.red : Colors.green,

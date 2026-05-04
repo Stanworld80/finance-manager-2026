@@ -93,14 +93,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               // Separate internal from external accounts
               final internalAccounts = accounts
                   .where((a) => a.type == RealAccountType.internal)
-                  .toList();
+                  .toList()
+                ..sort((a, b) => a.name.compareTo(b.name));
               final externalAccounts = accounts
                   .where(
                     (a) =>
                         a.type == RealAccountType.external ||
                         a.type == RealAccountType.externalGeneric,
                   )
-                  .toList();
+                  .toList()
+                ..sort((a, b) => a.name.compareTo(b.name));
 
               final globalRealBalance = internalAccounts.fold(
                 0.0,
@@ -130,7 +132,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.blue.withOpacity(0.3),
+                          color: Colors.blue.withValues(alpha: 0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -142,7 +144,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         Text(
                           "Solde Total Disponible",
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                             fontSize: isDesktop ? 18 : 14,
                             letterSpacing: 1.1,
                           ),
@@ -162,7 +164,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             Text(
                               "Solde Réel : ${globalRealBalance.toStringAsFixed(2)} €",
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
+                                color: Colors.white.withValues(alpha: 0.9),
                                 fontSize: isDesktop ? 16 : 14,
                               ),
                             ),
@@ -188,7 +190,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               data: (balance) => Text(
                                 "Projeté (Fin de mois) : ${balance.toStringAsFixed(2)} €",
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: Colors.white.withValues(alpha: 0.9),
                                   fontSize: isDesktop ? 16 : 14,
                                 ),
                               ),
@@ -196,14 +198,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 height: 20,
                                 width: 100,
                                 child: LinearProgressIndicator(
-                                  color: Colors.white.withOpacity(0.5),
+                                  color: Colors.white.withValues(alpha: 0.5),
                                   backgroundColor: Colors.transparent,
                                 ),
                               ),
                               error: (e, s) => Text(
                                 "Erreur projection",
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
+                                  color: Colors.white.withValues(alpha: 0.7),
                                   fontSize: 12,
                                 ),
                               ),
@@ -260,39 +262,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   ),
 
-                  if (isDesktop)
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            childAspectRatio: 2.5,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                          ),
-                      itemCount: internalAccounts.length,
-                      itemBuilder: (context, index) => _buildAccountCard(
-                        context,
-                        ref,
-                        internalAccounts[index],
-                      ),
-                    )
-                  else
-                    SizedBox(
-                      height: 130,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: internalAccounts.length,
-                        itemBuilder: (context, index) => _buildAccountCard(
-                          context,
-                          ref,
-                          internalAccounts[index],
-                        ),
-                      ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: isDesktop ? 24 : 16),
+                    child: Column(
+                      children: internalAccounts.map((acc) => _buildAccountRow(context, ref, acc)).toList(),
                     ),
+                  ),
 
                   // External Accounts grouped section
                   if (externalAccounts.isNotEmpty)
@@ -318,47 +293,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         tilePadding: EdgeInsets.zero,
                         childrenPadding: EdgeInsets.zero,
                         children: [
-                          if (isDesktop)
-                            GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 0,
-                                vertical: 8,
-                              ),
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 3,
-                                    childAspectRatio: 2.5,
-                                    crossAxisSpacing: 16,
-                                    mainAxisSpacing: 12,
-                                  ),
-                              itemCount: externalAccounts.length,
-                              itemBuilder: (context, index) =>
-                                  _buildExternalAccountCard(
-                                    context,
-                                    ref,
-                                    externalAccounts[index],
-                                  ),
-                            )
-                          else
-                            SizedBox(
-                              height: 100,
-                              child: ListView.builder(
-                                scrollDirection: Axis.horizontal,
-                                padding: const EdgeInsets.only(
-                                  top: 4,
-                                  bottom: 8,
-                                ),
-                                itemCount: externalAccounts.length,
-                                itemBuilder: (context, index) =>
-                                    _buildExternalAccountCard(
-                                      context,
-                                      ref,
-                                      externalAccounts[index],
-                                    ),
-                              ),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Column(
+                              children: externalAccounts
+                                  .map((acc) => _buildAccountRow(context, ref, acc))
+                                  .toList(),
                             ),
+                          ),
                         ],
                       ),
                     ),
@@ -398,14 +340,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             child: Text(
                               'v${info.version} (${info.buildNumber})',
                               style: TextStyle(
-                                color: Colors.grey.withOpacity(0.5),
+                                color: Colors.grey.withValues(alpha: 0.5),
                                 fontSize: 10,
                               ),
                             ),
                           ),
                         ),
                         loading: () => const SizedBox.shrink(),
-                        error: (_, __) => const SizedBox.shrink(),
+                        error: (_, _) => const SizedBox.shrink(),
                       );
                     },
                   ),
@@ -423,62 +365,48 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildExternalAccountCard(
+  Widget _buildAccountRow(
     BuildContext context,
     WidgetRef ref,
     RealAccount account,
   ) {
-    return GestureDetector(
-      onTap: () => context.push('/exterieur'),
-      child: Container(
-        width: 160,
-        margin: const EdgeInsets.only(right: 12),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.teal.shade50,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.teal.shade200),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.teal.withOpacity(0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return InkWell(
+      onTap: () => context.push('/account/${account.id}'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
           children: [
-            Row(
-              children: [
-                Icon(
-                  account.type == RealAccountType.externalGeneric
-                      ? Icons.public
-                      : Icons.store,
-                  size: 14,
-                  color: Colors.teal.shade700,
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    account.name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      color: Colors.teal.shade900,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+            Icon(
+              Icons.account_balance_wallet_outlined,
+              size: 20,
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
             ),
-            const Spacer(),
+            const SizedBox(width: 12),
+            Text(
+              account.name,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: DashedLine(
+                  color: Theme.of(context).dividerColor.withValues(alpha: 0.8),
+                  dashWidth: 2,
+                  dashSpace: 3,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
             Text(
               "${account.balance.toStringAsFixed(2)} €",
               style: TextStyle(
-                color: Colors.teal.shade700,
+                color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.bold,
-                fontSize: 15,
+                fontSize: 16,
               ),
             ),
           ],
@@ -487,66 +415,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildAccountCard(
-    BuildContext context,
-    WidgetRef ref,
-    RealAccount account,
-  ) {
-    return GestureDetector(
-      onTap: () => context.push('/account/${account.id}'),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).dividerColor),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    account.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            Text(
-              account.bankName ?? "Banque",
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 12,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              "${account.balance.toStringAsFixed(2)} €",
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
+
 
   // ... _buildTransactionList ...
 
@@ -621,7 +491,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           child: Row(
                             children: [
                               CircleAvatar(
-                                backgroundColor: color.withOpacity(0.1),
+                                backgroundColor: color.withValues(alpha: 0.1),
                                 child: Icon(icon, color: color),
                               ),
                               const SizedBox(width: 16),
@@ -792,7 +662,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
       },
       loading: () {},
-      error: (_, __) {},
+      error: (_, _) {},
     );
   }
 }

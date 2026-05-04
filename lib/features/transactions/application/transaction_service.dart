@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/providers.dart';
@@ -9,12 +10,12 @@ import '../domain/transaction_model.dart';
 part 'transaction_service.g.dart';
 
 @riverpod
-TransactionService transactionService(TransactionServiceRef ref) {
+TransactionService transactionService(Ref ref) {
   return TransactionService(ref);
 }
 
 class TransactionService {
-  final TransactionServiceRef ref;
+  final Ref ref;
 
   TransactionService(this.ref);
 
@@ -54,8 +55,9 @@ class TransactionService {
         realAccount.id,
         VirtualAccountType.systemCommitted,
       );
-      if (committedAccount == null)
+      if (committedAccount == null) {
         throw Exception("System committed account not found.");
+      }
       counterpartyAccountId = committedAccount.id;
     }
 
@@ -157,8 +159,9 @@ class TransactionService {
         realAccount.id,
         VirtualAccountType.systemCommitted,
       );
-      if (committedAccount == null)
+      if (committedAccount == null) {
         throw Exception("System committed account not found.");
+      }
       counterpartyAccountId = committedAccount.id;
     }
 
@@ -438,8 +441,9 @@ class TransactionService {
         realAccount.id,
         VirtualAccountType.systemCommitted,
       );
-      if (committedAccount == null)
+      if (committedAccount == null) {
         throw Exception("System committed account not found.");
+      }
       counterpartyAccountId = committedAccount.id;
     }
 
@@ -657,8 +661,9 @@ class TransactionService {
         realAccount.id,
         VirtualAccountType.systemCommitted,
       );
-      if (committedAccount == null)
+      if (committedAccount == null) {
         throw Exception("System committed account not found.");
+      }
       counterpartyAccountId = committedAccount.id;
     }
 

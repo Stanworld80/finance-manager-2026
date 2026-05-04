@@ -1,4 +1,5 @@
 import 'package:csv/csv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'csv_import_service.g.dart';
@@ -34,7 +35,7 @@ class CsvImportResult {
 }
 
 @riverpod
-CsvImportService csvImportService(CsvImportServiceRef ref) {
+CsvImportService csvImportService(Ref ref) {
   return CsvImportService();
 }
 

@@ -11,47 +11,7 @@ import '../../accounts/application/account_service.dart';
 import '../../../../core/presentation/utils/decimal_text_input_formatter.dart';
 import 'widgets/searchable_account_selector.dart';
 
-class SelectableAccount {
-  final String id;
-  final String name;
-  final String? realAccountName;
-  final VirtualAccount? virtualAccount;
-  final bool isExternal;
-  final bool isExternalGeneric;
-  final String? externalEntityId;
-
-  final bool isPrincipal;
-  final VirtualAccountType? virtualAccountType;
-
-  SelectableAccount({
-    required this.id,
-    required this.name,
-    this.realAccountName,
-    this.virtualAccount,
-    this.isExternal = false,
-    this.isExternalGeneric = false,
-    this.externalEntityId,
-    this.isPrincipal = false,
-    this.virtualAccountType,
-  });
-
-  VirtualAccountType? get type => virtualAccount?.type;
-
-  String get displayName =>
-      realAccountName != null ? "$name ($realAccountName)" : name;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is SelectableAccount &&
-          runtimeType == other.runtimeType &&
-          id == other.id;
-
-  @override
-  int get hashCode => id.hashCode;
-}
-
-enum AccountSortType { byAccount, alphabetical }
+import 'models/transaction_ui_models.dart';
 
 class AddTransactionPage extends ConsumerStatefulWidget {
   final TransactionModel? transactionToEdit;
@@ -139,7 +99,12 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
 
   void _addSplitRow() {
     setState(() {
-      _splitRows.add(SplitRow());
+      final row = SplitRow();
+      final remaining = _amount != null ? (_amount! - _currentSplitTotal) : 0.0;
+      if (remaining > 0.009) {
+        row.amountController.text = remaining.toStringAsFixed(2);
+      }
+      _splitRows.add(row);
     });
   }
 
@@ -183,8 +148,9 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
         .toList();
 
     for (var entity in externalEntities) {
-      if (entity.type == RealAccountType.externalGeneric)
+      if (entity.type == RealAccountType.externalGeneric) {
         continue; // Already added
+      }
       items.add(
         SelectableAccount(
           id: "ext:${entity.id}",
@@ -294,6 +260,12 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
               ),
             ],
           ),
+          if (widget.transactionToEdit != null)
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: "Supprimer cette transaction",
+              onPressed: _deleteTransaction,
+            ),
         ],
       ),
       body: realAccountsAsync.when(
@@ -309,88 +281,11 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
             );
 
             if (!_isInitialized) {
-              if (widget.transactionToEdit != null) {
-                _initializeFromTransaction(
-                  widget.transactionToEdit!,
-                  items,
-                  externalGenericItem,
-                );
-              } else if (_origin == null &&
-                  _destination == null &&
-                  items.isNotEmpty) {
-                SelectableAccount? defaultRealAccount;
-                if (widget.initialRealAccountId != null) {
-                  try {
-                    defaultRealAccount = items.firstWhere(
-                      (i) =>
-                          i.virtualAccount?.realAccountId ==
-                              widget.initialRealAccountId &&
-                          i.type == VirtualAccountType.systemFree,
-                    );
-                  } catch (_) {
-                    try {
-                      defaultRealAccount = items.firstWhere(
-                        (i) =>
-                            i.virtualAccount?.realAccountId ==
-                            widget.initialRealAccountId,
-                      );
-                    } catch (_) {}
-                  }
-                }
-
-                // If no specific account context, try to find the PRINCIPAL account
-                if (defaultRealAccount == null) {
-                  try {
-                    final principalAccount = realAccountList.firstWhere(
-                      (a) => a.isPrincipal,
-                    );
-                    defaultRealAccount = items.firstWhere(
-                      (i) =>
-                          i.virtualAccount?.realAccountId ==
-                              principalAccount.id &&
-                          i.type == VirtualAccountType.systemFree,
-                    );
-                  } catch (_) {
-                    // Fallback to existing logic if no principal or its Libre not found
-                  }
-                }
-
-                if (defaultRealAccount == null && items.length > 1) {
-                  defaultRealAccount = items.firstWhere(
-                    (i) => !i.isExternal,
-                    orElse: () => externalGenericItem,
-                  );
-                }
-
-                if (_type == TransactionType.debit) {
-                  _origin = defaultRealAccount ?? externalGenericItem;
-                  _destination = externalGenericItem;
-                } else if (_type == TransactionType.credit) {
-                  _origin = externalGenericItem;
-                  _destination = defaultRealAccount ?? externalGenericItem;
-                } else if (_type == TransactionType.transfer) {
-                  _origin = defaultRealAccount ?? externalGenericItem;
-                  _destination = items.firstWhere(
-                    (i) => !i.isExternal && i.id != _origin?.id,
-                    orElse: () => externalGenericItem,
-                  );
-                }
-              }
+              _initializeSelection(realAccountList, items, externalGenericItem);
               _isInitialized = true;
             } else {
-              // Re-validate selection in case sort changed reference (should use ID match)
-              if (_origin != null && !_origin!.isExternal) {
-                _origin = items.firstWhere(
-                  (i) => i.id == _origin!.id,
-                  orElse: () => _origin!,
-                );
-              }
-              if (_destination != null && !_destination!.isExternal) {
-                _destination = items.firstWhere(
-                  (i) => i.id == _destination!.id,
-                  orElse: () => _destination!,
-                );
-              }
+              // Refresh references if items list changed (e.g. sort changed)
+              _refreshSelectionReferences(items);
             }
 
             return SingleChildScrollView(
@@ -723,7 +618,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                           labelText: 'Statut de la transaction',
                           border: OutlineInputBorder(),
                         ),
-                        value: _step,
+                        initialValue: _step,
                         items: const [
                           DropdownMenuItem(
                             value: TransactionStep.completed,
@@ -807,7 +702,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                                       labelText: 'Fréquence',
                                       border: OutlineInputBorder(),
                                     ),
-                                    value: _frequency,
+                                    initialValue: _frequency,
                                     items: const [
                                       DropdownMenuItem(
                                         value: RecurrenceFrequency.daily,
@@ -895,406 +790,446 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
     );
   }
 
+  void _initializeSelection(
+    List<RealAccount> realAccountList,
+    List<SelectableAccount> items,
+    SelectableAccount externalGenericItem,
+  ) {
+    if (widget.transactionToEdit != null) {
+      _initializeFromTransaction(
+        widget.transactionToEdit!,
+        items,
+        externalGenericItem,
+      );
+    } else if (_origin == null && _destination == null && items.isNotEmpty) {
+      SelectableAccount? defaultRealAccount;
+      if (widget.initialRealAccountId != null) {
+        try {
+          defaultRealAccount = items.firstWhere(
+            (i) =>
+                i.virtualAccount?.realAccountId ==
+                    widget.initialRealAccountId &&
+                i.type == VirtualAccountType.systemFree,
+          );
+        } catch (_) {
+          try {
+            defaultRealAccount = items.firstWhere(
+              (i) =>
+                  i.virtualAccount?.realAccountId ==
+                  widget.initialRealAccountId,
+            );
+          } catch (_) {}
+        }
+      }
+
+      // If no specific account context, try to find the PRINCIPAL account
+      if (defaultRealAccount == null) {
+        try {
+          final principalAccount = realAccountList.firstWhere(
+            (a) => a.isPrincipal,
+          );
+          defaultRealAccount = items.firstWhere(
+            (i) =>
+                i.virtualAccount?.realAccountId == principalAccount.id &&
+                i.type == VirtualAccountType.systemFree,
+          );
+        } catch (_) {}
+      }
+
+      if (defaultRealAccount == null && items.length > 1) {
+        defaultRealAccount = items.firstWhere(
+          (i) => !i.isExternal,
+          orElse: () => externalGenericItem,
+        );
+      }
+
+      if (_type == TransactionType.debit) {
+        _origin = defaultRealAccount ?? externalGenericItem;
+        _destination = externalGenericItem;
+      } else if (_type == TransactionType.credit) {
+        _origin = externalGenericItem;
+        _destination = defaultRealAccount ?? externalGenericItem;
+      } else if (_type == TransactionType.transfer) {
+        _origin = defaultRealAccount ?? externalGenericItem;
+        _destination = items.firstWhere(
+          (i) => !i.isExternal && i.id != _origin?.id,
+          orElse: () => externalGenericItem,
+        );
+      }
+    }
+  }
+
   void _initializeFromTransaction(
     TransactionModel tx,
     List<SelectableAccount> items,
     SelectableAccount externalGenericItem,
   ) {
-    if (tx.type == TransactionType.transfer) {
-      if (tx.splits.length >= 2) {
-        // Identify source and target
-        // Source is negative, Target is positive
-        final sourceSplit = tx.splits.firstWhere(
-          (s) => s.amount < 0,
-          orElse: () => tx.splits.first,
-        );
-        final targetSplit = tx.splits.firstWhere(
-          (s) => s.amount > 0,
-          orElse: () => tx.splits.last,
-        );
-
-        _origin = items.firstWhere(
-          (i) => i.id == sourceSplit.virtualAccountId,
-          orElse: () => items.last,
-        );
-        _destination = items.firstWhere(
-          (i) => i.id == targetSplit.virtualAccountId,
-          orElse: () => items.last,
-        );
+    // 1. Identify the 'External' side and the 'Internal' side(s)
+    SelectableAccount? externalSide;
+    try {
+      final externalSplit = tx.splits.firstWhere(
+        (s) => SystemAccounts.isSystem(s.virtualAccountId) || 
+               items.any((i) => i.id == s.virtualAccountId && i.isExternal),
+      );
+      externalSide = items.firstWhere(
+        (i) => i.id == externalSplit.virtualAccountId,
+        orElse: () => externalGenericItem,
+      );
+    } catch (_) {
+      if (tx.type == TransactionType.debit || tx.type == TransactionType.credit) {
+        externalSide = externalGenericItem;
       }
-    } else {
-      // Debit or Credit
-      if (tx.type == TransactionType.debit) {
-        _destination = externalGenericItem;
-        final splitIter = tx.splits.where(
-          (s) => !SystemAccounts.isSystem(s.virtualAccountId),
-        );
-        if (splitIter.isNotEmpty) {
-          final firstSplit = splitIter.first;
-          _origin = items.firstWhere(
-            (i) => i.id == firstSplit.virtualAccountId,
-            orElse: () => items.last,
-          );
+    }
 
-          if (_isSplitMode) {
-            _splitRows.clear();
-            for (final split in splitIter) {
-              final item = items.firstWhere(
-                (i) => i.id == split.virtualAccountId,
-                orElse: () => _origin!,
-              );
-              _splitRows.add(
-                SplitRow()
-                  ..selectableAccount = item
-                  ..amountController.text = split.amount.abs().toString(),
-              );
-            }
-          }
+    if (tx.type == TransactionType.debit) {
+      _destination = externalSide ?? externalGenericItem;
+      final internalSplits = tx.splits.where((s) => s.virtualAccountId != (_destination?.id ?? "")).toList();
+      if (_isSplitMode) {
+        _splitRows.clear();
+        for (var s in internalSplits) {
+          final row = SplitRow();
+          row.selectableAccount = items.firstWhere(
+            (i) => i.id == s.virtualAccountId,
+            orElse: () => items.firstWhere((i) => !i.isExternal, orElse: () => items.first),
+          );
+          row.amountController.text = s.amount.abs().toStringAsFixed(2);
+          _splitRows.add(row);
+        }
+        if (internalSplits.isNotEmpty) {
+          _origin = items.firstWhere((i) => i.id == internalSplits.first.virtualAccountId, orElse: () => items.first);
         }
       } else {
-        // Credit
-        _origin = externalGenericItem;
-        final splitIter = tx.splits.where(
-          (s) => !SystemAccounts.isSystem(s.virtualAccountId),
-        );
-        if (splitIter.isNotEmpty) {
-          final firstSplit = splitIter.first;
-          _destination = items.firstWhere(
-            (i) => i.id == firstSplit.virtualAccountId,
-            orElse: () => items.last,
+        if (internalSplits.isNotEmpty) {
+          _origin = items.firstWhere((i) => i.id == internalSplits.first.virtualAccountId, orElse: () => items.first);
+        }
+      }
+    } else if (tx.type == TransactionType.credit) {
+      _origin = externalSide ?? externalGenericItem;
+      final internalSplits = tx.splits.where((s) => s.virtualAccountId != (_origin?.id ?? "")).toList();
+      if (_isSplitMode) {
+        _splitRows.clear();
+        for (var s in internalSplits) {
+          final row = SplitRow();
+          row.selectableAccount = items.firstWhere(
+            (i) => i.id == s.virtualAccountId,
+            orElse: () => items.firstWhere((i) => !i.isExternal, orElse: () => items.first),
           );
+          row.amountController.text = s.amount.abs().toStringAsFixed(2);
+          _splitRows.add(row);
+        }
+        if (internalSplits.isNotEmpty) {
+          _destination = items.firstWhere((i) => i.id == internalSplits.first.virtualAccountId, orElse: () => items.first);
+        }
+      } else {
+        if (internalSplits.isNotEmpty) {
+          _destination = items.firstWhere((i) => i.id == internalSplits.first.virtualAccountId, orElse: () => items.first);
+        }
+      }
+    } else if (tx.type == TransactionType.transfer) {
+      final sourceSplit = tx.splits.firstWhere((s) => s.amount < 0, orElse: () => tx.splits.first);
+      final targetSplit = tx.splits.firstWhere((s) => s.amount > 0, orElse: () => tx.splits.last);
+      _origin = items.firstWhere((i) => i.id == sourceSplit.virtualAccountId, orElse: () => items.first);
+      _destination = items.firstWhere((i) => i.id == targetSplit.virtualAccountId, orElse: () => items.first);
+    }
+  }
 
-          if (_isSplitMode) {
-            _splitRows.clear();
-            for (final split in splitIter) {
-              final item = items.firstWhere(
-                (i) => i.id == split.virtualAccountId,
-                orElse: () => _destination!,
-              );
-              _splitRows.add(
-                SplitRow()
-                  ..selectableAccount = item
-                  ..amountController.text = split.amount.abs().toString(),
-              );
-            }
-          }
+  void _refreshSelectionReferences(List<SelectableAccount> items) {
+    if (_origin != null) {
+      _origin = items.firstWhere((i) => i.id == _origin!.id, orElse: () => _origin!);
+    }
+    if (_destination != null) {
+      _destination = items.firstWhere((i) => i.id == _destination!.id, orElse: () => _destination!);
+    }
+    for (var row in _splitRows) {
+      if (row.selectableAccount != null) {
+        row.selectableAccount = items.firstWhere(
+          (i) => i.id == row.selectableAccount!.id,
+          orElse: () => row.selectableAccount!,
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteTransaction() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Supprimer la transaction"),
+        content: const Text(
+          "Voulez-vous vraiment supprimer cette transaction ? Cette action est irréversible.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Annuler"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Supprimer"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await ref.read(transactionServiceProvider).deleteTransaction(
+              transaction: widget.transactionToEdit!,
+            );
+        if (mounted) context.pop();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Erreur lors de la suppression: $e")),
+          );
         }
       }
     }
+  }
+
+  Future<bool> _confirmDateIfToday() async {
+    if (widget.transactionToEdit != null) return true;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final transactionDate = DateTime(_date.year, _date.month, _date.day);
+
+    if (transactionDate.isAtSameMomentAs(today)) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text("Confirmer la date"),
+          content: const Text(
+            "La date de la transaction est fixée à AUJOURD'HUI. Est-ce correct ?",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text("Changer la date"),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text("Confirmer"),
+            ),
+          ],
+        ),
+      );
+      return confirm == true;
+    }
+    return true;
+  }
+
+  bool _validateSplits() {
+    if (!_isSplitMode || _type == TransactionType.transfer) return true;
+    
+    final total = _amount ?? 0.0;
+    final splitTotal = _currentSplitTotal;
+    
+    if ((total - splitTotal).abs() > 0.01) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Le total ventilé (${splitTotal.toStringAsFixed(2)} €) "
+            "ne correspond pas au montant total (${total.toStringAsFixed(2)} €).",
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return false;
+    }
+    return true;
   }
 
   Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
+      if (!await _confirmDateIfToday()) return;
+      if (!_validateSplits()) return;
+      if (!mounted) return;
+
       try {
-        final service = ref.read(transactionServiceProvider);
-
         if (_isRecurring && widget.transactionToEdit == null) {
-          final recService = ref.read(recurringTransactionServiceProvider);
-
-          final realAccountId = (_type == TransactionType.credit)
-              ? _destination!.virtualAccount!.realAccountId
-              : _origin!.virtualAccount!.realAccountId;
-
-          // Simple logic for recurring
-          await recService.addRecurringTransaction(
-            frequency: _frequency,
-            interval: _interval,
-            startDate: _date,
-            endDate: _endDate,
-            realAccountId: realAccountId,
-            amount: _amount!,
-            label: _label,
-            note: _note,
-            type: _type,
-            externalEntityId: (_type == TransactionType.debit)
-                ? _destination?.externalEntityId
-                : _origin?.externalEntityId,
-            splits: _isSplitMode
-                ? [
-                    ..._splitRows
-                        .where(
-                          (r) =>
-                              r.selectableAccount != null &&
-                              r.amountController.text.isNotEmpty,
-                        )
-                        .map(
-                          (r) => TransactionSplit(
-                            virtualAccountId: r.selectableAccount!.id,
-                            amount: (_type == TransactionType.debit)
-                                ? -double.parse(r.amountController.text).abs()
-                                : double.parse(r.amountController.text).abs(),
-                          ),
-                        ),
-                    TransactionSplit(
-                      virtualAccountId: (_type == TransactionType.debit)
-                          ? _destination!.id
-                          : _origin!.id,
-                      amount: (_type == TransactionType.debit)
-                          ? _splitRows
-                                .where(
-                                  (r) =>
-                                      r.selectableAccount != null &&
-                                      r.amountController.text.isNotEmpty,
-                                )
-                                .fold<double>(
-                                  0.0,
-                                  (sum, r) =>
-                                      sum +
-                                      double.parse(
-                                        r.amountController.text,
-                                      ).abs(),
-                                )
-                          : -_splitRows
-                                .where(
-                                  (r) =>
-                                      r.selectableAccount != null &&
-                                      r.amountController.text.isNotEmpty,
-                                )
-                                .fold<double>(
-                                  0.0,
-                                  (sum, r) =>
-                                      sum +
-                                      double.parse(
-                                        r.amountController.text,
-                                      ).abs(),
-                                ),
-                    ),
-                  ]
-                : [
-                    TransactionSplit(
-                      virtualAccountId: _origin!.id,
-                      amount: -_amount!.abs(),
-                    ),
-                    TransactionSplit(
-                      virtualAccountId: _destination!.id,
-                      amount: _amount!.abs(),
-                    ),
-                  ],
-          );
-
-          if (context.mounted) {
-            context.pop();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Transaction récurrente créée avec succès"),
-              ),
-            );
-          }
-          return;
-        }
-
-        if (widget.transactionToEdit != null) {
-          // --- EDIT MODE ---
-          final shouldUpdate = await showDialog<bool>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text("Confirmer la modification"),
-              content: const Text(
-                "Voulez-vous vraiment enregistrer les modifications ?",
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text("Annuler"),
-                ),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text("Confirmer"),
-                ),
-              ],
-            ),
-          );
-
-          if (shouldUpdate != true) return;
-
-          if (_isSplitMode) {
-            final splits = _splitRows
-                .map(
-                  (r) => (
-                    account: r.selectableAccount!.virtualAccount!,
-                    amount: double.parse(r.amountController.text).abs(),
-                  ),
-                )
-                .toList();
-
-            // Determine RealAccount from one of the splits or origin/dest
-            final refAccount = _type == TransactionType.debit
-                ? _origin
-                : _destination;
-            // If origin is external (credit), use destination. If destination is external (debit), use origin?
-            // In Debit: Origin is internal.
-            // In Credit: Destination is internal.
-
-            String vAccountId;
-            if (splits.isNotEmpty) {
-              vAccountId = splits.first.account.id;
-            } else {
-              if (_type == TransactionType.debit &&
-                  _origin != null &&
-                  !_origin!.isExternal) {
-                vAccountId = _origin!.id;
-              } else if (_type == TransactionType.credit &&
-                  _destination != null &&
-                  !_destination!.isExternal) {
-                vAccountId = _destination!.id;
-              } else {
-                // Fallback
-                throw Exception("Impossible de déterminer le compte réel");
-              }
-            }
-
-            // We need fetching logic
-            if (refAccount != null && refAccount.virtualAccount != null) {
-              vAccountId = refAccount.virtualAccount!.id;
-            }
-
-            // Actually, simply using the one selected in dropdown if it's not split mode,
-            // or first row if split mode.
-            // But in split mode, dropdown might be ignored or used as default.
-            // Let's rely on `_getRealAccount` from the ID.
-            final realAccount = await _getRealAccountByVirtualId(vAccountId);
-
-            await service.updateSplitTransaction(
-              originalTransaction: widget.transactionToEdit!,
-              totalAmount: _amount!,
-              type: _type,
-              label: _label,
-              note: _note,
-              date: _date,
-              realAccount: realAccount,
-              splits: splits,
-              step: _step,
-              externalEntityId: (_type == TransactionType.debit)
-                  ? _destination?.externalEntityId
-                  : _origin?.externalEntityId,
-            );
-          } else {
-            // Simple Update
-            SelectableAccount target;
-            if (_type == TransactionType.debit) {
-              target = _origin!;
-            } else {
-              target = _destination!;
-            }
-
-            if (target.isExternal) {
-              // Should not happen for the internal side
-              throw Exception("Le compte cible ne peut pas être externe");
-            }
-
-            await service.updateTransaction(
-              originalTransaction: widget.transactionToEdit!,
-              amount: _amount!,
-              type: _type,
-              label: _label,
-              note: _note,
-              date: _date,
-              realAccount: await _getRealAccount(
-                target.virtualAccount!.realAccountId,
-              ),
-              targetVirtualAccount: target.virtualAccount!,
-              step: _step,
-              externalEntityId: (_type == TransactionType.debit)
-                  ? _destination?.externalEntityId
-                  : _origin?.externalEntityId,
-            );
-          }
+          await _handleRecurringSubmit();
+        } else if (widget.transactionToEdit != null) {
+          await _handleUpdateSubmit();
         } else {
-          // --- CREATE MODE ---
-          if (_type == TransactionType.transfer) {
-            await service.addTransfer(
-              amount: _amount!,
-              label: _label,
-              note: _note,
-              date: _date,
-              sourceVirtualAccount: _origin!.virtualAccount!,
-              targetVirtualAccount: _destination!.virtualAccount!,
-            );
-          } else if (_isSplitMode) {
-            final splits = _splitRows
-                .map(
-                  (r) => (
-                    account: r.selectableAccount!.virtualAccount!,
-                    amount: double.parse(r.amountController.text).abs(),
-                  ),
-                )
-                .toList();
-
-            // Determine real account
-            final refItem = _type == TransactionType.debit
-                ? _origin
-                : _destination;
-            if (refItem == null || refItem.isExternal) {
-              // In split mode, maybe they picked external in main dropdown?
-              // But usually split implies internal breakdown.
-              // We take the real account from the first split.
-              final firstSplit = splits.first.account;
-              final realAccount = await _getRealAccount(
-                firstSplit.realAccountId,
-              );
-
-              await service.addSplitTransaction(
-                totalAmount: _amount!,
-                type: _type,
-                label: _label,
-                note: _note,
-                date: _date,
-                realAccount: realAccount,
-                splits: splits,
-                step: _step,
-                externalEntityId: (_type == TransactionType.debit)
-                    ? _destination?.externalEntityId
-                    : _origin?.externalEntityId,
-              );
-            } else {
-              await service.addSplitTransaction(
-                totalAmount: _amount!,
-                type: _type,
-                label: _label,
-                note: _note,
-                date: _date,
-                realAccount: await _getRealAccount(
-                  refItem.virtualAccount!.realAccountId,
-                ),
-                splits: splits,
-                step: _step,
-                externalEntityId: (_type == TransactionType.debit)
-                    ? _destination?.externalEntityId
-                    : _origin?.externalEntityId,
-              );
-            }
-          } else {
-            // SIMPLE DEBIT/CREDIT
-            final vAccount = _type == TransactionType.debit
-                ? _origin!.virtualAccount!
-                : _destination!.virtualAccount!;
-            await service.addTransaction(
-              amount: _amount!,
-              type: _type,
-              label: _label,
-              note: _note,
-              date: _date,
-              realAccount: await _getRealAccount(vAccount.realAccountId),
-              targetVirtualAccount: vAccount,
-              step: _step,
-              externalEntityId: (_type == TransactionType.debit)
-                  ? _destination?.externalEntityId
-                  : _origin?.externalEntityId,
-            );
-          }
+          await _handleCreateSubmit();
         }
-
         if (mounted) context.pop();
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Erreur: $e")));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Erreur: $e")),
+          );
         }
       }
     }
+  }
+
+  Future<void> _handleRecurringSubmit() async {
+    final recService = ref.read(recurringTransactionServiceProvider);
+    final realAccountId = (_type == TransactionType.credit)
+        ? _destination!.virtualAccount!.realAccountId
+        : _origin!.virtualAccount!.realAccountId;
+
+    await recService.addRecurringTransaction(
+      frequency: _frequency,
+      interval: _interval,
+      startDate: _date,
+      endDate: _endDate,
+      realAccountId: realAccountId,
+      amount: _amount!,
+      label: _label,
+      note: _note,
+      type: _type,
+      externalEntityId: (_type == TransactionType.debit)
+          ? _destination?.externalEntityId
+          : _origin?.externalEntityId,
+      splits: _isSplitMode ? _buildTransactionSplits() : _buildSimpleSplits(),
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Transaction récurrente créée")),
+      );
+    }
+  }
+
+  Future<void> _handleUpdateSubmit() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Confirmer la modification"),
+        content: const Text("Voulez-vous enregistrer les modifications ?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Annuler")),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("Confirmer")),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    final service = ref.read(transactionServiceProvider);
+    if (_isSplitMode) {
+      final splits = _splitRows
+          .map((r) => (
+                account: r.selectableAccount!.virtualAccount!,
+                amount: double.tryParse(r.amountController.text)?.abs() ?? 0.0,
+              ))
+          .toList();
+
+      final refAccount = _type == TransactionType.debit ? _origin : _destination;
+      String vAccountId = splits.isNotEmpty ? splits.first.account.id : refAccount!.id;
+      final realAccount = await _getRealAccountByVirtualId(vAccountId);
+
+      await service.updateSplitTransaction(
+        originalTransaction: widget.transactionToEdit!,
+        totalAmount: _amount!,
+        type: _type,
+        label: _label,
+        note: _note,
+        date: _date,
+        realAccount: realAccount,
+        splits: splits,
+        step: _step,
+        externalEntityId: _type == TransactionType.debit ? _destination?.externalEntityId : _origin?.externalEntityId,
+      );
+    } else {
+      final target = _type == TransactionType.debit ? _origin! : _destination!;
+      await service.updateTransaction(
+        originalTransaction: widget.transactionToEdit!,
+        amount: _amount!,
+        type: _type,
+        label: _label,
+        note: _note,
+        date: _date,
+        realAccount: await _getRealAccount(target.virtualAccount!.realAccountId),
+        targetVirtualAccount: target.virtualAccount!,
+        step: _step,
+        externalEntityId: _type == TransactionType.debit ? _destination?.externalEntityId : _origin?.externalEntityId,
+      );
+    }
+  }
+
+  Future<void> _handleCreateSubmit() async {
+    final service = ref.read(transactionServiceProvider);
+    if (_type == TransactionType.transfer) {
+      await service.addTransfer(
+        amount: _amount!,
+        label: _label,
+        note: _note,
+        date: _date,
+        sourceVirtualAccount: _origin!.virtualAccount!,
+        targetVirtualAccount: _destination!.virtualAccount!,
+      );
+    } else if (_isSplitMode) {
+      final splits = _splitRows
+          .map((r) => (
+                account: r.selectableAccount!.virtualAccount!,
+                amount: double.tryParse(r.amountController.text)?.abs() ?? 0.0,
+              ))
+          .toList();
+
+      final refItem = _type == TransactionType.debit ? _origin : _destination;
+      final realAccountId = (refItem == null || refItem.isExternal) 
+          ? splits.first.account.realAccountId 
+          : refItem.virtualAccount!.realAccountId;
+
+      await service.addSplitTransaction(
+        totalAmount: _amount!,
+        type: _type,
+        label: _label,
+        note: _note,
+        date: _date,
+        realAccount: await _getRealAccount(realAccountId),
+        splits: splits,
+        step: _step,
+        externalEntityId: _type == TransactionType.debit ? _destination?.externalEntityId : _origin?.externalEntityId,
+      );
+    } else {
+      final vAccount = _type == TransactionType.debit ? _origin!.virtualAccount! : _destination!.virtualAccount!;
+      await service.addTransaction(
+        amount: _amount!,
+        type: _type,
+        label: _label,
+        note: _note,
+        date: _date,
+        realAccount: await _getRealAccount(vAccount.realAccountId),
+        targetVirtualAccount: vAccount,
+        step: _step,
+        externalEntityId: _type == TransactionType.debit ? _destination?.externalEntityId : _origin?.externalEntityId,
+      );
+    }
+  }
+
+  List<TransactionSplit> _buildTransactionSplits() {
+    final splits = _splitRows
+        .where((r) => r.selectableAccount != null && r.amountController.text.isNotEmpty)
+        .map((r) {
+      final amt = double.tryParse(r.amountController.text)?.abs() ?? 0.0;
+      return TransactionSplit(
+        virtualAccountId: r.selectableAccount!.id,
+        amount: _type == TransactionType.debit ? -amt : amt,
+      );
+    }).toList();
+
+    final counterpartyId = _type == TransactionType.debit ? _destination!.id : _origin!.id;
+    final totalSplitAmt = splits.fold(0.0, (sum, s) => sum + s.amount.abs());
+    
+    splits.add(TransactionSplit(
+      virtualAccountId: counterpartyId,
+      amount: _type == TransactionType.debit ? totalSplitAmt : -totalSplitAmt,
+    ));
+    return splits;
+  }
+
+  List<TransactionSplit> _buildSimpleSplits() {
+    return [
+      TransactionSplit(virtualAccountId: _origin!.id, amount: -_amount!.abs()),
+      TransactionSplit(virtualAccountId: _destination!.id, amount: _amount!.abs()),
+    ];
   }
 
   Future<RealAccount> _getRealAccount(String id) async {
@@ -1372,11 +1307,3 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
   }
 }
 
-class SplitRow {
-  SelectableAccount? selectableAccount;
-  final amountController = TextEditingController();
-
-  void dispose() {
-    amountController.dispose();
-  }
-}

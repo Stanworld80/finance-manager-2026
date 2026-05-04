@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../add_transaction_page.dart';
+import '../models/transaction_ui_models.dart';
 
 class SearchableAccountSelector extends StatefulWidget {
   final String label;

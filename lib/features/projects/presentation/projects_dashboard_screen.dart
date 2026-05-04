@@ -37,7 +37,7 @@ class ProjectsDashboardScreen extends ConsumerWidget {
                     size: 64,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -119,7 +119,7 @@ class _ProjectCard extends StatelessWidget {
                       ),
                       backgroundColor: Theme.of(
                         context,
-                      ).primaryColor.withOpacity(0.1),
+                      ).primaryColor.withValues(alpha: 0.1),
                       labelPadding: EdgeInsets.zero,
                       visualDensity: VisualDensity.compact,
                     ),

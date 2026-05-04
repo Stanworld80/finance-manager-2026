@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../accounts/data/account_providers.dart';
 import '../../accounts/domain/account_models.dart';
@@ -21,7 +22,7 @@ class FundSource {
 
 @riverpod
 Future<List<FundSource>> envelopeFundSources(
-  EnvelopeFundSourcesRef ref,
+  Ref ref,
   String virtualAccountId,
 ) async {
   final auth = ref.watch(firebaseAuthProvider);

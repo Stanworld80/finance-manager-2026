@@ -3,35 +3,50 @@ import { test as setup, expect } from '@playwright/test';
 const authFile = 'playwright/.auth/user.json';
 
 setup('authenticate', async ({ page }) => {
-    // Try using environment variables for credentials, fallback to defaults for testing
     const email = process.env.TEST_USER_EMAIL || 'test@test.com';
     const password = process.env.TEST_USER_PASSWORD || 'password123';
+    const baseUrl = process.env.BASE_URL || 'https://finance-manager-2026-stg.web.app';
 
-    console.log(`Authenticating with ${email} on ${process.env.BASE_URL || 'https://finance-manager-2026-stg.web.app'}`);
-    await page.goto(process.env.BASE_URL || 'https://finance-manager-2026-stg.web.app');
+    console.log(`Checking authentication on ${baseUrl}`);
+    await page.goto(baseUrl);
 
-    // Wait for the Firebase Auth fields to render in the DOM (Flutter inserts them as transparent overlays)
-    await page.waitForSelector('input[name="email"]', { timeout: 10000 });
+    // Give it a moment to load and check if we are already logged in
+    await page.waitForTimeout(3000);
+    
+    const isDashboardVisible = await page.getByText('Résumé (Statistiques des Enveloppes)', { exact: false }).isVisible();
+    
+    if (isDashboardVisible) {
+        console.log('Already logged in, skipping authentication steps.');
+    } else {
+        console.log(`Authenticating with ${email}...`);
+        
+        // Wait for either the login form or the dashboard (in case it slow-loaded)
+        await Promise.race([
+            page.waitForSelector('input#email', { timeout: 15000 }),
+            page.waitForSelector('input[name="email"]', { timeout: 15000 }),
+            page.waitForSelector('text=Résumé', { timeout: 15000 })
+        ]).catch(() => {});
 
-    // Fill in email
-    await page.fill('input[name="email"]', email);
-    await page.keyboard.press('Enter');
+        if (await page.locator('input#email').isVisible() || await page.locator('input[name="email"]').isVisible()) {
+            const emailInput = page.locator('input#email').first();
+            const emailSelector = (await emailInput.isVisible()) ? 'input#email' : 'input[name="email"]';
+            
+            await page.click(emailSelector);
+            await page.type(emailSelector, email, { delay: 100 });
+            await page.keyboard.press('Enter');
 
-    // Wait for password field
-    await page.waitForSelector('input[type="password"]', { timeout: 10000 });
+            // Wait for password field
+            const passwordSelector = 'input#current-password';
+            await page.waitForSelector(passwordSelector, { timeout: 10000 });
+            await page.click(passwordSelector);
+            await page.type(passwordSelector, password, { delay: 100 });
+            await page.keyboard.press('Enter');
+        }
+    }
 
-    // Fill in password
-    await page.fill('input[type="password"]', password);
+    // Wait until the dashboard loads
+    await expect(page.getByText('Résumé (Statistiques des Enveloppes)', { exact: false })).toBeVisible({ timeout: 20000 });
 
-    // Submit via Enter
-    await page.keyboard.press('Enter');
-
-    // Wait until the dashboard loads (e.g., waiting for the Resume text or a known dashboard element)
-    await page.waitForURL('**/');
-
-    // Wait for the Dashboard widget to be visible
-    await expect(page.getByText('Résumé (Statistiques des Enveloppes)', { exact: false })).toBeVisible({ timeout: 15000 });
-
-    // End of authentication steps.
+    console.log('Authentication successful.');
     await page.context().storageState({ path: authFile });
 });

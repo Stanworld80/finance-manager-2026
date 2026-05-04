@@ -62,7 +62,7 @@ class _TransactionListPageState extends ConsumerState<TransactionListPage> {
                       filled: true,
                       fillColor: Theme.of(
                         context,
-                      ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                     ),
                     onChanged: (value) {
                       ref
@@ -131,7 +131,7 @@ class _TransactionListPageState extends ConsumerState<TransactionListPage> {
                           },
                           loading: () =>
                               const CircularProgressIndicator.adaptive(),
-                          error: (_, __) => const SizedBox.shrink(),
+                          error: (_, _) => const SizedBox.shrink(),
                         ),
                         if (filters.searchQuery != null ||
                             filters.realAccountId != null)
@@ -289,7 +289,7 @@ class _TransactionListPageState extends ConsumerState<TransactionListPage> {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               margin: const EdgeInsets.only(left: 8.0),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.2),
+                color: Colors.orange.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text(
@@ -306,7 +306,7 @@ class _TransactionListPageState extends ConsumerState<TransactionListPage> {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               margin: const EdgeInsets.only(left: 8.0),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.2),
+                color: Colors.blue.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text(

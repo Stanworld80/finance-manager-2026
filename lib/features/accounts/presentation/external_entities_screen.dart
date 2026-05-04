@@ -115,7 +115,7 @@ class _EntityTile extends ConsumerWidget {
           return Text("Solde total: ${currencyFormat.format(total)}");
         },
         loading: () => const Text("Chargement solde..."),
-        error: (_, __) => const Text("Erreur solde"),
+        error: (_, _) => const Text("Erreur solde"),
       ),
       trailing: IconButton(
         icon: const Icon(Icons.add_circle_outline),

@@ -112,7 +112,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
 
         // 2. Try Name match (if not found by ID)
         if (!found && t.targetEnvelopeName != null) {
-          final normalize = (String s) => s.trim().toLowerCase();
+          String normalize(String s) => s.trim().toLowerCase();
           final targetName = normalize(t.targetEnvelopeName!);
 
           final matchName = accountEnvelopes
@@ -174,7 +174,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                               decoration: const InputDecoration(
                                 labelText: "Target Account",
                               ),
-                              value: _selectedAccount,
+                              initialValue: _selectedAccount,
                               items: accounts
                                   .map(
                                     (acc) => DropdownMenuItem(

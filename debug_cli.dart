@@ -1,7 +1,7 @@
 /// CLI Dart Script to query staging Firebase
 /// Run with: dart run debug_cli.dart
+library;
 
-import 'package:firedart/firedart.dart';
 
 const apiKey = 'YOUR_WEB_API_KEY'; // Need to fetch from firebase_options
 const projectId = 'finance-manager-2026-stg';

@@ -122,12 +122,14 @@ class ResumeExportService {
 
       if (context.mounted) {
         final box = context.findRenderObject() as RenderBox?;
-        await Share.shareXFiles(
-          [XFile(filePath)],
-          text: 'Résumé Finance (${_formatPeriod(period)})',
-          sharePositionOrigin: box != null
-              ? box.localToGlobal(Offset.zero) & box.size
-              : null,
+        await SharePlus.instance.share(
+          ShareParams(
+            subject: 'Résumé Finance (${_formatPeriod(period)})',
+            files: [XFile(filePath)],
+            sharePositionOrigin: box != null
+                ? box.localToGlobal(Offset.zero) & box.size
+                : null,
+          ),
         );
       }
     } catch (e) {

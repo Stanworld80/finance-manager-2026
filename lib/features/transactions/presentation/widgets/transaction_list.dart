@@ -45,7 +45,7 @@ class TransactionList extends ConsumerWidget {
             );
           },
           leading: CircleAvatar(
-            backgroundColor: amountColor.withOpacity(0.1),
+            backgroundColor: amountColor.withValues(alpha: 0.1),
             child: Icon(
               UiUtils.getTransactionIcon(tx.type),
               color: amountColor,
@@ -69,7 +69,7 @@ class TransactionList extends ConsumerWidget {
                   ),
                   margin: const EdgeInsets.only(left: 8.0),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.2),
+                    color: Colors.orange.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Text(
@@ -89,7 +89,7 @@ class TransactionList extends ConsumerWidget {
                   ),
                   margin: const EdgeInsets.only(left: 8.0),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.2),
+                    color: Colors.blue.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Text(

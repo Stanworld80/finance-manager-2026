@@ -53,11 +53,11 @@ class EnvelopeDetailScreen extends ConsumerWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               child: Column(
                 children: [
                   CircleAvatar(
-                    backgroundColor: color.withOpacity(0.2),
+                    backgroundColor: color.withValues(alpha: 0.2),
                     child: Icon(
                       UiUtils.getVirtualAccountIcon(envelope.type),
                       color: color,

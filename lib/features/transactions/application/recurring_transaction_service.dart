@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -11,13 +12,13 @@ part 'recurring_transaction_service.g.dart';
 
 @riverpod
 RecurringTransactionService recurringTransactionService(
-  RecurringTransactionServiceRef ref,
+  Ref ref,
 ) {
   return RecurringTransactionService(ref);
 }
 
 class RecurringTransactionService {
-  final RecurringTransactionServiceRef ref;
+  final Ref ref;
 
   RecurringTransactionService(this.ref);
 

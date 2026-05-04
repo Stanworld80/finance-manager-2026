@@ -16,26 +16,27 @@ class PreferencesScreen extends ConsumerWidget {
       body: ListView(
         children: [
           _buildSectionHeader(context, "Thème"),
-          RadioListTile<ThemeMode>(
-            title: const Text("Système (Automatique)"),
-            value: ThemeMode.system,
+          RadioGroup<ThemeMode>(
             groupValue: currentMode,
-            onChanged: (val) =>
-                ref.read(themeModeControllerProvider.notifier).setMode(val!),
-          ),
-          RadioListTile<ThemeMode>(
-            title: const Text("Clair (Light)"),
-            value: ThemeMode.light,
-            groupValue: currentMode,
-            onChanged: (val) =>
-                ref.read(themeModeControllerProvider.notifier).setMode(val!),
-          ),
-          RadioListTile<ThemeMode>(
-            title: const Text("Sombre (Dark)"),
-            value: ThemeMode.dark,
-            groupValue: currentMode,
-            onChanged: (val) =>
-                ref.read(themeModeControllerProvider.notifier).setMode(val!),
+            onChanged: (val) => ref
+                .read(themeModeControllerProvider.notifier)
+                .setMode(val!),
+            child: Column(
+              children: [
+                RadioListTile<ThemeMode>(
+                  title: const Text("Système (Automatique)"),
+                  value: ThemeMode.system,
+                ),
+                RadioListTile<ThemeMode>(
+                  title: const Text("Clair (Light)"),
+                  value: ThemeMode.light,
+                ),
+                RadioListTile<ThemeMode>(
+                  title: const Text("Sombre (Dark)"),
+                  value: ThemeMode.dark,
+                ),
+              ],
+            ),
           ),
 
           const Divider(),

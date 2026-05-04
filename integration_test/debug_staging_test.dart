@@ -31,47 +31,47 @@ void main() {
     }
 
     final user = FirebaseAuth.instance.currentUser;
-    print('USER UID: \${user?.uid}');
+    debugPrint('USER UID: ${user?.uid}');
     if (user == null) {
-      print('FAILED TO LOGIN');
+      debugPrint('FAILED TO LOGIN');
       return;
     }
 
     try {
-      print('Querying accounts collection for user \${user.uid}');
-      final query = await FirebaseFirestore.instance
+      debugPrint('Querying accounts collection for user ${user.uid}');
+      final accountsQuery = await FirebaseFirestore.instance
           .collection('accounts')
           .where('accessibleUserIds', arrayContains: user.uid)
           .get();
-      print('SUCCESS: Found \${query.docs.length} accounts');
-      for (var doc in query.docs) {
-        print('- Account: \${doc.id} | data: \${doc.data()}');
+      debugPrint('SUCCESS: Found ${accountsQuery.docs.length} accounts');
+      for (var doc in accountsQuery.docs) {
+        debugPrint('- Account: ${doc.id} | data: ${doc.data()}');
       }
     } catch (e) {
-      print('FAIL Accounts: \$e');
+      debugPrint('FAIL Accounts: $e');
     }
 
     try {
-      print('Querying virtual_accounts collection ...');
-      final query = await FirebaseFirestore.instance
+      debugPrint('Querying virtual_accounts collection ...');
+      final vaQuery = await FirebaseFirestore.instance
           .collectionGroup('virtual_accounts')
           .where('userId', isEqualTo: user.uid)
           .get();
-      print('SUCCESS: Found \${query.docs.length} virtual accounts');
+      debugPrint('SUCCESS: Found ${vaQuery.docs.length} virtual accounts');
     } catch (e) {
-      print('FAIL Virtual Accounts: \$e');
+      debugPrint('FAIL Virtual Accounts: $e');
     }
 
     try {
-      print('Querying transactions collectionGroup ...');
-      final query = await FirebaseFirestore.instance
+      debugPrint('Querying transactions collectionGroup ...');
+      final tQuery = await FirebaseFirestore.instance
           .collectionGroup('transactions')
           .where('ownerId', isEqualTo: user.uid)
           .orderBy('transactionDate', descending: true)
           .get();
-      print('SUCCESS: Found \${query.docs.length} transactions');
+      debugPrint('SUCCESS: Found ${tQuery.docs.length} transactions');
     } catch (e) {
-      print('FAIL Transactions: \$e');
+      debugPrint('FAIL Transactions: $e');
     }
   });
 }

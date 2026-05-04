@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/providers.dart';
 import '../domain/transaction_model.dart';
@@ -190,8 +191,7 @@ class TransactionRepository {
         .map((snapshot) {
           if (snapshot.docs.isEmpty) return null;
           final data = snapshot.docs.first.data();
-          if (data == null) return null;
-          return TransactionModel.fromMap(data as Map<String, dynamic>);
+          return TransactionModel.fromMap(data);
         });
   }
 
@@ -420,6 +420,6 @@ class TransactionRepository {
 }
 
 @riverpod
-TransactionRepository transactionRepository(TransactionRepositoryRef ref) {
+TransactionRepository transactionRepository(Ref ref) {
   return TransactionRepository(ref.watch(firestoreProvider));
 }

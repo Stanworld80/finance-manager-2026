@@ -30,9 +30,9 @@ void main() {
   );
 
   test('guessEnvelopes maps recognized keywords', () {
-    final t1 = MockImportedTransaction(label: "PRELEVEMENT EDF");
-    final t2 = MockImportedTransaction(label: "CARREFOUR CITY");
-    final t3 = MockImportedTransaction(label: "UNKNOWN");
+    final t1 = mockImportedTransaction(label: "PRELEVEMENT EDF");
+    final t2 = mockImportedTransaction(label: "CARREFOUR CITY");
+    final t3 = mockImportedTransaction(label: "UNKNOWN");
 
     final results = service.guessEnvelopes([t1, t2, t3]);
 
@@ -45,7 +45,7 @@ void main() {
 // Minimal mock/stub for the test since we can't easily instantiate ImportedTransaction if it was complex,
 // but it is a simple data class.
 
-ImportedTransaction MockImportedTransaction({required String label}) {
+ImportedTransaction mockImportedTransaction({required String label}) {
   return ImportedTransaction(
     date: DateTime.now(),
     label: label,

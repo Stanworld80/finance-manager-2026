@@ -88,7 +88,7 @@ class AccountDetailScreen extends ConsumerWidget {
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
-                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                   child: Column(
                     children: [
                       Text(
@@ -189,7 +189,7 @@ class AccountDetailScreen extends ConsumerWidget {
                           );
                         },
                         loading: () => const CircularProgressIndicator(),
-                        error: (_, __) => const SizedBox.shrink(),
+                        error: (_, _) => const SizedBox.shrink(),
                       ),
                     ],
                   ),
@@ -230,7 +230,7 @@ class AccountDetailScreen extends ConsumerWidget {
                           return ListView.separated(
                             padding: const EdgeInsets.all(8),
                             itemCount: sortedVirtuals.length,
-                            separatorBuilder: (_, __) =>
+                            separatorBuilder: (_, _) =>
                                 const SizedBox(height: 8),
                             itemBuilder: (context, index) {
                               final v = sortedVirtuals[index];
@@ -247,7 +247,7 @@ class AccountDetailScreen extends ConsumerWidget {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   side: BorderSide(
-                                    color: color.withOpacity(0.3),
+                                    color: color.withValues(alpha: 0.3),
                                   ),
                                 ),
                                 child: ListTile(
@@ -260,7 +260,7 @@ class AccountDetailScreen extends ConsumerWidget {
                                     );
                                   },
                                   leading: CircleAvatar(
-                                    backgroundColor: color.withOpacity(0.1),
+                                    backgroundColor: color.withValues(alpha: 0.1),
                                     child: Icon(icon, color: color),
                                   ),
                                   title: Text(
@@ -599,7 +599,7 @@ class _AccountTransactionsTabState
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -708,7 +708,7 @@ class _AccountTransactionsTabState
                     deleteIconColor: Colors.red.shade300,
                     backgroundColor: Theme.of(
                       context,
-                    ).primaryColor.withOpacity(0.1),
+                    ).primaryColor.withValues(alpha: 0.1),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -734,7 +734,7 @@ class _AccountTransactionsTabState
                       ),
                     ),
                 loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
+                error: (_, _) => const SizedBox.shrink(),
               ),
             ],
           ),
@@ -784,7 +784,7 @@ class _FilterBadge extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -820,7 +820,7 @@ class _SortPopupMenu extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),

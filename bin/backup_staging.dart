@@ -1,9 +1,7 @@
-import 'dart:convert';
-import 'dart:io';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_dart/firebase_dart.dart'; // Since we need to run in dart CLI
+// ignore_for_file: avoid_print
+
+// Since we need to run in dart CLI
 
 // Note: To run this standalone, make sure your Firebase setup works for Dart CLI
 // Sometimes it's easier to create a temporary flutter test if standalone dart fails.

@@ -14,7 +14,7 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
   late DateTimeRange _selectedDateRange;
 
   // Sorting and Filtering states
-  int? _sortColumnIndex;
+  int? _sortColumnIndex = 0;
   bool _sortAscending = true;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
@@ -142,20 +142,7 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
     return processed;
   }
 
-  List<EnvelopeStat> _getProcessedSystemEnvelopeStats(
-    List<EnvelopeStat> stats,
-  ) {
-    // System envelopes use account name for search
-    var processed = stats;
-    if (_searchQuery.isNotEmpty) {
-      final query = _searchQuery.toLowerCase();
-      processed = processed.where((stat) {
-        return stat.envelopeName.toLowerCase().contains(query) ||
-            stat.realAccountName.toLowerCase().contains(query);
-      }).toList();
-    }
-    return processed;
-  }
+
 
   List<EnvelopeStat> _getProcessedEnvelopeStats(List<EnvelopeStat> stats) {
     // 1. Filter
@@ -242,9 +229,7 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                     data.accountStats,
                   );
                   final processedSystemEnvelopeStats =
-                      _getProcessedSystemEnvelopeStats(
-                        data.systemEnvelopeStats,
-                      );
+                      _getProcessedEnvelopeStats(data.systemEnvelopeStats);
                   final processedEnvelopeStats = _getProcessedEnvelopeStats(
                     data.envelopeStats,
                   );
@@ -344,7 +329,7 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                   data.envelopeStats,
                 );
                 final processedSystemEnvelopeStats =
-                    _getProcessedSystemEnvelopeStats(data.systemEnvelopeStats);
+                    _getProcessedEnvelopeStats(data.systemEnvelopeStats);
                 final processedAccountStats = _getProcessedAccountStats(
                   data.accountStats,
                 );
