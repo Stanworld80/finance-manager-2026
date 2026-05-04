@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../accounts/data/account_providers.dart';
 import '../../../accounts/domain/account_models.dart';
 import '../../application/transaction_service.dart';
-import '../../domain/transaction_model.dart';
-import '../add_transaction_page.dart';
 import '../../../../../core/presentation/utils/decimal_text_input_formatter.dart';
+import '../../../../../core/presentation/utils/dialog_utils.dart';
 import '../models/transaction_ui_models.dart';
+import '../../domain/transaction_model.dart';
 import 'searchable_account_selector.dart';
 
 
@@ -78,6 +78,13 @@ class _ProvisionDialogState extends ConsumerState<ProvisionDialog> {
   Future<void> _submit(List<SelectableAccount> items) async {
     if (!_formKey.currentState!.validate()) return;
     if (_envelope == null) return;
+
+    if (!await showDateConfirmationDialog(
+      context: context,
+      selectedDate: _date,
+    )) {
+      return;
+    }
 
     final destination = _resolveDestination(items);
     if (destination == null) {

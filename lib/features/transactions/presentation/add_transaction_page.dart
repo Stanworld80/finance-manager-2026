@@ -9,6 +9,7 @@ import '../application/recurring_transaction_service.dart';
 import '../domain/recurring_transaction_model.dart';
 import '../../accounts/application/account_service.dart';
 import '../../../../core/presentation/utils/decimal_text_input_formatter.dart';
+import '../../../../core/presentation/utils/dialog_utils.dart';
 import 'widgets/searchable_account_selector.dart';
 
 import 'models/transaction_ui_models.dart';
@@ -990,34 +991,10 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
 
   Future<bool> _confirmDateIfToday() async {
     if (widget.transactionToEdit != null) return true;
-
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final transactionDate = DateTime(_date.year, _date.month, _date.day);
-
-    if (transactionDate.isAtSameMomentAs(today)) {
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text("Confirmer la date"),
-          content: const Text(
-            "La date de la transaction est fixée à AUJOURD'HUI. Est-ce correct ?",
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text("Changer la date"),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text("Confirmer"),
-            ),
-          ],
-        ),
-      );
-      return confirm == true;
-    }
-    return true;
+    return showDateConfirmationDialog(
+      context: context,
+      selectedDate: _date,
+    );
   }
 
   bool _validateSplits() {

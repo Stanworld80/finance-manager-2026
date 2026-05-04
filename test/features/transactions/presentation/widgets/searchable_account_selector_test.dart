@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:finance_manager_2026/features/transactions/presentation/widgets/searchable_account_selector.dart';
-import 'package:finance_manager_2026/features/transactions/presentation/add_transaction_page.dart';
 import 'package:finance_manager_2026/features/transactions/presentation/models/transaction_ui_models.dart';
 
 
