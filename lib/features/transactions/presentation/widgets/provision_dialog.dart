@@ -5,6 +5,7 @@ import '../../../accounts/domain/account_models.dart';
 import '../../application/transaction_service.dart';
 import '../../../../../core/presentation/utils/decimal_text_input_formatter.dart';
 import '../../../../../core/presentation/utils/dialog_utils.dart';
+import '../../../../../core/presentation/widgets/custom_date_picker.dart';
 import '../models/transaction_ui_models.dart';
 import '../../domain/transaction_model.dart';
 import 'searchable_account_selector.dart';
@@ -292,7 +293,7 @@ class _ProvisionDialogState extends ConsumerState<ProvisionDialog> {
                           title: const Text('Date'),
                           subtitle: Text('${_date.toLocal()}'.split(' ')[0]),
                           onTap: () async {
-                            final picked = await showDatePicker(
+                            final picked = await showCustomDatePicker(
                               context: context,
                               initialDate: _date,
                               firstDate: DateTime(2020),

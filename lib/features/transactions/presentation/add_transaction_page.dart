@@ -10,6 +10,7 @@ import '../domain/recurring_transaction_model.dart';
 import '../../accounts/application/account_service.dart';
 import '../../../../core/presentation/utils/decimal_text_input_formatter.dart';
 import '../../../../core/presentation/utils/dialog_utils.dart';
+import '../../../../core/presentation/widgets/custom_date_picker.dart';
 import 'widgets/searchable_account_selector.dart';
 
 import 'models/transaction_ui_models.dart';
@@ -651,7 +652,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                       subtitle: Text("${_date.toLocal()}".split(' ')[0]),
                       trailing: const Icon(Icons.calendar_today),
                       onTap: () async {
-                        final picked = await showDatePicker(
+                        final picked = await showCustomDatePicker(
                           context: context,
                           initialDate: _date,
                           firstDate: DateTime(2020),
@@ -752,7 +753,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                             ],
                           ),
                           onTap: () async {
-                            final picked = await showDatePicker(
+                            final picked = await showCustomDatePicker(
                               context: context,
                               initialDate:
                                   _endDate ??

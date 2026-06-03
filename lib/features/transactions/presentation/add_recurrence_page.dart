@@ -6,6 +6,7 @@ import 'package:finance_manager_2026/features/accounts/domain/account_models.dar
 import 'package:finance_manager_2026/features/transactions/application/recurring_transaction_service.dart';
 import 'package:finance_manager_2026/features/transactions/domain/recurring_transaction_model.dart';
 import 'package:finance_manager_2026/features/transactions/domain/transaction_model.dart';
+import 'package:finance_manager_2026/core/presentation/widgets/custom_date_picker.dart';
 
 class AddRecurrencePage extends ConsumerStatefulWidget {
   final RecurringTransaction? recurrenceToEdit;
@@ -227,7 +228,7 @@ class _AddRecurrencePageState extends ConsumerState<AddRecurrencePage> {
                 const SizedBox(height: 16),
                 InkWell(
                   onTap: () async {
-                    final picked = await showDatePicker(
+                    final picked = await showCustomDatePicker(
                       context: context,
                       initialDate: _startDate,
                       firstDate: DateTime(2000),

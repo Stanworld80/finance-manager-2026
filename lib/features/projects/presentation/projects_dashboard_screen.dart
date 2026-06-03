@@ -5,6 +5,7 @@ import '../../projects/data/project_providers.dart';
 import '../../projects/domain/financial_project_model.dart';
 import 'package:intl/intl.dart';
 import '../application/project_service.dart';
+import '../../../core/presentation/widgets/custom_date_picker.dart';
 
 class ProjectsDashboardScreen extends ConsumerWidget {
   const ProjectsDashboardScreen({super.key});
@@ -221,7 +222,7 @@ class _CreateProjectDialogState extends ConsumerState<_CreateProjectDialog> {
               ),
               trailing: const Icon(Icons.calendar_today),
               onTap: () async {
-                final picked = await showDatePicker(
+                final picked = await showCustomDatePicker(
                   context: context,
                   initialDate: DateTime.now().add(const Duration(days: 30)),
                   firstDate: DateTime.now(),
