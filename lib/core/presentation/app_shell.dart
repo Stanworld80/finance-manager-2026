@@ -142,6 +142,12 @@ class AppShell extends ConsumerWidget {
                   onTap: () => context.go('/upcoming'),
                 ),
                 _SidebarItem(
+                  icon: Icons.folder_special_outlined,
+                  label: 'Projets',
+                  isSelected: currentLocation.startsWith('/projects'),
+                  onTap: () => context.go('/projects'),
+                ),
+                _SidebarItem(
                   icon: Icons.insights_outlined,
                   label: 'Résumé',
                   isSelected: currentLocation == '/resume',

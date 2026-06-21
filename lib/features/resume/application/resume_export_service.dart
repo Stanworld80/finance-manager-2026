@@ -27,34 +27,36 @@ class ResumeExportService {
     List<AccountStat> accountStats,
     List<EnvelopeStat> systemEnvelopeStats,
     List<EnvelopeStat> envelopeStats,
-    DateTimeRange period,
-  ) async {
+    DateTimeRange period, {
+    required Map<String, bool> visibleColumns,
+  }) async {
     try {
       final List<List<dynamic>> rows = [];
 
       // Account Totals Section
       if (accountStats.isNotEmpty) {
         rows.add(['TOTAUX PAR COMPTE REEL']);
-        rows.add([
-          'Nom du compte',
-          'Compte lié',
-          'Solde début',
-          'Revenus',
-          'Dépenses',
-          'Différence',
-          'Solde fin',
-        ]);
+        final List<String> accountHeaders = [];
+        if (visibleColumns['name'] == true) accountHeaders.add('Nom du compte');
+        if (visibleColumns['linkedAccount'] == true) accountHeaders.add('Compte lié');
+        if (visibleColumns['startBalance'] == true) accountHeaders.add('Solde début');
+        if (visibleColumns['income'] == true) accountHeaders.add('Revenus');
+        if (visibleColumns['expense'] == true) accountHeaders.add('Dépenses');
+        if (visibleColumns['difference'] == true) accountHeaders.add('Différence');
+        if (visibleColumns['endBalance'] == true) accountHeaders.add('Solde fin');
+        rows.add(accountHeaders);
+
         for (final AccountStat stat in accountStats) {
           final diff = stat.income + stat.expense;
-          rows.add([
-            stat.accountName,
-            '---',
-            stat.startBalance,
-            stat.income,
-            stat.expense,
-            diff,
-            stat.endBalance,
-          ]);
+          final List<dynamic> row = [];
+          if (visibleColumns['name'] == true) row.add(stat.accountName);
+          if (visibleColumns['linkedAccount'] == true) row.add('---');
+          if (visibleColumns['startBalance'] == true) row.add(stat.startBalance);
+          if (visibleColumns['income'] == true) row.add(stat.income);
+          if (visibleColumns['expense'] == true) row.add(stat.expense);
+          if (visibleColumns['difference'] == true) row.add(diff);
+          if (visibleColumns['endBalance'] == true) row.add(stat.endBalance);
+          rows.add(row);
         }
         rows.add([]); // Spacer
       }
@@ -62,54 +64,54 @@ class ResumeExportService {
       // System Envelopes Section
       if (systemEnvelopeStats.isNotEmpty) {
         rows.add(['ENVELOPPES SYSTEME']);
-        rows.add([
-          'Nom de l\'enveloppe',
-          'Compte lié',
-          'Solde début',
-          'Revenus',
-          'Dépenses',
-          'Différence',
-          'Solde fin',
-        ]);
+        final List<String> systemHeaders = [];
+        if (visibleColumns['name'] == true) systemHeaders.add('Nom de l\'enveloppe');
+        if (visibleColumns['linkedAccount'] == true) systemHeaders.add('Compte lié');
+        if (visibleColumns['startBalance'] == true) systemHeaders.add('Solde début');
+        if (visibleColumns['income'] == true) systemHeaders.add('Revenus');
+        if (visibleColumns['expense'] == true) systemHeaders.add('Dépenses');
+        if (visibleColumns['difference'] == true) systemHeaders.add('Différence');
+        if (visibleColumns['endBalance'] == true) systemHeaders.add('Solde fin');
+        rows.add(systemHeaders);
 
         for (final EnvelopeStat stat in systemEnvelopeStats) {
           final diff = stat.income + stat.expense;
-          rows.add([
-            stat.envelopeName,
-            stat.realAccountName,
-            stat.startBalance,
-            stat.income,
-            stat.expense,
-            diff,
-            stat.endBalance,
-          ]);
+          final List<dynamic> row = [];
+          if (visibleColumns['name'] == true) row.add(stat.envelopeName);
+          if (visibleColumns['linkedAccount'] == true) row.add(stat.realAccountName);
+          if (visibleColumns['startBalance'] == true) row.add(stat.startBalance);
+          if (visibleColumns['income'] == true) row.add(stat.income);
+          if (visibleColumns['expense'] == true) row.add(stat.expense);
+          if (visibleColumns['difference'] == true) row.add(diff);
+          if (visibleColumns['endBalance'] == true) row.add(stat.endBalance);
+          rows.add(row);
         }
         rows.add([]); // Spacer
       }
 
       // Envelope Details Section
       rows.add(['DETAILS PAR ENVELOPPE']);
-      rows.add([
-        'Nom de l\'enveloppe',
-        'Compte lié',
-        'Solde début',
-        'Revenus',
-        'Dépenses',
-        'Différence',
-        'Solde fin',
-      ]);
+      final List<String> envelopeHeaders = [];
+      if (visibleColumns['name'] == true) envelopeHeaders.add('Nom de l\'enveloppe');
+      if (visibleColumns['linkedAccount'] == true) envelopeHeaders.add('Compte lié');
+      if (visibleColumns['startBalance'] == true) envelopeHeaders.add('Solde début');
+      if (visibleColumns['income'] == true) envelopeHeaders.add('Revenus');
+      if (visibleColumns['expense'] == true) envelopeHeaders.add('Dépenses');
+      if (visibleColumns['difference'] == true) envelopeHeaders.add('Différence');
+      if (visibleColumns['endBalance'] == true) envelopeHeaders.add('Solde fin');
+      rows.add(envelopeHeaders);
 
       for (final EnvelopeStat stat in envelopeStats) {
         final diff = stat.income + stat.expense;
-        rows.add([
-          stat.envelopeName,
-          stat.realAccountName,
-          stat.startBalance,
-          stat.income,
-          stat.expense,
-          diff,
-          stat.endBalance,
-        ]);
+        final List<dynamic> row = [];
+        if (visibleColumns['name'] == true) row.add(stat.envelopeName);
+        if (visibleColumns['linkedAccount'] == true) row.add(stat.realAccountName);
+        if (visibleColumns['startBalance'] == true) row.add(stat.startBalance);
+        if (visibleColumns['income'] == true) row.add(stat.income);
+        if (visibleColumns['expense'] == true) row.add(stat.expense);
+        if (visibleColumns['difference'] == true) row.add(diff);
+        if (visibleColumns['endBalance'] == true) row.add(stat.endBalance);
+        rows.add(row);
       }
 
       final String csvData = const ListToCsvConverter().convert(rows);
@@ -150,29 +152,37 @@ class ResumeExportService {
     List<EnvelopeStat> externalEnvelopeStats,
     DateTimeRange period, {
     required Map<String, bool> includedSections,
+    required Map<String, bool> visibleColumns,
   }) async {
     try {
       final pdf = pw.Document();
 
-      final accountHeaders = [
-        'Nom du compte',
-        'Compte lié',
-        'Solde début',
-        'Revenus',
-        'Dépenses',
-        'Différence',
-        'Solde fin',
-      ];
+      final List<String> activeKeys = [];
+      if (visibleColumns['name'] == true) activeKeys.add('name');
+      if (visibleColumns['linkedAccount'] == true) activeKeys.add('linkedAccount');
+      if (visibleColumns['startBalance'] == true) activeKeys.add('startBalance');
+      if (visibleColumns['income'] == true) activeKeys.add('income');
+      if (visibleColumns['expense'] == true) activeKeys.add('expense');
+      if (visibleColumns['difference'] == true) activeKeys.add('difference');
+      if (visibleColumns['endBalance'] == true) activeKeys.add('endBalance');
 
-      final envelopeHeaders = [
-        'Nom de l\'enveloppe',
-        'Compte lié',
-        'Solde début',
-        'Revenus',
-        'Dépenses',
-        'Différence',
-        'Solde fin',
-      ];
+      final List<String> accountHeaders = [];
+      if (visibleColumns['name'] == true) accountHeaders.add('Nom du compte');
+      if (visibleColumns['linkedAccount'] == true) accountHeaders.add('Compte lié');
+      if (visibleColumns['startBalance'] == true) accountHeaders.add('Solde début');
+      if (visibleColumns['income'] == true) accountHeaders.add('Revenus');
+      if (visibleColumns['expense'] == true) accountHeaders.add('Dépenses');
+      if (visibleColumns['difference'] == true) accountHeaders.add('Différence');
+      if (visibleColumns['endBalance'] == true) accountHeaders.add('Solde fin');
+
+      final List<String> envelopeHeaders = [];
+      if (visibleColumns['name'] == true) envelopeHeaders.add('Nom de l\'enveloppe');
+      if (visibleColumns['linkedAccount'] == true) envelopeHeaders.add('Compte lié');
+      if (visibleColumns['startBalance'] == true) envelopeHeaders.add('Solde début');
+      if (visibleColumns['income'] == true) envelopeHeaders.add('Revenus');
+      if (visibleColumns['expense'] == true) envelopeHeaders.add('Dépenses');
+      if (visibleColumns['difference'] == true) envelopeHeaders.add('Différence');
+      if (visibleColumns['endBalance'] == true) envelopeHeaders.add('Solde fin');
 
       pdf.addPage(
         pw.MultiPage(
@@ -213,18 +223,19 @@ class ResumeExportService {
                 ),
               ),
               _buildPdfTable(
+                activeKeys,
                 accountHeaders,
                 accountStats.map((stat) {
                   final diff = stat.income + stat.expense;
-                  return [
-                    stat.accountName,
-                    '---',
-                    stat.startBalance,
-                    stat.income,
-                    stat.expense,
-                    diff,
-                    stat.endBalance,
-                  ];
+                  final List<dynamic> row = [];
+                  if (visibleColumns['name'] == true) row.add(stat.accountName);
+                  if (visibleColumns['linkedAccount'] == true) row.add('---');
+                  if (visibleColumns['startBalance'] == true) row.add(stat.startBalance);
+                  if (visibleColumns['income'] == true) row.add(stat.income);
+                  if (visibleColumns['expense'] == true) row.add(stat.expense);
+                  if (visibleColumns['difference'] == true) row.add(diff);
+                  if (visibleColumns['endBalance'] == true) row.add(stat.endBalance);
+                  return row;
                 }).toList(),
               ),
               pw.SizedBox(height: 20),
@@ -243,18 +254,19 @@ class ResumeExportService {
                 ),
               ),
               _buildPdfTable(
+                activeKeys,
                 envelopeHeaders,
                 systemEnvelopeStats.map((stat) {
                   final diff = stat.income + stat.expense;
-                  return [
-                    stat.envelopeName,
-                    stat.realAccountName,
-                    stat.startBalance,
-                    stat.income,
-                    stat.expense,
-                    diff,
-                    stat.endBalance,
-                  ];
+                  final List<dynamic> row = [];
+                  if (visibleColumns['name'] == true) row.add(stat.envelopeName);
+                  if (visibleColumns['linkedAccount'] == true) row.add(stat.realAccountName);
+                  if (visibleColumns['startBalance'] == true) row.add(stat.startBalance);
+                  if (visibleColumns['income'] == true) row.add(stat.income);
+                  if (visibleColumns['expense'] == true) row.add(stat.expense);
+                  if (visibleColumns['difference'] == true) row.add(diff);
+                  if (visibleColumns['endBalance'] == true) row.add(stat.endBalance);
+                  return row;
                 }).toList(),
                 headerColor: PdfColors.orange800,
               ),
@@ -274,18 +286,19 @@ class ResumeExportService {
                 ),
               ),
               _buildPdfTable(
+                activeKeys,
                 envelopeHeaders,
                 envelopeStats.map((stat) {
                   final diff = stat.income + stat.expense;
-                  return [
-                    stat.envelopeName,
-                    stat.realAccountName,
-                    stat.startBalance,
-                    stat.income,
-                    stat.expense,
-                    diff,
-                    stat.endBalance,
-                  ];
+                  final List<dynamic> row = [];
+                  if (visibleColumns['name'] == true) row.add(stat.envelopeName);
+                  if (visibleColumns['linkedAccount'] == true) row.add(stat.realAccountName);
+                  if (visibleColumns['startBalance'] == true) row.add(stat.startBalance);
+                  if (visibleColumns['income'] == true) row.add(stat.income);
+                  if (visibleColumns['expense'] == true) row.add(stat.expense);
+                  if (visibleColumns['difference'] == true) row.add(diff);
+                  if (visibleColumns['endBalance'] == true) row.add(stat.endBalance);
+                  return row;
                 }).toList(),
               ),
               pw.SizedBox(height: 20),
@@ -304,18 +317,19 @@ class ResumeExportService {
                 ),
               ),
               _buildPdfTable(
+                activeKeys,
                 envelopeHeaders,
                 externalEnvelopeStats.map((stat) {
                   final diff = stat.income + stat.expense;
-                  return [
-                    stat.envelopeName,
-                    stat.realAccountName,
-                    stat.startBalance,
-                    stat.income,
-                    stat.expense,
-                    diff,
-                    stat.endBalance,
-                  ];
+                  final List<dynamic> row = [];
+                  if (visibleColumns['name'] == true) row.add(stat.envelopeName);
+                  if (visibleColumns['linkedAccount'] == true) row.add(stat.realAccountName);
+                  if (visibleColumns['startBalance'] == true) row.add(stat.startBalance);
+                  if (visibleColumns['income'] == true) row.add(stat.income);
+                  if (visibleColumns['expense'] == true) row.add(stat.expense);
+                  if (visibleColumns['difference'] == true) row.add(diff);
+                  if (visibleColumns['endBalance'] == true) row.add(stat.endBalance);
+                  return row;
                 }).toList(),
               ),
             ],
@@ -348,21 +362,30 @@ class ResumeExportService {
   }
 
   pw.Widget _buildPdfTable(
+    List<String> activeKeys,
     List<String> headers,
     List<List<dynamic>> data, {
     PdfColor headerColor = PdfColors.blueGrey800,
   }) {
+    final Map<int, pw.TableColumnWidth> columnWidths = {};
+    final Map<String, double> colWidthMap = {
+      'name': 3.0,
+      'linkedAccount': 2.0,
+      'startBalance': 1.5,
+      'income': 1.5,
+      'expense': 1.5,
+      'difference': 1.5,
+      'endBalance': 1.5,
+    };
+    for (int i = 0; i < activeKeys.length; i++) {
+      final key = activeKeys[i];
+      final width = colWidthMap[key] ?? 1.5;
+      columnWidths[i] = pw.FlexColumnWidth(width);
+    }
+
     return pw.Table(
       border: pw.TableBorder.all(color: PdfColors.grey300),
-      columnWidths: {
-        0: const pw.FlexColumnWidth(3),
-        1: const pw.FlexColumnWidth(2),
-        2: const pw.FlexColumnWidth(1.5),
-        3: const pw.FlexColumnWidth(1.5),
-        4: const pw.FlexColumnWidth(1.5),
-        5: const pw.FlexColumnWidth(1.5),
-        6: const pw.FlexColumnWidth(1.5),
-      },
+      columnWidths: columnWidths,
       children: [
         // Header Row
         pw.TableRow(
@@ -389,11 +412,14 @@ class ResumeExportService {
               final index = entry.key;
               final value = entry.value;
 
-              final isNumeric = index >= 2;
+              final key = activeKeys[index];
+              final isNumeric = key != 'name' && key != 'linkedAccount';
               final doubleValue = isNumeric && value is double ? _normalizeValue(value) : 0.0;
               final text = isNumeric && value is double
                   ? _numberFormat.format(doubleValue)
                   : value.toString();
+
+              final isBold = key == 'difference' || key == 'endBalance';
 
               return pw.Padding(
                 padding: const pw.EdgeInsets.all(3),
@@ -402,7 +428,7 @@ class ResumeExportService {
                   style: pw.TextStyle(
                     fontSize: 12.25,
                     color: isNumeric ? _getPdfValueColor(doubleValue) : PdfColors.black,
-                    fontWeight: index >= 5 ? pw.FontWeight.bold : pw.FontWeight.normal,
+                    fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,
                   ),
                   textAlign: isNumeric ? pw.TextAlign.right : pw.TextAlign.left,
                 ),

@@ -15,9 +15,9 @@ import 'package:firebase_auth/firebase_auth.dart' as _i5;
 import 'package:firebase_auth_platform_interface/firebase_auth_platform_interface.dart'
     as _i4;
 import 'package:firebase_core/firebase_core.dart' as _i3;
+import 'package:flutter_riverpod/flutter_riverpod.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i10;
-import 'package:riverpod_annotation/riverpod_annotation.dart' as _i2;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -33,9 +33,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart' as _i2;
 // ignore_for_file: camel_case_types
 // ignore_for_file: subtype_of_sealed_class
 
-class _FakeAutoDisposeProviderRef_0<State> extends _i1.SmartFake
-    implements _i2.AutoDisposeProviderRef<State> {
-  _FakeAutoDisposeProviderRef_0(Object parent, Invocation parentInvocation)
+class _FakeRef_0<State extends Object?> extends _i1.SmartFake
+    implements _i2.Ref<State> {
+  _FakeRef_0(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
@@ -98,16 +98,12 @@ class MockRecurringTransactionService extends _i1.Mock
   }
 
   @override
-  _i2.AutoDisposeProviderRef<_i6.RecurringTransactionService> get ref =>
+  _i2.Ref<Object?> get ref =>
       (super.noSuchMethod(
             Invocation.getter(#ref),
-            returnValue:
-                _FakeAutoDisposeProviderRef_0<_i6.RecurringTransactionService>(
-                  this,
-                  Invocation.getter(#ref),
-                ),
+            returnValue: _FakeRef_0<Object?>(this, Invocation.getter(#ref)),
           )
-          as _i2.AutoDisposeProviderRef<_i6.RecurringTransactionService>);
+          as _i2.Ref<Object?>);
 
   @override
   _i7.Future<void> addRecurringTransaction({

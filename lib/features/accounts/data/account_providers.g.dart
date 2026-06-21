@@ -6,7 +6,7 @@ part of 'account_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$realAccountsHash() => r'92f49cadb374e4f4b5a225737ca79bd2349fc51e';
+String _$realAccountsHash() => r'152372577c32162f57079f6f624d9ed82af9dcd2';
 
 /// See also [realAccounts].
 @ProviderFor(realAccounts)
@@ -24,7 +24,7 @@ final realAccountsProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef RealAccountsRef = AutoDisposeStreamProviderRef<List<RealAccount>>;
-String _$virtualAccountsHash() => r'e7ee53938a188dd671de6a580f05b98aa284c349';
+String _$virtualAccountsHash() => r'ae8014cb362aeaf0c64a4526a1cf8b00626f655a';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -168,7 +168,7 @@ class _VirtualAccountsProviderElement
 }
 
 String _$allVirtualAccountsHash() =>
-    r'4f9ab92ee68f8b4c280e4646688902fe836db576';
+    r'daad970b8877d4b13c6af741eb0fa0d90924eca3';
 
 /// See also [allVirtualAccounts].
 @ProviderFor(allVirtualAccounts)
@@ -187,7 +187,7 @@ final allVirtualAccountsProvider =
 // ignore: unused_element
 typedef AllVirtualAccountsRef =
     AutoDisposeStreamProviderRef<List<VirtualAccount>>;
-String _$autoRepairLibreHash() => r'd61a93e6812baa543bc1dd193501984f1bf59434';
+String _$autoRepairLibreHash() => r'1528fe782f692ffbbb338c51682df30fdbcae52c';
 
 /// Automatically repairs Libre balance discrepancies whenever accounts load.
 ///

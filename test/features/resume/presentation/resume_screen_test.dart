@@ -295,7 +295,14 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify exportToCsv was called
-      verify(mockExportService.exportToCsv(any, any, any, any, any)).called(1);
+      verify(mockExportService.exportToCsv(
+        any,
+        any,
+        any,
+        any,
+        any,
+        visibleColumns: anyNamed('visibleColumns'),
+      )).called(1);
     });
   });
 }

@@ -36,7 +36,7 @@ function Run-Test {
     Write-Host "  File:    $File" -ForegroundColor Gray
     Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 
-    $cmd = "flutter drive --driver=$DRIVER --target=$File -d $Device"
+    $cmd = "flutter drive --driver=$DRIVER --target=$File -d $Device --verbose"
     Write-Host "  CMD: $cmd" -ForegroundColor DarkGray
     Invoke-Expression $cmd
     $exitCode = $LASTEXITCODE

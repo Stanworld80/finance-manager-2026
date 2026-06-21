@@ -140,7 +140,7 @@ void main() {
       expect(find.byType(ResumeScreen), findsOneWidget);
 
       // Navigate back to Dashboard via sidebar '/' or back button
-      await tester.whenINavigateTo('Tableau de Bord');
+      await tester.whenINavigateTo('Dashboard');
 
       // If sidebar label not found, try back button
       if (find.byType(DashboardScreen).evaluate().isEmpty) {

@@ -13,8 +13,8 @@ import 'package:finance_manager_2026/features/transactions/application/transacti
     as _i4;
 import 'package:finance_manager_2026/features/transactions/domain/transaction_model.dart'
     as _i6;
+import 'package:flutter_riverpod/flutter_riverpod.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:riverpod_annotation/riverpod_annotation.dart' as _i2;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -30,9 +30,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart' as _i2;
 // ignore_for_file: camel_case_types
 // ignore_for_file: subtype_of_sealed_class
 
-class _FakeAutoDisposeProviderRef_0<State> extends _i1.SmartFake
-    implements _i2.AutoDisposeProviderRef<State> {
-  _FakeAutoDisposeProviderRef_0(Object parent, Invocation parentInvocation)
+class _FakeRef_0<State extends Object?> extends _i1.SmartFake
+    implements _i2.Ref<State> {
+  _FakeRef_0(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
@@ -57,15 +57,12 @@ class MockTransactionService extends _i1.Mock
   }
 
   @override
-  _i2.AutoDisposeProviderRef<_i4.TransactionService> get ref =>
+  _i2.Ref<Object?> get ref =>
       (super.noSuchMethod(
             Invocation.getter(#ref),
-            returnValue: _FakeAutoDisposeProviderRef_0<_i4.TransactionService>(
-              this,
-              Invocation.getter(#ref),
-            ),
+            returnValue: _FakeRef_0<Object?>(this, Invocation.getter(#ref)),
           )
-          as _i2.AutoDisposeProviderRef<_i4.TransactionService>);
+          as _i2.Ref<Object?>);
 
   @override
   _i5.Future<void> addTransaction({
@@ -322,15 +319,12 @@ class MockAccountService extends _i1.Mock implements _i7.AccountService {
   }
 
   @override
-  _i2.AutoDisposeProviderRef<_i7.AccountService> get ref =>
+  _i2.Ref<Object?> get ref =>
       (super.noSuchMethod(
             Invocation.getter(#ref),
-            returnValue: _FakeAutoDisposeProviderRef_0<_i7.AccountService>(
-              this,
-              Invocation.getter(#ref),
-            ),
+            returnValue: _FakeRef_0<Object?>(this, Invocation.getter(#ref)),
           )
-          as _i2.AutoDisposeProviderRef<_i7.AccountService>);
+          as _i2.Ref<Object?>);
 
   @override
   _i5.Future<void> ensureUserInitialized() =>

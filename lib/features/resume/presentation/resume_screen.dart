@@ -33,6 +33,85 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
     'external-accounts': true,
   };
 
+  final Map<String, bool> _visibleColumns = {
+    'name': true,
+    'linkedAccount': true,
+    'startBalance': true,
+    'income': true,
+    'expense': true,
+    'difference': true,
+    'endBalance': true,
+  };
+
+  List<String> get _activeColumns => [
+        if (_visibleColumns['name'] == true) 'name',
+        if (_visibleColumns['linkedAccount'] == true) 'linkedAccount',
+        if (_visibleColumns['startBalance'] == true) 'startBalance',
+        if (_visibleColumns['income'] == true) 'income',
+        if (_visibleColumns['expense'] == true) 'expense',
+        if (_visibleColumns['difference'] == true) 'difference',
+        if (_visibleColumns['endBalance'] == true) 'endBalance',
+      ];
+
+  Future<void> _selectColumnsDialog() async {
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Sélectionner les colonnes'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildColumnCheckbox(setDialogState, 'name', 'Nom (Compte/Enveloppe)', required: true),
+                    _buildColumnCheckbox(setDialogState, 'linkedAccount', 'Compte lié'),
+                    _buildColumnCheckbox(setDialogState, 'startBalance', 'Solde début'),
+                    _buildColumnCheckbox(setDialogState, 'income', 'Revenus'),
+                    _buildColumnCheckbox(setDialogState, 'expense', 'Dépenses'),
+                    _buildColumnCheckbox(setDialogState, 'difference', 'Différence'),
+                    _buildColumnCheckbox(setDialogState, 'endBalance', 'Solde fin'),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Fermer'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildColumnCheckbox(
+    StateSetter setDialogState,
+    String key,
+    String label, {
+    bool required = false,
+  }) {
+    return CheckboxListTile(
+      value: _visibleColumns[key] ?? true,
+      title: Text(label),
+      subtitle: required ? const Text('Requis', style: TextStyle(fontSize: 12)) : null,
+      activeColor: Theme.of(context).primaryColor,
+      onChanged: required
+          ? null
+          : (value) {
+              setDialogState(() {
+                _visibleColumns[key] = value ?? false;
+              });
+              setState(() {
+                _visibleColumns[key] = value ?? false;
+              });
+            },
+    );
+  }
+
   Color? _getValueColor(double value) {
     if (value > 0.005) return Colors.green;
     if (value < -0.005) return Colors.red;
@@ -105,31 +184,33 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
     }
 
     // 2. Sort
-    if (_sortColumnIndex != null) {
+    final activeCols = _activeColumns;
+    if (_sortColumnIndex != null && _sortColumnIndex! < activeCols.length) {
+      final sortField = activeCols[_sortColumnIndex!];
       processed.sort((a, b) {
         int result;
-        switch (_sortColumnIndex) {
-          case 0:
+        switch (sortField) {
+          case 'name':
             result = a.accountName.compareTo(b.accountName);
             break;
-          case 1:
+          case 'linkedAccount':
             result = 0; // Linked account column for envelopes
             break;
-          case 2:
+          case 'startBalance':
             result = a.startBalance.compareTo(b.startBalance);
             break;
-          case 3:
+          case 'income':
             result = a.income.compareTo(b.income);
             break;
-          case 4:
+          case 'expense':
             result = a.expense.compareTo(b.expense);
             break;
-          case 5:
+          case 'difference':
             final diffA = a.income + a.expense;
             final diffB = b.income + b.expense;
             result = diffA.compareTo(diffB);
             break;
-          case 6:
+          case 'endBalance':
             result = a.endBalance.compareTo(b.endBalance);
             break;
           default:
@@ -156,31 +237,33 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
     }
 
     // 2. Sort
-    if (_sortColumnIndex != null) {
+    final activeCols = _activeColumns;
+    if (_sortColumnIndex != null && _sortColumnIndex! < activeCols.length) {
+      final sortField = activeCols[_sortColumnIndex!];
       processed.sort((a, b) {
         int result;
-        switch (_sortColumnIndex) {
-          case 0:
+        switch (sortField) {
+          case 'name':
             result = a.envelopeName.compareTo(b.envelopeName);
             break;
-          case 1:
+          case 'linkedAccount':
             result = a.realAccountName.compareTo(b.realAccountName);
             break;
-          case 2:
+          case 'startBalance':
             result = a.startBalance.compareTo(b.startBalance);
             break;
-          case 3:
+          case 'income':
             result = a.income.compareTo(b.income);
             break;
-          case 4:
+          case 'expense':
             result = a.expense.compareTo(b.expense);
             break;
-          case 5:
+          case 'difference':
             final diffA = a.income + a.expense;
             final diffB = b.income + b.expense;
             result = diffA.compareTo(diffB);
             break;
-          case 6:
+          case 'endBalance':
             result = a.endBalance.compareTo(b.endBalance);
             break;
           default:
@@ -222,57 +305,69 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
                   data.accountStats.isEmpty) {
                 return const SizedBox.shrink();
               }
-              return PopupMenuButton<String>(
-                icon: const Icon(Icons.download, color: Colors.white),
-                onSelected: (value) async {
-                  final processedAccountStats = _getProcessedAccountStats(
-                    data.accountStats,
-                  );
-                  final processedSystemEnvelopeStats =
-                      _getProcessedEnvelopeStats(data.systemEnvelopeStats);
-                  final processedEnvelopeStats = _getProcessedEnvelopeStats(
-                    data.envelopeStats,
-                  );
-                  final processedExternalStats = _getProcessedEnvelopeStats(
-                    data.externalEnvelopeStats,
-                  );
-
-                  if (value == 'csv') {
-                    await exportService.exportToCsv(
-                      context,
-                      processedAccountStats,
-                      processedSystemEnvelopeStats,
-                      processedEnvelopeStats,
-                      _selectedDateRange,
-                    );
-                  } else if (value == 'pdf') {
-                    await exportService.exportToPdf(
-                      context,
-                      processedAccountStats,
-                      processedSystemEnvelopeStats,
-                      processedEnvelopeStats,
-                      processedExternalStats,
-                      _selectedDateRange,
-                      includedSections: _includedInExport,
-                    );
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'pdf',
-                    child: ListTile(
-                      leading: Icon(Icons.picture_as_pdf),
-                      title: Text('Exporter en PDF'),
-                      contentPadding: EdgeInsets.zero,
-                    ),
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.view_column, color: Colors.white),
+                    tooltip: 'Sélectionner les colonnes',
+                    onPressed: _selectColumnsDialog,
                   ),
-                  const PopupMenuItem(
-                    value: 'csv',
-                    child: ListTile(
-                      leading: Icon(Icons.table_chart),
-                      title: Text('Exporter en CSV'),
-                      contentPadding: EdgeInsets.zero,
-                    ),
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.download, color: Colors.white),
+                    onSelected: (value) async {
+                      final processedAccountStats = _getProcessedAccountStats(
+                        data.accountStats,
+                      );
+                      final processedSystemEnvelopeStats =
+                          _getProcessedEnvelopeStats(data.systemEnvelopeStats);
+                      final processedEnvelopeStats = _getProcessedEnvelopeStats(
+                        data.envelopeStats,
+                      );
+                      final processedExternalStats = _getProcessedEnvelopeStats(
+                        data.externalEnvelopeStats,
+                      );
+
+                      if (value == 'csv') {
+                        await exportService.exportToCsv(
+                          context,
+                          processedAccountStats,
+                          processedSystemEnvelopeStats,
+                          processedEnvelopeStats,
+                          _selectedDateRange,
+                          visibleColumns: _visibleColumns,
+                        );
+                      } else if (value == 'pdf') {
+                        await exportService.exportToPdf(
+                          context,
+                          processedAccountStats,
+                          processedSystemEnvelopeStats,
+                          processedEnvelopeStats,
+                          processedExternalStats,
+                          _selectedDateRange,
+                          includedSections: _includedInExport,
+                          visibleColumns: _visibleColumns,
+                        );
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'pdf',
+                        child: ListTile(
+                          leading: Icon(Icons.picture_as_pdf),
+                          title: Text('Exporter en PDF'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'csv',
+                        child: ListTile(
+                          leading: Icon(Icons.table_chart),
+                          title: Text('Exporter en CSV'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               );
@@ -589,8 +684,12 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
     List<AccountStat> stats,
     NumberFormat numberFormat,
   ) {
+    final int? activeSortColumnIndex = (_sortColumnIndex != null && _sortColumnIndex! < _activeColumns.length)
+        ? _sortColumnIndex
+        : null;
+
     return DataTable(
-      sortColumnIndex: _sortColumnIndex,
+      sortColumnIndex: activeSortColumnIndex,
       sortAscending: _sortAscending,
       headingRowColor: WidgetStateProperty.resolveWith(
         (states) => Theme.of(context).primaryColor.withValues(alpha: 0.1),
@@ -598,49 +697,62 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
       columns: _buildColumns(isAccount: true),
       rows: stats.map((stat) {
         final diff = stat.income + stat.expense;
+        final List<DataCell> cells = [];
 
-        return DataRow(
-          cells: [
-            DataCell(
-              Text(
-                stat.accountName,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+        if (_visibleColumns['name'] == true) {
+          cells.add(DataCell(
+            Text(
+              stat.accountName,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ));
+        }
+        if (_visibleColumns['linkedAccount'] == true) {
+          cells.add(const DataCell(Text('---')));
+        }
+        if (_visibleColumns['startBalance'] == true) {
+          cells.add(DataCell(Text(numberFormat.format(_normalizeValue(stat.startBalance)))));
+        }
+        if (_visibleColumns['income'] == true) {
+          cells.add(DataCell(
+            Text(
+              numberFormat.format(_normalizeValue(stat.income)),
+              style: TextStyle(color: _getValueColor(stat.income)),
+            ),
+          ));
+        }
+        if (_visibleColumns['expense'] == true) {
+          cells.add(DataCell(
+            Text(
+              numberFormat.format(_normalizeValue(stat.expense)),
+              style: TextStyle(color: _getValueColor(stat.expense)),
+            ),
+          ));
+        }
+        if (_visibleColumns['difference'] == true) {
+          cells.add(DataCell(
+            Text(
+              numberFormat.format(_normalizeValue(diff)),
+              style: TextStyle(
+                color: _getValueColor(diff),
+                fontWeight: FontWeight.bold,
               ),
             ),
-            const DataCell(Text('---')), // No linked account for totals
-            DataCell(Text(numberFormat.format(_normalizeValue(stat.startBalance)))),
-            DataCell(
-              Text(
-                numberFormat.format(_normalizeValue(stat.income)),
-                style: TextStyle(color: _getValueColor(stat.income)),
+          ));
+        }
+        if (_visibleColumns['endBalance'] == true) {
+          cells.add(DataCell(
+            Text(
+              numberFormat.format(_normalizeValue(stat.endBalance)),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: _getValueColor(stat.endBalance),
               ),
             ),
-            DataCell(
-              Text(
-                numberFormat.format(_normalizeValue(stat.expense)),
-                style: TextStyle(color: _getValueColor(stat.expense)),
-              ),
-            ),
-            DataCell(
-              Text(
-                numberFormat.format(_normalizeValue(diff)),
-                style: TextStyle(
-                  color: _getValueColor(diff),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            DataCell(
-              Text(
-                numberFormat.format(_normalizeValue(stat.endBalance)),
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: _getValueColor(stat.endBalance),
-                ),
-              ),
-            ),
-          ],
-        );
+          ));
+        }
+
+        return DataRow(cells: cells);
       }).toList(),
     );
   }
@@ -651,8 +763,12 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
     NumberFormat numberFormat, {
     Color? headerColor,
   }) {
+    final int? activeSortColumnIndex = (_sortColumnIndex != null && _sortColumnIndex! < _activeColumns.length)
+        ? _sortColumnIndex
+        : null;
+
     return DataTable(
-      sortColumnIndex: _sortColumnIndex,
+      sortColumnIndex: activeSortColumnIndex,
       sortAscending: _sortAscending,
       headingRowColor: WidgetStateProperty.resolveWith(
         (states) =>
@@ -662,104 +778,133 @@ class _ResumeScreenState extends ConsumerState<ResumeScreen> {
       columns: _buildColumns(isAccount: false),
       rows: stats.map((stat) {
         final diff = stat.income + stat.expense;
+        final List<DataCell> cells = [];
 
-        return DataRow(
-          cells: [
-            DataCell(Text(stat.envelopeName)),
-            DataCell(Text(stat.realAccountName)),
-            DataCell(Text(numberFormat.format(_normalizeValue(stat.startBalance)))),
-            DataCell(
-              Text(
-                numberFormat.format(_normalizeValue(stat.income)),
-                style: TextStyle(color: _getValueColor(stat.income)),
+        if (_visibleColumns['name'] == true) {
+          cells.add(DataCell(Text(stat.envelopeName)));
+        }
+        if (_visibleColumns['linkedAccount'] == true) {
+          cells.add(DataCell(Text(stat.realAccountName)));
+        }
+        if (_visibleColumns['startBalance'] == true) {
+          cells.add(DataCell(Text(numberFormat.format(_normalizeValue(stat.startBalance)))));
+        }
+        if (_visibleColumns['income'] == true) {
+          cells.add(DataCell(
+            Text(
+              numberFormat.format(_normalizeValue(stat.income)),
+              style: TextStyle(color: _getValueColor(stat.income)),
+            ),
+          ));
+        }
+        if (_visibleColumns['expense'] == true) {
+          cells.add(DataCell(
+            Text(
+              numberFormat.format(_normalizeValue(stat.expense)),
+              style: TextStyle(color: _getValueColor(stat.expense)),
+            ),
+          ));
+        }
+        if (_visibleColumns['difference'] == true) {
+          cells.add(DataCell(
+            Text(
+              numberFormat.format(_normalizeValue(diff)),
+              style: TextStyle(
+                color: _getValueColor(diff),
+                fontWeight: FontWeight.bold,
               ),
             ),
-            DataCell(
-              Text(
-                numberFormat.format(_normalizeValue(stat.expense)),
-                style: TextStyle(color: _getValueColor(stat.expense)),
+          ));
+        }
+        if (_visibleColumns['endBalance'] == true) {
+          cells.add(DataCell(
+            Text(
+              numberFormat.format(_normalizeValue(stat.endBalance)),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: _getValueColor(stat.endBalance),
               ),
             ),
-            DataCell(
-              Text(
-                numberFormat.format(_normalizeValue(diff)),
-                style: TextStyle(
-                  color: _getValueColor(diff),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            DataCell(
-              Text(
-                numberFormat.format(_normalizeValue(stat.endBalance)),
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: _getValueColor(stat.endBalance),
-                ),
-              ),
-            ),
-          ],
-        );
+          ));
+        }
+
+        return DataRow(cells: cells);
       }).toList(),
     );
   }
 
   List<DataColumn> _buildColumns({required bool isAccount}) {
-    return [
-      DataColumn(
+    final List<DataColumn> cols = [];
+
+    if (_visibleColumns['name'] == true) {
+      cols.add(DataColumn(
         label: Text(
           isAccount ? 'Nom du compte' : 'Nom de l\'enveloppe',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         onSort: _onSort,
-      ),
-      DataColumn(
+      ));
+    }
+    if (_visibleColumns['linkedAccount'] == true) {
+      cols.add(DataColumn(
         label: const Text(
           'Compte lié',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         onSort: _onSort,
-      ),
-      DataColumn(
+      ));
+    }
+    if (_visibleColumns['startBalance'] == true) {
+      cols.add(DataColumn(
         label: const Text(
           'Solde début',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         numeric: true,
         onSort: _onSort,
-      ),
-      DataColumn(
+      ));
+    }
+    if (_visibleColumns['income'] == true) {
+      cols.add(DataColumn(
         label: const Text(
           'Revenus',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
         ),
         numeric: true,
         onSort: _onSort,
-      ),
-      DataColumn(
+      ));
+    }
+    if (_visibleColumns['expense'] == true) {
+      cols.add(DataColumn(
         label: const Text(
           'Dépenses',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
         ),
         numeric: true,
         onSort: _onSort,
-      ),
-      DataColumn(
+      ));
+    }
+    if (_visibleColumns['difference'] == true) {
+      cols.add(DataColumn(
         label: const Text(
           'Différence',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         numeric: true,
         onSort: _onSort,
-      ),
-      DataColumn(
+      ));
+    }
+    if (_visibleColumns['endBalance'] == true) {
+      cols.add(DataColumn(
         label: const Text(
           'Solde fin',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         numeric: true,
         onSort: _onSort,
-      ),
-    ];
+      ));
+    }
+
+    return cols;
   }
 }

@@ -6,7 +6,7 @@ part of 'projected_balance_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$projectedBalanceHash() => r'c0f5383099a97fe0447f062a4ce8bb1224d8e628';
+String _$projectedBalanceHash() => r'8c44b79b4da67bc7c3a78986e4386baf5653abdd';
 
 /// See also [projectedBalance].
 @ProviderFor(projectedBalance)

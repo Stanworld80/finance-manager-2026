@@ -6,7 +6,7 @@ part of 'csv_import_service.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$csvImportServiceHash() => r'b7e9cb3de2fc2b2f95cc18c557faaf37abdab38f';
+String _$csvImportServiceHash() => r'5f534a8bd4a7ad976cfac0b783e0cc490ed04539';
 
 /// See also [csvImportService].
 @ProviderFor(csvImportService)

@@ -41,16 +41,21 @@ class MockResumeExportService extends _i1.Mock
     List<_i5.AccountStat>? accountStats,
     List<_i5.EnvelopeStat>? systemEnvelopeStats,
     List<_i5.EnvelopeStat>? envelopeStats,
-    _i4.DateTimeRange<DateTime>? period,
-  ) =>
+    _i4.DateTimeRange<DateTime>? period, {
+    required Map<String, bool>? visibleColumns,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#exportToCsv, [
-              context,
-              accountStats,
-              systemEnvelopeStats,
-              envelopeStats,
-              period,
-            ]),
+            Invocation.method(
+              #exportToCsv,
+              [
+                context,
+                accountStats,
+                systemEnvelopeStats,
+                envelopeStats,
+                period,
+              ],
+              {#visibleColumns: visibleColumns},
+            ),
             returnValue: _i3.Future<void>.value(),
             returnValueForMissingStub: _i3.Future<void>.value(),
           )
@@ -65,6 +70,7 @@ class MockResumeExportService extends _i1.Mock
     List<_i5.EnvelopeStat>? externalEnvelopeStats,
     _i4.DateTimeRange<DateTime>? period, {
     required Map<String, bool>? includedSections,
+    required Map<String, bool>? visibleColumns,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
@@ -77,7 +83,10 @@ class MockResumeExportService extends _i1.Mock
                 externalEnvelopeStats,
                 period,
               ],
-              {#includedSections: includedSections},
+              {
+                #includedSections: includedSections,
+                #visibleColumns: visibleColumns,
+              },
             ),
             returnValue: _i3.Future<void>.value(),
             returnValueForMissingStub: _i3.Future<void>.value(),

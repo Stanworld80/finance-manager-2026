@@ -7,7 +7,7 @@ part of 'transaction_providers.dart';
 // **************************************************************************
 
 String _$filteredAccountTransactionsHash() =>
-    r'466b138d06e3106ae775ed51f8c150aec5974828';
+    r'aa4c79c7d687adcb262d896659271e1f6cf60997';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -160,7 +160,7 @@ class _FilteredAccountTransactionsProviderElement
 }
 
 String _$recentTransactionsHash() =>
-    r'74b32cb3fffbdc757a9bb7ec95f6d84fa9d13c85';
+    r'df3df5adbee8bc12ecfc0affbf8ede99bbc2a199';
 
 /// See also [recentTransactions].
 @ProviderFor(recentTransactions)
@@ -179,7 +179,7 @@ final recentTransactionsProvider =
 // ignore: unused_element
 typedef RecentTransactionsRef =
     AutoDisposeStreamProviderRef<List<TransactionModel>>;
-String _$transactionByIdHash() => r'74439927d8deca58375a49ba45799fda9c44e9c4';
+String _$transactionByIdHash() => r'3a12faa86f831c4a2e7cae38fd6f3d210c05ce2b';
 
 /// See also [transactionById].
 @ProviderFor(transactionById)
@@ -301,7 +301,7 @@ class _TransactionByIdProviderElement
 }
 
 String _$upcomingTransactionsHash() =>
-    r'1d558f7ae294d5adce6f661cff9f29cfbeffb529';
+    r'6ef7c560bd36d5753ddecf529bd3367a3a6758f2';
 
 /// See also [upcomingTransactions].
 @ProviderFor(upcomingTransactions)
@@ -321,7 +321,7 @@ final upcomingTransactionsProvider =
 typedef UpcomingTransactionsRef =
     AutoDisposeStreamProviderRef<List<TransactionModel>>;
 String _$externalTransactionsHash() =>
-    r'baafaeecfebeeae1b8ba15bbee336e68c8d2712e';
+    r'607f5007bf006e0ee1f4f70033acd91bedb7c462';
 
 /// See also [externalTransactions].
 @ProviderFor(externalTransactions)

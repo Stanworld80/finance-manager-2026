@@ -6,7 +6,7 @@ part of 'providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$firestoreHash() => r'e271f8f7be694ee819f397232f4d140c15a5f921';
+String _$firestoreHash() => r'a56abe42f3fb3ee8bfee4e56b46a7bf8561bdc93';
 
 /// See also [firestore].
 @ProviderFor(firestore)
@@ -23,7 +23,7 @@ final firestoreProvider = Provider<FirebaseFirestore>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef FirestoreRef = ProviderRef<FirebaseFirestore>;
-String _$firebaseAuthHash() => r'46c40b7c5cf8ab936c0daa96a6af106bd2ae5d51';
+String _$firebaseAuthHash() => r'cb440927c3ab863427fd4b052a8ccba4c024c863';
 
 /// See also [firebaseAuth].
 @ProviderFor(firebaseAuth)
@@ -40,7 +40,7 @@ final firebaseAuthProvider = Provider<FirebaseAuth>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef FirebaseAuthRef = ProviderRef<FirebaseAuth>;
-String _$seedServiceHash() => r'443b2f1ad1ee2e0fc77338b2a5095e65df7ea788';
+String _$seedServiceHash() => r'4e0d7b546140165de3b7e5c64b563c95ea3a429e';
 
 /// See also [seedService].
 @ProviderFor(seedService)
@@ -57,7 +57,7 @@ final seedServiceProvider = Provider<SeedService>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SeedServiceRef = ProviderRef<SeedService>;
-String _$packageInfoHash() => r'f7bd90882137aac7a9f28e9d10eae6efeee8c9d0';
+String _$packageInfoHash() => r'cc57db7b4684ab0d5df0f050b8ea045a3658e89a';
 
 /// See also [packageInfo].
 @ProviderFor(packageInfo)

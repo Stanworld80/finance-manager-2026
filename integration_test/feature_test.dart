@@ -61,7 +61,7 @@ void main() {
 
     // 4. Verify Dashboard
     expect(find.byType(DashboardScreen), findsOneWidget);
-    expect(find.text('Tableau de Bord'), findsOneWidget);
+    expect(find.text('Dashboard'), findsOneWidget);
 
     // 5. Navigate to Admin to seed if needed (Bonus flow)
     // Assuming there's a way to get to admin dashboard

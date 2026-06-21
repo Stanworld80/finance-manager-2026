@@ -14,7 +14,7 @@ Stream<User?> authState(Ref ref) {
 
 @riverpod
 void userProfileSync(Ref ref) {
-  final user = ref.watch(authStateProvider).value;
+  final user = ref.watch(authStateProvider).valueOrNull;
   if (user != null && user.email != null) {
     Future.microtask(() async {
       final repo = ref.read(userRepositoryProvider);
