@@ -4,15 +4,16 @@ on:
   push:
     branches:
       - master
+      - develop
     paths-ignore:
       - '**.md'
       - '.ai-context.md'
       - '.github/**'
 
 jobs:
-  deploy_staging:
-    runs-on: windows-latest
-    
+  unit_tests:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -29,6 +30,150 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          cache: true
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate Code (build_runner)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Run Unit Tests
+        run: flutter test test/unit/
+
+  security_tests:
+    name: Run Security Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate Code (build_runner)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Run Security Tests
+        run: flutter test test/security/
+
+  integration_tests:
+    name: Run Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate Code (build_runner)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Run Integration Tests
+        run: flutter test test/mcp_server_test.dart
+
+  e2e_tests:
+    name: Run E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate Code (build_runner)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Setup Chromedriver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-chromedriver
+          chromedriver --port=4444 &
+
+      - name: Run E2E Smoke Tests
+        run: flutter test integration_test/
+
+  deploy_staging:
+    name: Build & Deploy (Staging)
+    needs: [unit_tests, security_tests, integration_tests, e2e_tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate Code (build_runner)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
 
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
@@ -37,4 +182,4 @@ jobs:
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
-          .\build_deploy.ps1 -Environment dev -Platform all -BypassTest -NoGit
+          pwsh ./build_deploy.ps1 -Environment staging -Platform all -BypassTest -NoGit

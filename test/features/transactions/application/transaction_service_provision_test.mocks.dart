@@ -399,16 +399,6 @@ class MockAccountRepository extends _i1.Mock implements _i9.AccountRepository {
           as _i6.Future<void>);
 
   @override
-  _i6.Stream<List<_i10.VirtualAccount>> watchAllVirtualAccounts(
-    String? userId,
-  ) =>
-      (super.noSuchMethod(
-            Invocation.method(#watchAllVirtualAccounts, [userId]),
-            returnValue: _i6.Stream<List<_i10.VirtualAccount>>.empty(),
-          )
-          as _i6.Stream<List<_i10.VirtualAccount>>);
-
-  @override
   _i6.Future<void> deleteVirtualAccountWithIds(
     String? userId,
     String? realAccountId,
@@ -424,6 +414,16 @@ class MockAccountRepository extends _i1.Mock implements _i9.AccountRepository {
             returnValueForMissingStub: _i6.Future<void>.value(),
           )
           as _i6.Future<void>);
+
+  @override
+  _i6.Stream<List<_i10.VirtualAccount>> watchAllVirtualAccounts(
+    String? userId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#watchAllVirtualAccounts, [userId]),
+            returnValue: _i6.Stream<List<_i10.VirtualAccount>>.empty(),
+          )
+          as _i6.Stream<List<_i10.VirtualAccount>>);
 
   @override
   _i6.Future<Map<String, int>> repairVirtualAccounts(String? userId) =>

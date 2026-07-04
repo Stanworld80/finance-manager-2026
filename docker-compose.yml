@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  firebase-emulators:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: finance_manager_emulators
+    volumes:
+      - .:/app
+    ports:
+      - "4000:4000" # Emulator UI
+      - "8080:8080" # Firestore Emulator
+      - "9099:9099" # Auth Emulator
+    environment:
+      - FIREBASE_PROJECT=finance-manager-2026
+    restart: unless-stopped
+
+  chromedriver:
+    image: robcherry/docker-chromedriver:latest
+    container_name: finance_manager_chromedriver
+    ports:
+      - "4444:4444"
+    environment:
+      - CHROMEDRIVER_WHITELISTED_IPS=
+    restart: unless-stopped

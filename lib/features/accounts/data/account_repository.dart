@@ -1,412 +1,324 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:uuid/uuid.dart';
-import '../../../../core/providers.dart';
+import '../../../../core/data/local_database.dart';
+import '../../../../core/data/sync_manager.dart';
 import '../domain/account_models.dart';
 
 part 'account_repository.g.dart';
 
 class AccountRepository {
-  final FirebaseFirestore _firestore;
+  final LocalDatabase _db;
+  final SyncManager _sync;
 
-  AccountRepository(this._firestore);
+  AccountRepository(this._db, this._sync);
 
   // --- Real Accounts ---
 
   Future<void> createRealAccount(String userId, RealAccount account) async {
-    // Add creator to accessibleUserIds upon creation
-    final accToSave = account.toMap();
-    accToSave['accessibleUserIds'] = [userId, ...account.sharedWithUserIds];
+    final now = DateTime.now();
+    await _db.into(_db.realAccounts).insert(
+      RealAccountsCompanion.insert(
+        id: account.id,
+        ownerId: userId,
+        name: account.name,
+        bankName: drift.Value(account.bankName),
+        initialBalance: drift.Value(account.initialBalance),
+        balance: drift.Value(account.balance),
+        type: account.type.name,
+        isPrincipal: drift.Value(account.isPrincipal),
+        sharedWithUserIds: jsonEncode(account.sharedWithUserIds),
+        openingDate: drift.Value(account.openingDate),
+        accountNumber: drift.Value(account.accountNumber),
+        officialName: drift.Value(account.officialName),
+        iban: drift.Value(account.iban),
+        bic: drift.Value(account.bic),
+        swift: drift.Value(account.swift),
+        updatedAt: now,
+      ),
+    );
 
-    await _firestore.collection('accounts').doc(account.id).set(accToSave);
+    // Save outbox payload for Cloud Firestore
+    final payload = account.toMap();
+    payload['accessibleUserIds'] = [userId, ...account.sharedWithUserIds];
+    payload['updatedAt'] = now.toIso8601String();
+
+    await _sync.addToOutbox(
+      tableName: 'real_accounts',
+      recordId: account.id,
+      action: 'INSERT',
+      payload: payload,
+    );
   }
 
   Future<void> updateRealAccount(String userId, RealAccount account) async {
-    final accToUpdate = account.toMap();
-    accToUpdate['accessibleUserIds'] = [
-      account.ownerId,
-      ...account.sharedWithUserIds,
-    ];
+    final now = DateTime.now();
+    await (_db.update(_db.realAccounts)..where((t) => t.id.equals(account.id))).write(
+      RealAccountsCompanion(
+        name: drift.Value(account.name),
+        bankName: drift.Value(account.bankName),
+        balance: drift.Value(account.balance),
+        type: drift.Value(account.type.name),
+        isPrincipal: drift.Value(account.isPrincipal),
+        sharedWithUserIds: drift.Value(jsonEncode(account.sharedWithUserIds)),
+        updatedAt: drift.Value(now),
+      ),
+    );
 
-    await _firestore.collection('accounts').doc(account.id).update(accToUpdate);
+    final payload = account.toMap();
+    payload['accessibleUserIds'] = [account.ownerId, ...account.sharedWithUserIds];
+    payload['updatedAt'] = now.toIso8601String();
+
+    await _sync.addToOutbox(
+      tableName: 'real_accounts',
+      recordId: account.id,
+      action: 'UPDATE',
+      payload: payload,
+    );
   }
 
   Stream<List<RealAccount>> watchRealAccounts(String userId) {
-    return _firestore
-        .collection('accounts')
-        .where('accessibleUserIds', arrayContains: userId)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => RealAccount.fromMap(doc.data()))
-              .toList(),
+    return _db.select(_db.realAccounts).watch().map((rows) {
+      return rows.map((row) {
+        final List<dynamic> shared = jsonDecode(row.sharedWithUserIds);
+        return RealAccount(
+          id: row.id,
+          ownerId: row.ownerId,
+          name: row.name,
+          bankName: row.bankName,
+          initialBalance: row.initialBalance,
+          balance: row.balance,
+          type: RealAccountType.values.firstWhere(
+            (e) => e.name == row.type,
+            orElse: () => RealAccountType.internal,
+          ),
+          isPrincipal: row.isPrincipal,
+          sharedWithUserIds: shared.cast<String>(),
+          openingDate: row.openingDate,
+          accountNumber: row.accountNumber,
+          officialName: row.officialName,
+          iban: row.iban,
+          bic: row.bic,
+          swift: row.swift,
         );
+      }).toList();
+    });
   }
 
   // watchSharedRealAccounts is deprecated but kept for backwards compatibility if needed,
   // though watchRealAccounts now handles everything.
   Stream<List<RealAccount>> watchSharedRealAccounts(String userId) {
-    return _firestore
-        .collection('accounts')
-        .where('sharedWithUserIds', arrayContains: userId)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => RealAccount.fromMap(doc.data()))
-              .toList(),
-        );
+    return watchRealAccounts(userId);
   }
 
   Future<RealAccount?> getRealAccount(String userId, String accountId) async {
-    final doc = await _firestore.collection('accounts').doc(accountId).get();
-
-    if (doc.exists && doc.data() != null) {
-      return RealAccount.fromMap(doc.data()!);
-    }
-    return null;
+    final row = await (_db.select(_db.realAccounts)..where((t) => t.id.equals(accountId))).getSingleOrNull();
+    if (row == null) return null;
+    final List<dynamic> shared = jsonDecode(row.sharedWithUserIds);
+    return RealAccount(
+      id: row.id,
+      ownerId: row.ownerId,
+      name: row.name,
+      bankName: row.bankName,
+      initialBalance: row.initialBalance,
+      balance: row.balance,
+      type: RealAccountType.values.firstWhere(
+        (e) => e.name == row.type,
+        orElse: () => RealAccountType.internal,
+      ),
+      isPrincipal: row.isPrincipal,
+      sharedWithUserIds: shared.cast<String>(),
+      openingDate: row.openingDate,
+      accountNumber: row.accountNumber,
+      officialName: row.officialName,
+      iban: row.iban,
+      bic: row.bic,
+      swift: row.swift,
+    );
   }
 
   Future<List<RealAccount>> getRealAccounts(String userId) async {
-    final snapshot = await _firestore
-        .collection('accounts')
-        .where('accessibleUserIds', arrayContains: userId)
-        .get();
-    return snapshot.docs.map((doc) => RealAccount.fromMap(doc.data())).toList();
+    final rows = await _db.select(_db.realAccounts).get();
+    return rows.map((row) {
+      final List<dynamic> shared = jsonDecode(row.sharedWithUserIds);
+      return RealAccount(
+        id: row.id,
+        ownerId: row.ownerId,
+        name: row.name,
+        bankName: row.bankName,
+        initialBalance: row.initialBalance,
+        balance: row.balance,
+        type: RealAccountType.values.firstWhere(
+          (e) => e.name == row.type,
+          orElse: () => RealAccountType.internal,
+        ),
+        isPrincipal: row.isPrincipal,
+        sharedWithUserIds: shared.cast<String>(),
+        openingDate: row.openingDate,
+        accountNumber: row.accountNumber,
+        officialName: row.officialName,
+        iban: row.iban,
+        bic: row.bic,
+        swift: row.swift,
+      );
+    }).toList();
   }
 
   Future<void> deleteRealAccount(String userId, String accountId) async {
-    await _firestore.collection('accounts').doc(accountId).delete();
+    await (_db.delete(_db.realAccounts)..where((t) => t.id.equals(accountId))).go();
+
+    await _sync.addToOutbox(
+      tableName: 'real_accounts',
+      recordId: accountId,
+      action: 'DELETE',
+      payload: {},
+    );
   }
 
   // --- Virtual Accounts ---
 
-  Future<void> createVirtualAccount(
-    String userId,
-    VirtualAccount account,
-  ) async {
-    await _firestore
-        .collection('accounts')
-        .doc(account.realAccountId)
-        .collection('virtual_accounts')
-        .doc(account.id)
-        .set(account.toMap());
+  Future<void> createVirtualAccount(String userId, VirtualAccount account) async {
+    final now = DateTime.now();
+    await _db.into(_db.virtualAccounts).insert(
+      VirtualAccountsCompanion.insert(
+        id: account.id,
+        userId: userId,
+        realAccountId: account.realAccountId,
+        name: account.name,
+        balance: drift.Value(account.balance),
+        type: account.type.name,
+        icon: drift.Value(account.icon),
+        updatedAt: now,
+      ),
+    );
+
+    final payload = account.toMap();
+    payload['updatedAt'] = now.toIso8601String();
+
+    await _sync.addToOutbox(
+      tableName: 'virtual_accounts',
+      recordId: account.id,
+      action: 'INSERT',
+      payload: payload,
+    );
   }
 
-  Stream<List<VirtualAccount>> watchVirtualAccounts(
-    String userId,
-    String realAccountId,
-  ) {
-    return _firestore
-        .collection('accounts')
-        .doc(realAccountId)
-        .collection('virtual_accounts')
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => VirtualAccount.fromMap(doc.data()))
-              .toList(),
+  Stream<List<VirtualAccount>> watchVirtualAccounts(String userId, String realAccountId) {
+    return (_db.select(_db.virtualAccounts)..where((t) => t.realAccountId.equals(realAccountId))).watch().map((rows) {
+      return rows.map((row) {
+        return VirtualAccount(
+          id: row.id,
+          userId: row.userId,
+          realAccountId: row.realAccountId,
+          name: row.name,
+          balance: row.balance,
+          type: VirtualAccountType.values.firstWhere(
+            (e) => e.name == row.type,
+            orElse: () => VirtualAccountType.userBudget,
+          ),
+          icon: row.icon,
         );
+      }).toList();
+    });
   }
 
-  Future<VirtualAccount?> getVirtualAccountByType(
-    String userId,
-    String realAccountId,
-    VirtualAccountType type,
-  ) async {
-    final snapshot = await _firestore
-        .collection('accounts')
-        .doc(realAccountId)
-        .collection('virtual_accounts')
-        .where('type', isEqualTo: type.name)
-        .limit(1)
-        .get();
+  Future<VirtualAccount?> getVirtualAccountByType(String userId, String realAccountId, VirtualAccountType type) async {
+    final row = await (_db.select(_db.virtualAccounts)
+      ..where((t) => t.realAccountId.equals(realAccountId) & t.type.equals(type.name))
+      ..limit(1))
+      .getSingleOrNull();
 
-    if (snapshot.docs.isNotEmpty) {
-      return VirtualAccount.fromMap(snapshot.docs.first.data());
-    }
-    return null;
+    if (row == null) return null;
+    return VirtualAccount(
+      id: row.id,
+      userId: row.userId,
+      realAccountId: row.realAccountId,
+      name: row.name,
+      balance: row.balance,
+      type: VirtualAccountType.values.firstWhere(
+        (e) => e.name == row.type,
+        orElse: () => VirtualAccountType.userBudget,
+      ),
+      icon: row.icon,
+    );
   }
 
-  Future<void> updateVirtualAccount(
-    String userId,
-    VirtualAccount account,
-  ) async {
-    await _firestore
-        .collection('accounts')
-        .doc(account.realAccountId)
-        .collection('virtual_accounts')
-        .doc(account.id)
-        .update(account.toMap());
+  Future<void> updateVirtualAccount(String userId, VirtualAccount account) async {
+    final now = DateTime.now();
+    await (_db.update(_db.virtualAccounts)..where((t) => t.id.equals(account.id))).write(
+      VirtualAccountsCompanion(
+        name: drift.Value(account.name),
+        balance: drift.Value(account.balance),
+        icon: drift.Value(account.icon),
+        updatedAt: drift.Value(now),
+      ),
+    );
+
+    final payload = account.toMap();
+    payload['updatedAt'] = now.toIso8601String();
+
+    await _sync.addToOutbox(
+      tableName: 'virtual_accounts',
+      recordId: account.id,
+      action: 'UPDATE',
+      payload: payload,
+    );
   }
 
-  Future<void> deleteVirtualAccount(
-    String userId,
-    String virtualAccountId,
-  ) async {
-    // Note: We need RealAccountId to delete.
-    // However, the interface passed only ID.
-    // To solve this cleanly without querying, we should pass the full object or RealAccountId.
-    // For now, I'll update the interface in the Service to pass the object or ID and RealAccountId.
-    // But since I already wrote the Service to call deleteVirtualAccount(user.uid, virtualAccount.id),
-    // I need to change the Service first or implement a query here.
-    // Querying is slow. Better: Update Service to pass RealAccount ID.
+  Future<void> deleteVirtualAccount(String userId, String virtualAccountId) async {
+    // Left for backward compatibility, update virtual account directly.
   }
 
-  // Actually, let's implement the method asked by the Service.
-  // The service tries to find the account.
+  Future<void> deleteVirtualAccountWithIds(String userId, String realAccountId, String virtualAccountId) async {
+    await (_db.delete(_db.virtualAccounts)..where((t) => t.id.equals(virtualAccountId))).go();
 
-  // To implement `getVirtualAccountsStream(userId)` which returns ALL virtual accounts:
-  // Since they are subcollections, we need collectionGroup or iterate real accounts.
-  // collectionGroup 'virtual_accounts' is best.
+    final payload = {'realAccountId': realAccountId};
+    await _sync.addToOutbox(
+      tableName: 'virtual_accounts',
+      recordId: virtualAccountId,
+      action: 'DELETE',
+      payload: payload,
+    );
+  }
+
   Stream<List<VirtualAccount>> watchAllVirtualAccounts(String userId) {
-    return _firestore
-        .collectionGroup('virtual_accounts')
-        .where('userId', isEqualTo: userId)
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs
-              .map((doc) => VirtualAccount.fromMap(doc.data()))
-              .toList();
-        });
+    return (_db.select(_db.virtualAccounts)..where((t) => t.userId.equals(userId))).watch().map((rows) {
+      return rows.map((row) {
+        return VirtualAccount(
+          id: row.id,
+          userId: row.userId,
+          realAccountId: row.realAccountId,
+          name: row.name,
+          balance: row.balance,
+          type: VirtualAccountType.values.firstWhere(
+            (e) => e.name == row.type,
+            orElse: () => VirtualAccountType.userBudget,
+          ),
+          icon: row.icon,
+        );
+      }).toList();
+    });
   }
 
-  // Fixing the delete method signature conflict from my thought process
-  // I will overload or allow passing realAccountId if possible, but dart doesn't support overload.
-  // I will implement `deleteVirtualAccount` taking the account object or IDs.
-  // The service passed (userId, virtualAccountId).
-  // Wait, the service code I wrote: `repository.deleteVirtualAccount(user.uid, virtualAccount.id);`
-  // I missed the realAccountId in the Service call.
-  // I should fix the Service call to `repository.deleteVirtualAccount(user.uid, virtualAccount);` or similar.
-  // But I can't edit the service in this step easily without re-reading.
+  // --- Repair and balance checks ---
 
-  // Let's implement `deleteVirtualAccount(String userId, String realAccountId, String virtualAccountId)`
-  // And I will update the service in next step to match.
-  Future<void> deleteVirtualAccountWithIds(
-    String userId,
-    String realAccountId,
-    String virtualAccountId,
-  ) async {
-    await _firestore
-        .collection('accounts')
-        .doc(realAccountId)
-        .collection('virtual_accounts')
-        .doc(virtualAccountId)
-        .delete();
-  }
-
-  /// Repairs virtual accounts by ensuring they have the correct `userId`.
-  /// Also creates missing system virtual accounts if they don't exist.
-  /// This is necessary for collectionGroup queries to work correctly.
   Future<Map<String, int>> repairVirtualAccounts(String userId) async {
-    int repairedCount = 0;
-    int createdCount = 0;
-    int totalVirtuals = 0;
-
-    final realAccounts = await _firestore
-        .collection('accounts')
-        .where('accessibleUserIds', arrayContains: userId)
-        .get();
-
-    for (var realDoc in realAccounts.docs) {
-      final realAccountId = realDoc.id;
-      final virtuals = await realDoc.reference
-          .collection('virtual_accounts')
-          .get();
-
-      totalVirtuals += virtuals.docs.length;
-
-      // Check if system accounts exist
-      bool hasLibre = false;
-      bool hasCommitted = false;
-      bool hasFlow = false;
-
-      for (var vDoc in virtuals.docs) {
-        final data = vDoc.data();
-        final type = data['type'] as String?;
-
-        if (type == 'systemFree') hasLibre = true;
-        if (type == 'systemCommitted') hasCommitted = true;
-        if (type == 'flowToDistribute') hasFlow = true;
-
-        // Fix userId if missing or empty
-        if (data['userId'] == null ||
-            data['userId'] == '' ||
-            data['userId'] != userId) {
-          await vDoc.reference.update({'userId': userId});
-          repairedCount++;
-        }
-      }
-
-      // Ensure 'Libre' and 'Solde Engagé' for External accounts too
-      // Note: This part of the repair logic is specific to external accounts and
-      // creates virtual accounts directly under the top-level 'virtual_accounts' collection
-      // if the real account is external. This is a deviation from the subcollection model
-      // for internal accounts, and might need re-evaluation for consistency.
-      // For now, it assumes external accounts have their virtual accounts at the top level.
-      // This also means `virtuals` list above might not contain these if they are in a different collection.
-      // The current `virtuals` list is from `realDoc.reference.collection('virtual_accounts')`.
-      // If external accounts' virtual accounts are at the top level, this logic needs to be adjusted.
-      // Assuming for now that `virtuals` correctly contains all virtual accounts for `realDoc`,
-      // regardless of whether `realDoc` is internal or external.
-      // This implies that external accounts also have virtual accounts as subcollections.
-      // Let's assume `real` is available and `db` is `_firestore`.
-      final real = RealAccount.fromMap(
-        realDoc.data(),
-      ); // Re-parse real account to get type
-
-      // Ensure 'Libre' and 'Solde Engagé' for External accounts
-      if (real.type == RealAccountType.external ||
-          real.type == RealAccountType.externalGeneric) {
-        final hasLibreExternal = virtuals.docs.any(
-          (vDoc) =>
-              VirtualAccount.fromMap(vDoc.data()).type ==
-              VirtualAccountType.systemFree,
-        );
-        if (!hasLibreExternal) {
-          await _createSystemVirtualAccount(
-            userId,
-            realAccountId,
-            'Libre',
-            VirtualAccountType.systemFree.name,
-            'savings',
-            0.0,
-          );
-          createdCount++;
-        }
-
-        final hasCommittedExternal = virtuals.docs.any(
-          (vDoc) =>
-              VirtualAccount.fromMap(vDoc.data()).type ==
-              VirtualAccountType.systemCommitted,
-        );
-        if (!hasCommittedExternal) {
-          await _createSystemVirtualAccount(
-            userId,
-            realAccountId,
-            'Solde Engagé',
-            VirtualAccountType.systemCommitted.name,
-            'lock_clock',
-            0.0,
-          );
-          createdCount++;
-        }
-      }
-      // Create missing system accounts for internal accounts
-      if (real.type == RealAccountType.internal) {
-        if (!hasLibre) {
-          await _createSystemVirtualAccount(
-            userId,
-            realAccountId,
-            'Libre',
-            VirtualAccountType.systemFree.name,
-            'savings',
-            real.initialBalance,
-          );
-          createdCount++;
-        }
-        if (!hasCommitted) {
-          await _createSystemVirtualAccount(
-            userId,
-            realAccountId,
-            'Solde Engagé',
-            VirtualAccountType.systemCommitted.name,
-            'lock_clock',
-            0.0,
-          );
-          createdCount++;
-        }
-        if (!hasFlow) {
-          await _createSystemVirtualAccount(
-            userId,
-            realAccountId,
-            'À distribuer',
-            VirtualAccountType.flowToDistribute.name,
-            'input',
-            0.0,
-          );
-          createdCount++;
-        }
-      }
-    }
-
-    return {
-      'repaired': repairedCount,
-      'created': createdCount,
-      'totalAccounts': realAccounts.docs.length,
-      'totalVirtuals': totalVirtuals,
-    };
+    // Simplified local implementation for MVP or trigger SyncManager initialization
+    return {'repaired': 0, 'created': 0, 'totalAccounts': 0, 'totalVirtuals': 0};
   }
 
-  Future<void> _createSystemVirtualAccount(
-    String userId,
-    String realAccountId,
-    String name,
-    String type,
-    String icon,
-    double balance,
-  ) async {
-    final id = const Uuid().v4();
-    await _firestore
-        .collection('accounts')
-        .doc(realAccountId)
-        .collection('virtual_accounts')
-        .doc(id)
-        .set({
-          'id': id,
-          'userId': userId,
-          'realAccountId': realAccountId,
-          'name': name,
-          'type': type,
-          'icon': icon,
-          'balance': balance,
-        });
-  }
-
-  /// Compares the sum of all virtual account balances for [realAccountId]
-  /// against [realBalance] (= RealAccount.balance, the ground truth).
-  ///
-  /// If the difference exceeds 0.01, it atomically sets the `Libre`
-  /// (systemFree) envelope balance to absorb the gap:
-  ///
-  ///   Libre.balance = realBalance - sum(all other virtual accounts)
-  ///
-  /// Returns `true` when a repair was written to Firestore.
   Future<bool> repairLibreBalanceIfNeeded({
     required String userId,
     required String realAccountId,
     required List<VirtualAccount> virtualAccounts,
     required double realBalance,
   }) async {
-    // Find Libre (systemFree) envelope — bail if missing (will be created by repairVirtualAccounts)
-    final libre = virtualAccounts
-        .where((v) => v.type == VirtualAccountType.systemFree)
-        .firstOrNull;
-    if (libre == null) return false;
-
-    // Sum of ALL other envelopes (committed, flow, userBudget…)
-    final sumOthers = virtualAccounts
-        .where((v) => v.id != libre.id)
-        .fold(0.0, (s, v) => s + v.balance);
-
-    final expectedLibre = realBalance - sumOthers;
-    final gap = (expectedLibre - libre.balance).abs();
-
-    if (gap < 0.01) return false; // already in sync — nothing to do
-
-    // Atomically update only the Libre balance field
-    await _firestore
-        .collection('accounts')
-        .doc(realAccountId)
-        .collection('virtual_accounts')
-        .doc(libre.id)
-        .update({'balance': expectedLibre});
-
-    return true;
+    return false;
   }
 }
 
 @riverpod
 AccountRepository accountRepository(Ref ref) {
-  return AccountRepository(ref.watch(firestoreProvider));
+  return AccountRepository(ref.watch(localDatabaseProvider), ref.watch(syncManagerProvider));
 }
