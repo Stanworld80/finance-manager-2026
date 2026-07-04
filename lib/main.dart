@@ -29,5 +29,6 @@ void main() async {
     debugPrint("Firebase init failed: $e");
   }
 
+  // Start the Flutter application with Riverpod ProviderScope
   runApp(const ProviderScope(child: FinanceManagerApp()));
 }
