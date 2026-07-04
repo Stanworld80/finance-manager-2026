@@ -15,7 +15,7 @@ void main() async {
   try {
     await Firebase.initializeApp(options: ProdFirebaseOptions.currentPlatform);
 
-    if (kDebugMode) {
+    if (kDebugMode || const bool.fromEnvironment('USE_EMULATORS')) {
       // Connect to local emulators if running infra.ps1 up
       try {
         FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);

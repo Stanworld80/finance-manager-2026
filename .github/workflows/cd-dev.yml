@@ -199,18 +199,14 @@ jobs:
           firebase emulators:start --only firestore,auth &
           sleep 10
 
-      - name: Start ChromeDriver
-        run: |
-          chromedriver --port=4444 &
-          sleep 5
-
       - name: Run Web E2E Smoke Test
         run: |
           xvfb-run flutter drive \
             --driver=test_driver/integration_test.dart \
             --target=integration_test/patrol_flow_test.dart \
-            -d web-server \
-            --browser-name=chrome
+            -d chrome \
+            --release \
+            --dart-define=USE_EMULATORS=true
 
   # 6. Post-Deploy Smoke Test
   post_deploy_smoke_test:
