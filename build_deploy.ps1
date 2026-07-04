@@ -40,7 +40,7 @@ $ErrorActionPreference = "Stop"
 $Config = @{
     develop = @{
         ProjectId          = "finance-manager-2026-dev"
-        AndroidAppId       = "" # Note: Create dev project in Firebase to fill this
+        AndroidAppId       = "1:549484887171:android:79d75ab3e8fd67cbee6fb6"
         DartDefines        = "APP_ENV=develop"
         Flavor             = "dev" # Default flavor for non-prod
         EntryPoint         = "lib/main_dev.dart" # Might need another entry point eventually

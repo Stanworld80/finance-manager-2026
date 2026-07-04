@@ -23,6 +23,13 @@
         }
       },
       "dart": {
+        "lib/firebase_options_dev.dart": {
+          "projectId": "finance-manager-2026-dev",
+          "configurations": {
+            "android": "1:549484887171:android:79d75ab3e8fd67cbee6fb6",
+            "web": "1:549484887171:web:2c2b138e4f6388fdee6fb6"
+          }
+        },
         "lib/firebase_options_stg.dart": {
           "projectId": "finance-manager-2026-stg",
           "configurations": {

@@ -4,17 +4,20 @@ import 'package:firebase_core/firebase_core.dart';
 import 'app.dart';
 import 'core/environment.dart';
 import 'firebase_options_stg.dart';
+import 'firebase_options_dev.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   Environment.init(AppFlavor.dev);
 
-  // Initialize Firebase (Assuming firebase_options.dart is generated later,
-  // skipping for now or adding a placeholder if user hasn't generated it yet.
-  // We will wrap in try-catch to allow running without firebase initially for UI tests if needed)
+  const appEnv = String.fromEnvironment('APP_ENV', defaultValue: 'staging');
+  final firebaseOptions = appEnv == 'develop'
+      ? DevFirebaseOptions.currentPlatform
+      : StagingFirebaseOptions.currentPlatform;
+
   try {
     await Firebase.initializeApp(
-      options: StagingFirebaseOptions.currentPlatform,
+      options: firebaseOptions,
     );
   } catch (e) {
     debugPrint("Firebase init failed (expected if not configured): $e");

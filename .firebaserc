@@ -1,5 +1,6 @@
 {
   "projects": {
+    "develop": "finance-manager-2026-dev",
     "staging": "finance-manager-2026-stg",
     "production": "finance-manager-2026"
   },
