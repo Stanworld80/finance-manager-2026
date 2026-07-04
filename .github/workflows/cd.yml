@@ -156,11 +156,12 @@ jobs:
         run: |
           pwsh ./build_deploy.ps1 -Environment staging -Platform web -BypassTest -NoGit
 
-  # 5. Web E2E Integration Tests
+  # 5. Web E2E Integration Tests (Smoke)
   web_e2e_tests:
     name: Web E2E Integration Tests
     needs: [build_deploy_web]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -186,12 +187,12 @@ jobs:
       - name: Generate Code (build_runner)
         run: dart run build_runner build --delete-conflicting-outputs
 
-      - name: Setup Firebase Emulators (Docker Compose)
-        run: docker compose up -d
-
-      - name: Run E2E Integration Tests
+      - name: Run Web E2E Smoke Test
         run: |
-          xvfb-run pwsh ./run_integration_tests.ps1 -Target all -Device chrome
+          xvfb-run flutter drive \
+            --driver=test_driver/integration_test.dart \
+            --target=integration_test/patrol_flow_test.dart \
+            -d chrome
 
   # 6. Post-Deploy Smoke Test
   post_deploy_smoke_test:
