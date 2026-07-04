@@ -199,6 +199,11 @@ jobs:
           firebase emulators:start --only firestore,auth &
           sleep 10
 
+      - name: Start Xvfb (Virtual Display)
+        run: |
+          Xvfb :99 -screen 0 1920x1080x24 &
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+
       - name: Start ChromeDriver
         run: |
           chromedriver --port=4444 &
@@ -206,7 +211,7 @@ jobs:
 
       - name: Run Web E2E Smoke Test
         run: |
-          xvfb-run flutter drive \
+          flutter drive \
             --driver=test_driver/integration_test.dart \
             --target=integration_test/patrol_flow_test.dart \
             -d chrome \
