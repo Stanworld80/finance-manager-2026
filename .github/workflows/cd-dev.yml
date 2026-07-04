@@ -209,7 +209,8 @@ jobs:
           xvfb-run flutter drive \
             --driver=test_driver/integration_test.dart \
             --target=integration_test/patrol_flow_test.dart \
-            -d web-server
+            -d web-server \
+            --browser-name=chrome
 
   # 6. Post-Deploy Smoke Test
   post_deploy_smoke_test:
