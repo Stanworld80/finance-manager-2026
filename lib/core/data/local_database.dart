@@ -1,8 +1,7 @@
-import 'dart:io';
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
+import 'connection/connection.dart'
+    if (dart.library.ffi) 'connection/native.dart'
+    if (dart.library.js_interop) 'connection/web.dart';
 
 part 'local_database.g.dart';
 
@@ -95,16 +94,8 @@ class SyncOutbox extends Table {
 
 @DriftDatabase(tables: [RealAccounts, VirtualAccounts, Transactions, TransactionSplits, SyncOutbox])
 class LocalDatabase extends _$LocalDatabase {
-  LocalDatabase() : super(_openConnection());
+  LocalDatabase() : super(openConnection());
 
   @override
   int get schemaVersion => 1;
-}
-
-QueryExecutor _openConnection() {
-  return LazyDatabase(() async {
-    final dbDir = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dbDir.path, 'finance_manager.db'));
-    return NativeDatabase.createInBackground(file);
-  });
 }
