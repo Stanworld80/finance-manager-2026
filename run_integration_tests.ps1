@@ -14,7 +14,7 @@ param(
 )
 
 $PROJECT_ROOT = $PSScriptRoot
-$DRIVER = "$PROJECT_ROOT\test_driver\integration_test.dart"
+$DRIVER = "$PROJECT_ROOT/test_driver/integration_test.dart"
 
 $TEST_FILES = @{
     "auth"         = "integration_test/features/auth_flow_test.dart"
