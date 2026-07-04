@@ -1,5 +1,8 @@
 {
-  "projects": {},
+  "projects": {
+    "staging": "finance-manager-2026-stg",
+    "production": "finance-manager-2026"
+  },
   "targets": {},
   "etags": {}
 }

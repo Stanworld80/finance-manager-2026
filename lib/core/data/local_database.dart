@@ -1,7 +1,5 @@
 import 'package:drift/drift.dart';
-import 'connection/connection.dart'
-    if (dart.library.ffi) 'connection/native.dart'
-    if (dart.library.js_interop) 'connection/web.dart';
+import 'package:drift_flutter/drift_flutter.dart';
 
 part 'local_database.g.dart';
 
@@ -94,8 +92,15 @@ class SyncOutbox extends Table {
 
 @DriftDatabase(tables: [RealAccounts, VirtualAccounts, Transactions, TransactionSplits, SyncOutbox])
 class LocalDatabase extends _$LocalDatabase {
-  LocalDatabase() : super(openConnection());
+  LocalDatabase() : super(_openConnection());
+
+  // Named constructor for testing with a custom executor
+  LocalDatabase.forTesting(super.e);
 
   @override
   int get schemaVersion => 1;
+
+  static QueryExecutor _openConnection() {
+    return driftDatabase(name: 'finance_manager');
+  }
 }
