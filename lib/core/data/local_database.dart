@@ -101,6 +101,12 @@ class LocalDatabase extends _$LocalDatabase {
   int get schemaVersion => 1;
 
   static QueryExecutor _openConnection() {
-    return driftDatabase(name: 'finance_manager');
+    return driftDatabase(
+      name: 'finance_manager',
+      web: DriftWebOptions(
+        sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+        driftWorker: Uri.parse('drift_worker.js'),
+      ),
+    );
   }
 }
