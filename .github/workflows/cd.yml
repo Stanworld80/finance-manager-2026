@@ -132,14 +132,11 @@ jobs:
       - name: Generate Code (build_runner)
         run: dart run build_runner build --delete-conflicting-outputs
 
-      - name: Setup Chromedriver
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y chromium-chromedriver
-          chromedriver --port=4444 &
+      - name: Setup Firebase Emulators (Docker Compose)
+        run: docker compose up -d
 
       - name: Run E2E Smoke Tests
-        run: flutter test integration_test/
+        run: flutter drive --driver=test_driver/integration_test.dart --target=integration_test/features/auth_flow_test.dart -d chrome
 
   deploy_staging:
     name: Build & Deploy (Staging)
