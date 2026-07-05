@@ -248,7 +248,7 @@ class AccountService {
       );
 
       final transactionRepo = ref.read(transactionRepositoryProvider);
-      await transactionRepo.createTransaction(initTx);
+      await transactionRepo.createTransaction(user.uid, initTx);
     }
   }
 
