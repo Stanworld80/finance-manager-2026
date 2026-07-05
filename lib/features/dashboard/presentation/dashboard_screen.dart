@@ -10,7 +10,7 @@ import '../../../core/presentation/dashed_line.dart';
 import '../../../core/providers.dart';
 
 import '../../transactions/presentation/projected_balance_provider.dart';
-
+import '../../transactions/presentation/widgets/provision_dialog.dart';
 import '../../transactions/presentation/recurrence_list_page.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -215,6 +215,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ],
                     ),
                   ),
+                  _buildQuickActionHub(context),
 
                   // 2. Real Accounts Section
                   Padding(
@@ -430,11 +431,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               return const Center(child: Text("Aucune transaction récente"));
             }
 
+            final displayCount = transactions.length > 3 ? 3 : transactions.length;
+
             return ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: transactions.length,
+              itemCount: displayCount,
               itemBuilder: (context, index) {
                 final tx = transactions[index];
                 final date = tx.transactionDate.toLocal();
@@ -665,4 +668,133 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       error: (_, _) {},
     );
   }
+
+  Widget _buildQuickActionHub(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDesktop = MediaQuery.of(context).size.width >= 900;
+
+    final actions = [
+      _QuickActionItem(
+        label: "Dépense",
+        icon: Icons.outbound_outlined,
+        color: Colors.red.shade600,
+        backgroundColor: Colors.red.shade50.withValues(alpha: 0.1),
+        onTap: () => context.push('/add-transaction?type=debit'),
+      ),
+      _QuickActionItem(
+        label: "Revenu",
+        icon: Icons.move_to_inbox_outlined,
+        color: Colors.green.shade600,
+        backgroundColor: Colors.green.shade50.withValues(alpha: 0.1),
+        onTap: () => context.push('/add-transaction?type=credit'),
+      ),
+      _QuickActionItem(
+        label: "Provision",
+        icon: Icons.savings_outlined,
+        color: Colors.teal.shade600,
+        backgroundColor: Colors.teal.shade50.withValues(alpha: 0.1),
+        onTap: () => showDialog(
+          context: context,
+          builder: (context) => const ProvisionDialog(),
+        ),
+      ),
+      _QuickActionItem(
+        label: "Virement",
+        icon: Icons.swap_horiz_outlined,
+        color: Colors.blue.shade600,
+        backgroundColor: Colors.blue.shade50.withValues(alpha: 0.1),
+        onTap: () => context.push('/add-transaction?type=transfer'),
+      ),
+    ];
+
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? 24 : 16,
+        vertical: 12,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Actions Rapides",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: isDesktop ? 4 : 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: isDesktop ? 2.5 : 1.6,
+            ),
+            itemCount: actions.length,
+            itemBuilder: (context, index) {
+              final item = actions[index];
+              return Card(
+                elevation: 0,
+                color: item.backgroundColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: item.color.withValues(alpha: 0.15),
+                    width: 1.5,
+                  ),
+                ),
+                child: InkWell(
+                  onTap: item.onTap,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: item.color.withValues(alpha: 0.12),
+                          child: Icon(item.icon, color: item.color, size: 20),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          item.label,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickActionItem {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final Color backgroundColor;
+  final VoidCallback onTap;
+
+  _QuickActionItem({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.backgroundColor,
+    required this.onTap,
+  });
 }

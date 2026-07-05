@@ -299,7 +299,12 @@ class _ProvisionDialogState extends ConsumerState<ProvisionDialog> {
                               firstDate: DateTime(2020),
                               lastDate: DateTime(2030),
                             );
-                            if (picked != null) setState(() => _date = picked);
+                            if (picked != null) {
+                              setState(() {
+                                _date = picked;
+                                DateWarningSessionState.registerDateSelection(picked);
+                              });
+                            }
                           },
                         ),
                         const SizedBox(height: 24),

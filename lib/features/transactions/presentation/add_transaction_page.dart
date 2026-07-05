@@ -57,6 +57,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
 
   // Used for pre-filling origin/destination in build when list is available
   bool _isInitialized = false;
+  int _formResetKeyIndex = 0;
 
   @override
   void initState() {
@@ -295,6 +296,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
               child: Form(
                 key: _formKey,
                 child: Column(
+                  key: ValueKey("form_fields_$_formResetKeyIndex"),
                   children: [
                     SegmentedButton<TransactionType>(
                       segments: const [
@@ -658,7 +660,12 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                           firstDate: DateTime(2020),
                           lastDate: DateTime(2030),
                         );
-                        if (picked != null) setState(() => _date = picked);
+                        if (picked != null) {
+                          setState(() {
+                            _date = picked;
+                            DateWarningSessionState.registerDateSelection(picked);
+                          });
+                        }
                       },
                     ),
 
@@ -770,18 +777,42 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                     ],
                     const SizedBox(height: 32),
 
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _submit,
-                        child: Text(
-                          widget.transactionToEdit != null
-                              ? "Enregistrer les modifications"
-                              : "Valider",
+                    if (widget.transactionToEdit != null)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: () => _submit(),
+                          child: const Text("Enregistrer les modifications"),
                         ),
+                      )
+                    else
+                      Column(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: () => _submit(stayOnPage: false),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Theme.of(context).colorScheme.primary,
+                                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                              ),
+                              child: const Text("Enregistrer"),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: OutlinedButton.icon(
+                              onPressed: () => _submit(stayOnPage: true),
+                              icon: const Icon(Icons.add_task),
+                              label: const Text("Enregistrer & Nouveau"),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -1019,7 +1050,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
     return true;
   }
 
-  Future<void> _submit() async {
+  Future<void> _submit({bool stayOnPage = false}) async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
@@ -1035,7 +1066,32 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
         } else {
           await _handleCreateSubmit();
         }
-        if (mounted) context.pop();
+        
+        if (stayOnPage) {
+          setState(() {
+            _amount = null;
+            _label = "";
+            _note = null;
+            _formResetKeyIndex++;
+            for (var row in _splitRows) {
+              row.dispose();
+            }
+            _splitRows.clear();
+            if (_isSplitMode) {
+              _addSplitRow();
+            }
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Transaction enregistrée ! Saisie suivante active."),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        } else {
+          if (mounted) context.pop();
+        }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

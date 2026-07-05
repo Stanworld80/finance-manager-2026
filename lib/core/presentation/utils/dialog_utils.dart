@@ -1,5 +1,36 @@
 import 'package:flutter/material.dart';
 
+/// In-memory state tracking to prevent repetitive today-date alerts
+class DateWarningSessionState {
+  static bool hasWarnedForToday = false;
+
+  /// Checks if the warning dialog should be shown for the selected date.
+  static bool shouldWarn(DateTime selectedDate) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+
+    if (target.isAtSameMomentAs(today)) {
+      return !hasWarnedForToday;
+    }
+    return false;
+  }
+
+  /// Registers a date selection to update the today warning state.
+  static void registerDateSelection(DateTime selectedDate) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+
+    if (target.isAtSameMomentAs(today)) {
+      hasWarnedForToday = true;
+    } else {
+      // Reset if user selects a different date
+      hasWarnedForToday = false;
+    }
+  }
+}
+
 /// Shows a confirmation dialog if the selected date is today.
 /// Returns true if confirmed or if the date is not today.
 Future<bool> showDateConfirmationDialog({
@@ -15,6 +46,10 @@ Future<bool> showDateConfirmationDialog({
   final transactionDate = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
 
   if (transactionDate.isAtSameMomentAs(today)) {
+    if (!DateWarningSessionState.shouldWarn(selectedDate)) {
+      return true; // Already confirmed today's date in this session
+    }
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -32,7 +67,12 @@ Future<bool> showDateConfirmationDialog({
         ],
       ),
     );
-    return confirm == true;
+
+    if (confirm == true) {
+      DateWarningSessionState.registerDateSelection(selectedDate);
+      return true;
+    }
+    return false;
   }
   return true;
 }
