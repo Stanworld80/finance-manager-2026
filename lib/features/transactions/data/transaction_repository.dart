@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart' show DocumentSnapshot;
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/data/local_database.dart';
 import '../../../../core/data/sync_manager.dart';
+import '../../accounts/domain/account_models.dart';
 import '../domain/transaction_model.dart';
 
 part 'transaction_repository.g.dart';
@@ -123,6 +125,66 @@ class TransactionRepository {
       action: 'INSERT',
       payload: payload,
     );
+
+    // 6. Push updated real account balance to outbox
+    if (transaction.step == TransactionStep.completed) {
+      final realAccRow = await (_db.select(_db.realAccounts)..where((t) => t.id.equals(transaction.realAccountId))).getSingleOrNull();
+      if (realAccRow != null) {
+        final List<dynamic> shared = jsonDecode(realAccRow.sharedWithUserIds);
+        final realAcc = RealAccount(
+          id: realAccRow.id,
+          ownerId: realAccRow.ownerId,
+          name: realAccRow.name,
+          bankName: realAccRow.bankName,
+          initialBalance: realAccRow.initialBalance,
+          balance: realAccRow.balance,
+          type: RealAccountType.values.firstWhere((e) => e.name == realAccRow.type, orElse: () => RealAccountType.internal),
+          isPrincipal: realAccRow.isPrincipal,
+          sharedWithUserIds: shared.cast<String>(),
+          openingDate: realAccRow.openingDate,
+          accountNumber: realAccRow.accountNumber,
+          officialName: realAccRow.officialName,
+          iban: realAccRow.iban,
+          bic: realAccRow.bic,
+          swift: realAccRow.swift,
+        );
+        final accPayload = realAcc.toMap();
+        accPayload['accessibleUserIds'] = [realAcc.ownerId, ...realAcc.sharedWithUserIds];
+        accPayload['updatedAt'] = now.toIso8601String();
+        await _sync.addToOutbox(
+          tableName: 'real_accounts',
+          recordId: realAcc.id,
+          action: 'UPDATE',
+          payload: accPayload,
+        );
+      }
+    }
+
+    // 7. Push updated virtual accounts balances to outbox
+    if (transaction.step == TransactionStep.completed || transaction.step == TransactionStep.pending) {
+      for (final split in transaction.splits) {
+        final vAccRow = await (_db.select(_db.virtualAccounts)..where((t) => t.id.equals(split.virtualAccountId))).getSingleOrNull();
+        if (vAccRow != null) {
+          final vAcc = VirtualAccount(
+            id: vAccRow.id,
+            userId: vAccRow.userId,
+            realAccountId: vAccRow.realAccountId,
+            name: vAccRow.name,
+            balance: vAccRow.balance,
+            type: VirtualAccountType.values.firstWhere((e) => e.name == vAccRow.type, orElse: () => VirtualAccountType.userBudget),
+            icon: vAccRow.icon,
+          );
+          final vAccPayload = vAcc.toMap();
+          vAccPayload['updatedAt'] = now.toIso8601String();
+          await _sync.addToOutbox(
+            tableName: 'virtual_accounts',
+            recordId: vAcc.id,
+            action: 'UPDATE',
+            payload: vAccPayload,
+          );
+        }
+      }
+    }
   }
 
   Future<void> createTransactions(String userId, List<TransactionModel> transactions) async {
@@ -171,6 +233,66 @@ class TransactionRepository {
       action: 'DELETE',
       payload: {'realAccountId': transaction.realAccountId},
     );
+
+    // 5. Push updated real account balance to outbox
+    if (transaction.step == TransactionStep.completed) {
+      final realAccRow = await (_db.select(_db.realAccounts)..where((t) => t.id.equals(transaction.realAccountId))).getSingleOrNull();
+      if (realAccRow != null) {
+        final List<dynamic> shared = jsonDecode(realAccRow.sharedWithUserIds);
+        final realAcc = RealAccount(
+          id: realAccRow.id,
+          ownerId: realAccRow.ownerId,
+          name: realAccRow.name,
+          bankName: realAccRow.bankName,
+          initialBalance: realAccRow.initialBalance,
+          balance: realAccRow.balance,
+          type: RealAccountType.values.firstWhere((e) => e.name == realAccRow.type, orElse: () => RealAccountType.internal),
+          isPrincipal: realAccRow.isPrincipal,
+          sharedWithUserIds: shared.cast<String>(),
+          openingDate: realAccRow.openingDate,
+          accountNumber: realAccRow.accountNumber,
+          officialName: realAccRow.officialName,
+          iban: realAccRow.iban,
+          bic: realAccRow.bic,
+          swift: realAccRow.swift,
+        );
+        final accPayload = realAcc.toMap();
+        accPayload['accessibleUserIds'] = [realAcc.ownerId, ...realAcc.sharedWithUserIds];
+        accPayload['updatedAt'] = now.toIso8601String();
+        await _sync.addToOutbox(
+          tableName: 'real_accounts',
+          recordId: realAcc.id,
+          action: 'UPDATE',
+          payload: accPayload,
+        );
+      }
+    }
+
+    // 6. Push updated virtual accounts balances to outbox
+    if (transaction.step == TransactionStep.completed || transaction.step == TransactionStep.pending) {
+      for (final split in transaction.splits) {
+        final vAccRow = await (_db.select(_db.virtualAccounts)..where((t) => t.id.equals(split.virtualAccountId))).getSingleOrNull();
+        if (vAccRow != null) {
+          final vAcc = VirtualAccount(
+            id: vAccRow.id,
+            userId: vAccRow.userId,
+            realAccountId: vAccRow.realAccountId,
+            name: vAccRow.name,
+            balance: vAccRow.balance,
+            type: VirtualAccountType.values.firstWhere((e) => e.name == vAccRow.type, orElse: () => VirtualAccountType.userBudget),
+            icon: vAccRow.icon,
+          );
+          final vAccPayload = vAcc.toMap();
+          vAccPayload['updatedAt'] = now.toIso8601String();
+          await _sync.addToOutbox(
+            tableName: 'virtual_accounts',
+            recordId: vAcc.id,
+            action: 'UPDATE',
+            payload: vAccPayload,
+          );
+        }
+      }
+    }
   }
 
   Stream<List<TransactionModel>> watchTransactions(String userId) {
@@ -312,6 +434,69 @@ class TransactionRepository {
       action: 'UPDATE',
       payload: payload,
     );
+
+    // 6. Push original & updated real accounts balances to outbox
+    final affectedRealAccountIds = {original.realAccountId, updated.realAccountId};
+    for (final accId in affectedRealAccountIds) {
+      final realAccRow = await (_db.select(_db.realAccounts)..where((t) => t.id.equals(accId))).getSingleOrNull();
+      if (realAccRow != null) {
+        final List<dynamic> shared = jsonDecode(realAccRow.sharedWithUserIds);
+        final realAcc = RealAccount(
+          id: realAccRow.id,
+          ownerId: realAccRow.ownerId,
+          name: realAccRow.name,
+          bankName: realAccRow.bankName,
+          initialBalance: realAccRow.initialBalance,
+          balance: realAccRow.balance,
+          type: RealAccountType.values.firstWhere((e) => e.name == realAccRow.type, orElse: () => RealAccountType.internal),
+          isPrincipal: realAccRow.isPrincipal,
+          sharedWithUserIds: shared.cast<String>(),
+          openingDate: realAccRow.openingDate,
+          accountNumber: realAccRow.accountNumber,
+          officialName: realAccRow.officialName,
+          iban: realAccRow.iban,
+          bic: realAccRow.bic,
+          swift: realAccRow.swift,
+        );
+        final accPayload = realAcc.toMap();
+        accPayload['accessibleUserIds'] = [realAcc.ownerId, ...realAcc.sharedWithUserIds];
+        accPayload['updatedAt'] = now.toIso8601String();
+        await _sync.addToOutbox(
+          tableName: 'real_accounts',
+          recordId: realAcc.id,
+          action: 'UPDATE',
+          payload: accPayload,
+        );
+      }
+    }
+
+    // 7. Push original & updated virtual accounts balances to outbox
+    final affectedVirtualAccountIds = {
+      ...original.splits.map((s) => s.virtualAccountId),
+      ...updated.splits.map((s) => s.virtualAccountId)
+    };
+    for (final vAccId in affectedVirtualAccountIds) {
+      final vAccRow = await (_db.select(_db.virtualAccounts)..where((t) => t.id.equals(vAccId))).getSingleOrNull();
+      if (vAccRow != null) {
+        final vAcc = VirtualAccount(
+          id: vAccRow.id,
+          userId: vAccRow.userId,
+          realAccountId: vAccRow.realAccountId,
+          name: vAccRow.name,
+          balance: vAccRow.balance,
+          type: VirtualAccountType.values.firstWhere((e) => e.name == vAccRow.type, orElse: () => VirtualAccountType.userBudget),
+          icon: vAccRow.icon,
+        );
+        final vAccPayload = vAcc.toMap();
+        vAccPayload['updatedAt'] = now.toIso8601String();
+        await _sync.addToOutbox(
+          tableName: 'virtual_accounts',
+          recordId: vAcc.id,
+          action: 'UPDATE',
+          payload: vAccPayload,
+        );
+      }
+    }
   }
 
   Future<List<TransactionModel>> getFilteredTransactions({

@@ -72,7 +72,7 @@ class SyncManager {
       if (change.type == DocumentChangeType.removed) {
         await (_db.delete(_db.realAccounts)..where((t) => t.id.equals(doc.id))).go();
       } else {
-        final updatedAtStr = data['updatedAt'] ?? data['openingDate'] ?? DateTime.now().toIso8601String();
+        final updatedAtStr = data['updatedAt'] ?? data['openingDate'] ?? '1970-01-01T00:00:00.000Z';
         final updatedAt = DateTime.parse(updatedAtStr);
 
         // Check if local is newer
@@ -114,7 +114,7 @@ class SyncManager {
       if (change.type == DocumentChangeType.removed) {
         await (_db.delete(_db.virtualAccounts)..where((t) => t.id.equals(doc.id))).go();
       } else {
-        final updatedAtStr = data['updatedAt'] ?? DateTime.now().toIso8601String();
+        final updatedAtStr = data['updatedAt'] ?? '1970-01-01T00:00:00.000Z';
         final updatedAt = DateTime.parse(updatedAtStr);
 
         final local = await (_db.select(_db.virtualAccounts)..where((t) => t.id.equals(doc.id))).getSingleOrNull();
@@ -147,7 +147,7 @@ class SyncManager {
       if (change.type == DocumentChangeType.removed) {
         await (_db.delete(_db.transactions)..where((t) => t.id.equals(doc.id))).go();
       } else {
-        final updatedAtStr = data['updatedAt'] ?? data['createdAt'] ?? DateTime.now().toIso8601String();
+        final updatedAtStr = data['updatedAt'] ?? data['createdAt'] ?? '1970-01-01T00:00:00.000Z';
         final updatedAt = DateTime.parse(updatedAtStr);
 
         final local = await (_db.select(_db.transactions)..where((t) => t.id.equals(doc.id))).getSingleOrNull();
