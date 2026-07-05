@@ -5,6 +5,7 @@ import '../../../../core/providers.dart';
 import '../data/account_repository.dart';
 import '../domain/account_models.dart';
 import '../../transactions/application/transaction_service.dart';
+import '../../transactions/domain/transaction_model.dart';
 import '../../transactions/data/transaction_repository.dart';
 import '../../auth/data/user_repository.dart';
 
@@ -177,18 +178,18 @@ class AccountService {
       name: name,
       bankName: bankName,
       initialBalance: initialBalance,
-      balance: initialBalance,
+      balance: 0.0, // Will be set to initialBalance by the initialization transaction
     );
 
     // 2. Create System Virtual Accounts
 
-    // A. "Libre" (Free) - Receives the initial balance by default
+    // A. "Libre" (Free)
     final freeAccount = VirtualAccount(
       id: uuid.v4(),
       userId: user.uid,
       realAccountId: realAccount.id,
       name: "Libre",
-      balance: initialBalance,
+      balance: 0.0, // Will be set to initialBalance by the initialization transaction
       type: VirtualAccountType.systemFree,
       icon: "savings",
     );
@@ -220,6 +221,35 @@ class AccountService {
     await repository.createVirtualAccount(user.uid, freeAccount);
     await repository.createVirtualAccount(user.uid, committedAccount);
     await repository.createVirtualAccount(user.uid, flowAccount);
+
+    // Create the initialization transaction if initialBalance is not zero
+    if (initialBalance != 0.0) {
+      final txId = uuid.v4();
+      final initTx = TransactionModel(
+        id: txId,
+        ownerId: user.uid,
+        realAccountId: realAccount.id,
+        amount: initialBalance,
+        label: "Solde initial",
+        type: TransactionType.credit,
+        step: TransactionStep.completed,
+        status: TransactionStatus.none,
+        transactionDate: DateTime.now(),
+        splits: [
+          TransactionSplit(
+            virtualAccountId: freeAccount.id,
+            amount: initialBalance,
+          ),
+          TransactionSplit(
+            virtualAccountId: SystemAccounts.external,
+            amount: -initialBalance,
+          ),
+        ],
+      );
+
+      final transactionRepo = ref.read(transactionRepositoryProvider);
+      await transactionRepo.createTransaction(initTx);
+    }
   }
 
   /// Creates a new user budget envelope (virtual account).
