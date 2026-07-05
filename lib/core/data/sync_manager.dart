@@ -64,6 +64,7 @@ class SyncManager {
   // --- Remote -> Local Sync ---
 
   Future<void> _syncRealAccounts(QuerySnapshot snapshot) async {
+    final Set<String> updatedAccountIds = {};
     for (final change in snapshot.docChanges) {
       final doc = change.doc;
       final data = doc.data() as Map<String, dynamic>?;
@@ -101,11 +102,17 @@ class SyncManager {
             updatedAt: updatedAt,
           ),
         );
+        updatedAccountIds.add(doc.id);
       }
+    }
+
+    for (final accId in updatedAccountIds) {
+      await reconcileRealAccountBalances(accId);
     }
   }
 
   Future<void> _syncVirtualAccounts(QuerySnapshot snapshot) async {
+    final Set<String> updatedAccountIds = {};
     for (final change in snapshot.docChanges) {
       final doc = change.doc;
       final data = doc.data() as Map<String, dynamic>?;
@@ -134,7 +141,12 @@ class SyncManager {
             updatedAt: updatedAt,
           ),
         );
+        updatedAccountIds.add(data['realAccountId'] as String);
       }
+    }
+
+    for (final accId in updatedAccountIds) {
+      await reconcileRealAccountBalances(accId);
     }
   }
 
@@ -283,6 +295,67 @@ class SyncManager {
       }
     } finally {
       _isSyncingOutbox = false;
+    }
+  }
+
+  Future<void> reconcileRealAccountBalances(String realAccountId) async {
+    final realAcc = await (_db.select(_db.realAccounts)..where((t) => t.id.equals(realAccountId))).getSingleOrNull();
+    if (realAcc == null) return;
+
+    final vAccs = await (_db.select(_db.virtualAccounts)..where((t) => t.realAccountId.equals(realAccountId))).get();
+    if (vAccs.isEmpty) return;
+
+    VirtualAccountData? libreAccRow;
+    for (final v in vAccs) {
+      if (v.type == 'systemFree') {
+        libreAccRow = v;
+        break;
+      }
+    }
+    final libreAcc = libreAccRow;
+    if (libreAcc == null) return;
+
+    double nonLibreSum = 0.0;
+    for (final v in vAccs) {
+      if (v.type != 'systemFree') {
+        nonLibreSum += v.balance;
+      }
+    }
+
+    final expectedLibreBalance = realAcc.balance - nonLibreSum;
+    final diff = expectedLibreBalance - libreAcc.balance;
+
+    if (diff.abs() > 0.001) {
+      debugPrint("Reconciliation: Mismatch detected for account ${realAcc.name} (${realAcc.id}). "
+          "Real Balance: ${realAcc.balance}, Non-Libre Envelopes Sum: $nonLibreSum. "
+          "Adjusting Libre balance from ${libreAcc.balance} to $expectedLibreBalance (Diff: $diff).");
+
+      // 1. Update SQLite locally
+      final now = DateTime.now();
+      await (_db.update(_db.virtualAccounts)..where((t) => t.id.equals(libreAcc.id))).write(
+        VirtualAccountsCompanion(
+          balance: Value(expectedLibreBalance),
+          updatedAt: Value(now),
+        ),
+      );
+
+      // 2. Push corrected Libre balance to outbox to update Firestore
+      final payload = {
+        'id': libreAcc.id,
+        'userId': libreAcc.userId,
+        'realAccountId': libreAcc.realAccountId,
+        'name': libreAcc.name,
+        'balance': expectedLibreBalance,
+        'type': libreAcc.type,
+        'icon': libreAcc.icon,
+        'updatedAt': now.toIso8601String(),
+      };
+      await addToOutbox(
+        tableName: 'virtual_accounts',
+        recordId: libreAcc.id,
+        action: 'UPDATE',
+        payload: payload,
+      );
     }
   }
 }
