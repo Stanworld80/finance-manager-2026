@@ -23,7 +23,7 @@ final authStateProvider = AutoDisposeStreamProvider<User?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AuthStateRef = AutoDisposeStreamProviderRef<User?>;
-String _$userProfileSyncHash() => r'8e2381d6e6f199e3272a79c5bbd63024cba5a7ab';
+String _$userProfileSyncHash() => r'35f6d1534bfe799d6e1df9f8bf8fa969e8449cee';
 
 /// See also [userProfileSync].
 @ProviderFor(userProfileSync)

@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../core/providers.dart';
+import '../../../core/data/sync_manager.dart';
 import '../domain/user_profile.dart';
 import 'user_repository.dart';
 
@@ -16,6 +17,14 @@ Stream<User?> authState(Ref ref) {
 void userProfileSync(Ref ref) {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user != null && user.email != null) {
+    // Initialize the SyncManager for the authenticated user
+    final syncMgr = ref.read(syncManagerProvider);
+    syncMgr.initialize(user.uid);
+
+    ref.onDispose(() {
+      syncMgr.dispose();
+    });
+
     Future.microtask(() async {
       final repo = ref.read(userRepositoryProvider);
       final profile = UserProfile(
