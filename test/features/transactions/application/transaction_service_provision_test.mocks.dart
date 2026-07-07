@@ -141,9 +141,12 @@ class MockTransactionRepository extends _i1.Mock
           as _i6.Future<void>);
 
   @override
-  _i6.Stream<List<_i7.TransactionModel>> watchTransactions(String? userId) =>
+  _i6.Stream<List<_i7.TransactionModel>> watchTransactions(
+    String? userId, {
+    int? limit,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#watchTransactions, [userId]),
+            Invocation.method(#watchTransactions, [userId], {#limit: limit}),
             returnValue: _i6.Stream<List<_i7.TransactionModel>>.empty(),
           )
           as _i6.Stream<List<_i7.TransactionModel>>);

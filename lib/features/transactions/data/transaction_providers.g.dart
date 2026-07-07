@@ -160,7 +160,7 @@ class _FilteredAccountTransactionsProviderElement
 }
 
 String _$recentTransactionsHash() =>
-    r'df3df5adbee8bc12ecfc0affbf8ede99bbc2a199';
+    r'da3d31cb7b71641f788e6a06fb23a5aac586ca63';
 
 /// See also [recentTransactions].
 @ProviderFor(recentTransactions)

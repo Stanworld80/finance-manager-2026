@@ -1,11 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { ensureAuthenticated, confirmDateIfDialogPresent } from './auth_helper';
 
 test.describe('Linked Transfers E2E', () => {
 
     test.beforeEach(async ({ page }) => {
-        // Go to the dashboard
-        await page.goto(process.env.BASE_URL || 'http://localhost:3000');
-        await page.waitForTimeout(3000);
+        await ensureAuthenticated(page);
     });
 
     test('Create, Modify, Unlink and Delete Linked Transfer', async ({ page }) => {
@@ -24,14 +23,17 @@ test.describe('Linked Transfers E2E', () => {
         await page.waitForTimeout(1000);
 
         // Fill Amount
-        await page.getByLabel('Montant', { exact: false }).fill('150.00').catch(() => page.locator('input[type="text"]').first().fill('150.00'));
+        await page.getByLabel('Montant', { exact: false }).click().catch(() => page.locator('input[type="text"]').first().click());
+        await page.keyboard.type('150.00', { delay: 10 });
 
         // Fill Label
-        await page.getByLabel('Libellé', { exact: false }).fill(uniqueLabel).catch(() => page.locator('input[type="text"]').nth(1).fill(uniqueLabel));
+        await page.getByLabel('Libellé', { exact: false }).click().catch(() => page.locator('input[type="text"]').nth(1).click());
+        await page.keyboard.type(uniqueLabel, { delay: 10 });
 
         // Let's assume default origin and destination are fine (we are inside full E2E environment with populated accounts)
         // Click Save
         await page.getByRole('button', { name: /Ajouter|Enregistrer|Save/i }).first().click();
+        await confirmDateIfDialogPresent(page);
         await page.waitForTimeout(4000);
 
         // Search for both sides: [Transfert Out] and [Transfert In]
@@ -60,14 +62,25 @@ test.describe('Linked Transfers E2E', () => {
         const modifiedLabelOut = `[Transfert Out] ${modifiedLabel}`;
         const modifiedLabelIn = `[Transfert In] ${modifiedLabel}`;
 
-        // Change label in form (assuming it strips the prefix in the form)
-        await page.getByLabel('Libellé', { exact: false }).fill(modifiedLabel).catch(() => page.locator('input[type="text"]').nth(1).fill(modifiedLabel));
+        // Change label in form
+        await page.getByLabel('Libellé', { exact: false }).click().catch(() => page.locator('input[type="text"]').nth(1).click());
+        await page.keyboard.down('Control');
+        await page.keyboard.press('A');
+        await page.keyboard.up('Control');
+        await page.keyboard.press('Backspace');
+        await page.keyboard.type(modifiedLabel, { delay: 10 });
 
         // Change Amount to 200.00
-        await page.getByLabel('Montant', { exact: false }).fill('200.00').catch(() => page.locator('input[type="text"]').first().fill('200.00'));
+        await page.getByLabel('Montant', { exact: false }).click().catch(() => page.locator('input[type="text"]').first().click());
+        await page.keyboard.down('Control');
+        await page.keyboard.press('A');
+        await page.keyboard.up('Control');
+        await page.keyboard.press('Backspace');
+        await page.keyboard.type('200.00', { delay: 10 });
 
         // Save
         await page.getByRole('button', { name: /Sauvegarder|Enregistrer|Update/i }).first().click();
+        await confirmDateIfDialogPresent(page);
         await page.waitForTimeout(4000);
 
         // Both labels should reflect the modified name
@@ -136,9 +149,12 @@ test.describe('Linked Transfers E2E', () => {
         await page.waitForTimeout(2000);
         await page.getByText('Transfert', { exact: true }).click();
         await page.waitForTimeout(1000);
-        await page.getByLabel('Montant', { exact: false }).fill('75.00').catch(() => page.locator('input[type="text"]').first().fill('75.00'));
-        await page.getByLabel('Libellé', { exact: false }).fill(cascadeLabel).catch(() => page.locator('input[type="text"]').nth(1).fill(cascadeLabel));
+        await page.getByLabel('Montant', { exact: false }).click().catch(() => page.locator('input[type="text"]').first().click());
+        await page.keyboard.type('75.00', { delay: 10 });
+        await page.getByLabel('Libellé', { exact: false }).click().catch(() => page.locator('input[type="text"]').nth(1).click());
+        await page.keyboard.type(cascadeLabel, { delay: 10 });
         await page.getByRole('button', { name: /Ajouter|Enregistrer|Save/i }).first().click();
+        await confirmDateIfDialogPresent(page);
         await page.waitForTimeout(4000);
 
         const cascadeOut = `[Transfert Out] ${cascadeLabel}`;

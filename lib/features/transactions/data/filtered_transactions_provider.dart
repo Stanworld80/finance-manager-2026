@@ -82,7 +82,7 @@ final filteredTransactionsProvider = FutureProvider<List<TransactionModel>>((
     startDate: filters.startDate,
     endDate: filters.endDate,
     realAccountId: filters.realAccountId,
-    limit: 100, // Limit for MVP
+    limit: 50, // Limit for better performance
   );
 
   // Client-side search filtering (for Label, Note, Payee)

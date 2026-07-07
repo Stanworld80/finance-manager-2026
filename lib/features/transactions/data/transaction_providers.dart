@@ -110,7 +110,7 @@ Stream<List<TransactionModel>> filteredAccountTransactions(
 Stream<List<TransactionModel>> recentTransactions(Ref ref) {
   final user = ref.watch(firebaseAuthProvider).currentUser;
   if (user == null) return Stream.value([]);
-  return ref.watch(transactionRepositoryProvider).watchTransactions(user.uid);
+  return ref.watch(transactionRepositoryProvider).watchTransactions(user.uid, limit: 10);
 }
 
 @riverpod

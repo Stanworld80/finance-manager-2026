@@ -1,12 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { ensureAuthenticated, confirmDateIfDialogPresent } from './auth_helper';
 
 test.describe('Transactions CRUD E2E', () => {
 
     test.beforeEach(async ({ page }) => {
-        await page.goto(process.env.BASE_URL || 'https://finance-manager-2026-stg.web.app');
-        // Wait for the dashboard to be fully loaded
-        await expect(page.getByText('Résumé (Statistiques des Enveloppes)', { exact: false })).toBeVisible({ timeout: 15000 });
-        await page.waitForTimeout(2000);
+        await ensureAuthenticated(page);
     });
 
     test('CRUD Dépense', async ({ page }) => {
@@ -22,11 +20,11 @@ test.describe('Transactions CRUD E2E', () => {
 
         // Fill Montant Total
         await page.getByLabel('Montant Total', { exact: false }).click();
-        await page.keyboard.type('42.50', { delay: 50 });
+        await page.keyboard.type('42.50', { delay: 10 });
 
         // Fill Libellé
         await page.getByLabel('Libellé', { exact: false }).click();
-        await page.keyboard.type(uniqueLabel, { delay: 50 });
+        await page.keyboard.type(uniqueLabel, { delay: 10 });
 
         // Select an origin account (e.g., first non-external)
         // Note: Flutter dropdowns in web can be tricky, using getByLabel for the SearchableAccountSelector
@@ -35,6 +33,7 @@ test.describe('Transactions CRUD E2E', () => {
 
         // Click Save
         await page.getByRole('button', { name: /Ajouter|Enregistrer|Save/i }).first().click();
+        await confirmDateIfDialogPresent(page);
         await page.waitForTimeout(4000);
 
         // Verify creation in list
@@ -61,7 +60,7 @@ test.describe('Transactions CRUD E2E', () => {
         await page.keyboard.press('A');
         await page.keyboard.up('Control');
         await page.keyboard.press('Backspace');
-        await page.keyboard.type(modifiedLabel, { delay: 50 });
+        await page.keyboard.type(modifiedLabel, { delay: 10 });
 
         // Change amount
         await page.getByLabel('Montant Total', { exact: false }).click();
@@ -69,9 +68,10 @@ test.describe('Transactions CRUD E2E', () => {
         await page.keyboard.press('A');
         await page.keyboard.up('Control');
         await page.keyboard.press('Backspace');
-        await page.keyboard.type('100.00', { delay: 50 });
+        await page.keyboard.type('100.00', { delay: 10 });
 
         await page.getByRole('button', { name: /Sauvegarder|Enregistrer|Update/i }).first().click();
+        await confirmDateIfDialogPresent(page);
         await page.waitForTimeout(4000);
 
         // Verify modification
@@ -98,12 +98,13 @@ test.describe('Transactions CRUD E2E', () => {
         await page.waitForTimeout(1000);
 
         await page.getByLabel('Montant Total', { exact: false }).click();
-        await page.keyboard.type('1500.00', { delay: 50 });
+        await page.keyboard.type('1500.00', { delay: 10 });
 
         await page.getByLabel('Libellé', { exact: false }).click();
-        await page.keyboard.type(uniqueLabel, { delay: 50 });
+        await page.keyboard.type(uniqueLabel, { delay: 10 });
 
         await page.getByRole('button', { name: /Ajouter|Enregistrer|Save/i }).first().click();
+        await confirmDateIfDialogPresent(page);
         await page.waitForTimeout(4000);
 
         await expect(page.getByText(uniqueLabel).first()).toBeVisible({ timeout: 10000 });
@@ -128,15 +129,16 @@ test.describe('Transactions CRUD E2E', () => {
         await page.waitForTimeout(1000);
 
         await page.getByLabel('Montant Total', { exact: false }).click();
-        await page.keyboard.type('50.00', { delay: 50 });
+        await page.keyboard.type('50.00', { delay: 10 });
 
         await page.getByLabel('Libellé', { exact: false }).click();
-        await page.keyboard.type(uniqueLabel, { delay: 50 });
+        await page.keyboard.type(uniqueLabel, { delay: 10 });
 
         // By default, Virement should have two internal accounts. 
         // We assume staging has at least two envelopes.
         
         await page.getByRole('button', { name: /Ajouter|Enregistrer|Save/i }).first().click();
+        await confirmDateIfDialogPresent(page);
         await page.waitForTimeout(4000);
 
         await expect(page.getByText(uniqueLabel).first()).toBeVisible({ timeout: 10000 });

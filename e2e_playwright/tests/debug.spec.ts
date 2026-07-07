@@ -19,3 +19,4 @@ test('dump dom', async ({ page }) => {
     const inputCount = await page.locator('input').count();
     console.log(`Input tags count: ${inputCount}`);
 });
+

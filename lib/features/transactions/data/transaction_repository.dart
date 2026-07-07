@@ -18,9 +18,24 @@ class TransactionRepository {
   TransactionRepository(this._db, this._sync);
 
   Future<List<TransactionModel>> _loadSplitsForTransactions(List<TransactionData> txs) async {
+    if (txs.isEmpty) return [];
+
+    final txIds = txs.map((tx) => tx.id).toList();
+
+    // Query all splits for all the given transactions in a single batch query
+    final allSplits = await (_db.select(_db.transactionSplits)
+          ..where((t) => t.transactionId.isIn(txIds)))
+        .get();
+
+    // Group splits by transaction ID for O(1) retrieval
+    final splitsByTxId = <String, List<TransactionSplitData>>{};
+    for (final split in allSplits) {
+      splitsByTxId.putIfAbsent(split.transactionId, () => []).add(split);
+    }
+
     final list = <TransactionModel>[];
     for (final tx in txs) {
-      final splits = await (_db.select(_db.transactionSplits)..where((t) => t.transactionId.equals(tx.id))).get();
+      final splits = splitsByTxId[tx.id] ?? [];
       list.add(
         TransactionModel(
           id: tx.id,
@@ -295,12 +310,14 @@ class TransactionRepository {
     }
   }
 
-  Stream<List<TransactionModel>> watchTransactions(String userId) {
-    return (_db.select(_db.transactions)
+  Stream<List<TransactionModel>> watchTransactions(String userId, {int? limit}) {
+    var query = _db.select(_db.transactions)
       ..where((t) => t.ownerId.equals(userId))
-      ..orderBy([(t) => OrderingTerm(expression: t.transactionDate, mode: OrderingMode.desc)]))
-      .watch()
-      .asyncMap((rows) => _loadSplitsForTransactions(rows));
+      ..orderBy([(t) => OrderingTerm(expression: t.transactionDate, mode: OrderingMode.desc)]);
+    if (limit != null) {
+      query = query..limit(limit);
+    }
+    return query.watch().asyncMap((rows) => _loadSplitsForTransactions(rows));
   }
 
   Stream<TransactionModel?> watchTransaction(String userId, String transactionId) {

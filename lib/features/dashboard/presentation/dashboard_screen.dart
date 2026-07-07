@@ -9,7 +9,6 @@ import '../../../core/presentation/ui_utils.dart';
 import '../../../core/presentation/dashed_line.dart';
 import '../../../core/providers.dart';
 
-import '../../transactions/presentation/projected_balance_provider.dart';
 import '../../transactions/presentation/widgets/provision_dialog.dart';
 import '../../transactions/presentation/recurrence_list_page.dart';
 
@@ -179,38 +178,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               ),
                             ],
                           ],
-                        ),
-                        const SizedBox(height: 8),
-                        Consumer(
-                          builder: (context, ref, child) {
-                            final projectedAsync = ref.watch(
-                              projectedBalanceProvider,
-                            );
-                            return projectedAsync.when(
-                              data: (balance) => Text(
-                                "Projeté (Fin de mois) : ${balance.toStringAsFixed(2)} €",
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                  fontSize: isDesktop ? 16 : 14,
-                                ),
-                              ),
-                              loading: () => SizedBox(
-                                height: 20,
-                                width: 100,
-                                child: LinearProgressIndicator(
-                                  color: Colors.white.withValues(alpha: 0.5),
-                                  backgroundColor: Colors.transparent,
-                                ),
-                              ),
-                              error: (e, s) => Text(
-                                "Erreur projection",
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            );
-                          },
                         ),
                       ],
                     ),
@@ -724,56 +691,57 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: isDesktop ? 4 : 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: isDesktop ? 2.5 : 1.6,
-            ),
-            itemCount: actions.length,
-            itemBuilder: (context, index) {
-              final item = actions[index];
-              return Card(
-                elevation: 0,
-                color: item.backgroundColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: item.color.withValues(alpha: 0.15),
-                    width: 1.5,
-                  ),
-                ),
-                child: InkWell(
-                  onTap: item.onTap,
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor: item.color.withValues(alpha: 0.12),
-                          child: Icon(item.icon, color: item.color, size: 20),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final cardWidth = (constraints.maxWidth - (isDesktop ? 36 : 12)) / (isDesktop ? 4 : 2);
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: actions.map((item) {
+                  return SizedBox(
+                    width: cardWidth,
+                    child: Card(
+                      elevation: 0,
+                      color: item.backgroundColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: item.color.withValues(alpha: 0.15),
+                          width: 1.5,
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          item.label,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.onSurface,
+                      ),
+                      child: InkWell(
+                        onTap: item.onTap,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              CircleAvatar(
+                                radius: 18,
+                                backgroundColor: item.color.withValues(alpha: 0.12),
+                                child: Icon(item.icon, color: item.color, size: 18),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                item.label,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
-                          textAlign: TextAlign.center,
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                }).toList(),
               );
             },
           ),

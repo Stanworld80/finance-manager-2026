@@ -106,106 +106,108 @@ class AppShell extends ConsumerWidget {
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
             color: Colors.black.withValues(alpha: 0.05),
-            child: Column(
-              children: [
-                const SizedBox(height: 40),
-                const Icon(
-                  Icons.account_balance_wallet,
-                  size: 48,
-                  color: Colors.blue,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Finance Manager',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  const Icon(
+                    Icons.account_balance_wallet,
+                    size: 48,
+                    color: Colors.blue,
                   ),
-                ),
-                const SizedBox(height: 40),
-                _SidebarItem(
-                  icon: Icons.dashboard_outlined,
-                  label: 'Dashboard',
-                  isSelected: currentLocation == '/',
-                  onTap: () => context.go('/'),
-                ),
-                _SidebarItem(
-                  icon: Icons.account_balance_outlined,
-                  label: 'Comptes',
-                  isSelected: currentLocation.contains('/account'),
-                  onTap: () {}, // Future feature
-                ),
-                _SidebarItem(
-                  icon: Icons.calendar_month_outlined,
-                  label: 'Échéanciers',
-                  isSelected: currentLocation == '/upcoming',
-                  onTap: () => context.go('/upcoming'),
-                ),
-                _SidebarItem(
-                  icon: Icons.folder_special_outlined,
-                  label: 'Projets',
-                  isSelected: currentLocation.startsWith('/projects'),
-                  onTap: () => context.go('/projects'),
-                ),
-                _SidebarItem(
-                  icon: Icons.insights_outlined,
-                  label: 'Résumé',
-                  isSelected: currentLocation == '/resume',
-                  onTap: () => context.go('/resume'),
-                ),
-                _SidebarItem(
-                  icon: Icons.chat_bubble_outline,
-                  label: 'Coach Financier',
-                  isSelected: currentLocation == '/ai',
-                  onTap: () => context.go('/ai'),
-                ),
-                _SidebarItem(
-                  icon: Icons.public_outlined,
-                  label: 'Exterieur',
-                  isSelected: currentLocation == '/exterieur',
-                  onTap: () => context.go('/exterieur'),
-                ),
-                _SidebarItem(
-                  icon: Icons.upload_file,
-                  label: 'Import CSV',
-                  isSelected: currentLocation == '/import',
-                  onTap: () => context.go('/import'),
-                ),
-                _SidebarItem(
-                  icon: Icons.help_outline,
-                  label: 'Aide',
-                  isSelected: currentLocation == '/help',
-                  onTap: () => context.go('/help'),
-                ),
-                _SidebarItem(
-                  icon: Icons.settings_outlined,
-                  label: 'Paramètres',
-                  isSelected: currentLocation == '/preferences',
-                  onTap: () => context.go('/preferences'),
-                ),
-                const Divider(color: Colors.white10),
-                _SidebarItem(
-                  icon: Icons.logout,
-                  label: 'Déconnexion',
-                  isSelected: false,
-                  onTap: () => ref.read(firebaseAuthProvider).signOut(),
-                ),
-                const SizedBox(height: 10),
-                ref
-                    .watch(packageInfoProvider)
-                    .when(
-                      data: (info) => Text(
-                        "v${info.version} (${info.buildNumber})",
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.3),
-                          fontSize: 12,
-                        ),
-                      ),
-                      loading: () => const SizedBox.shrink(),
-                      error: (_, _) => const SizedBox.shrink(),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Finance Manager',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
                     ),
-                const SizedBox(height: 16),
-              ],
+                  ),
+                  const SizedBox(height: 20),
+                  _SidebarItem(
+                    icon: Icons.dashboard_outlined,
+                    label: 'Dashboard',
+                    isSelected: currentLocation == '/',
+                    onTap: () => context.go('/'),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.account_balance_outlined,
+                    label: 'Comptes',
+                    isSelected: currentLocation.contains('/account'),
+                    onTap: () {}, // Future feature
+                  ),
+                  _SidebarItem(
+                    icon: Icons.calendar_month_outlined,
+                    label: 'Échéanciers',
+                    isSelected: currentLocation == '/upcoming',
+                    onTap: () => context.go('/upcoming'),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.folder_special_outlined,
+                    label: 'Projets',
+                    isSelected: currentLocation.startsWith('/projects'),
+                    onTap: () => context.go('/projects'),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.insights_outlined,
+                    label: 'Résumé',
+                    isSelected: currentLocation == '/resume',
+                    onTap: () => context.go('/resume'),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.chat_bubble_outline,
+                    label: 'Coach Financier',
+                    isSelected: currentLocation == '/ai',
+                    onTap: () => context.go('/ai'),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.public_outlined,
+                    label: 'Exterieur',
+                    isSelected: currentLocation == '/exterieur',
+                    onTap: () => context.go('/exterieur'),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.upload_file,
+                    label: 'Import CSV',
+                    isSelected: currentLocation == '/import',
+                    onTap: () => context.go('/import'),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.help_outline,
+                    label: 'Aide',
+                    isSelected: currentLocation == '/help',
+                    onTap: () => context.go('/help'),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.settings_outlined,
+                    label: 'Paramètres',
+                    isSelected: currentLocation == '/preferences',
+                    onTap: () => context.go('/preferences'),
+                  ),
+                  const Divider(color: Colors.white10),
+                  _SidebarItem(
+                    icon: Icons.logout,
+                    label: 'Déconnexion',
+                    isSelected: false,
+                    onTap: () => ref.read(firebaseAuthProvider).signOut(),
+                  ),
+                  const SizedBox(height: 8),
+                  ref
+                      .watch(packageInfoProvider)
+                      .when(
+                        data: (info) => Text(
+                          "v${info.version} (${info.buildNumber})",
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            fontSize: 12,
+                          ),
+                        ),
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, _) => const SizedBox.shrink(),
+                      ),
+                  const SizedBox(height: 12),
+                ],
+              ),
             ),
           ),
         ),
@@ -280,13 +282,13 @@ class _SidebarItem extends StatelessWidget {
     final color = isSelected ? Colors.blue : Colors.grey;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             color: isSelected
                 ? Colors.blue.withValues(alpha: 0.1)
