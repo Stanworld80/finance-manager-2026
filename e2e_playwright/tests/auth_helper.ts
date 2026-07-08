@@ -89,5 +89,47 @@ export async function confirmDateIfDialogPresent(page: Page) {
         console.log('Date confirmation dialog detected. Clicking "Confirmer"...');
         await confirmButton.click().catch(() => confirmButton.dispatchEvent('click'));
         await page.waitForTimeout(2000);
+        await enableAccessibility(page);
+    }
+}
+
+export async function enableAccessibility(page: Page) {
+    const placeholder = page.locator('flt-semantics-placeholder');
+    try {
+        await placeholder.waitFor({ state: 'attached', timeout: 10000 });
+        await placeholder.dispatchEvent('click');
+        await page.waitForTimeout(2000);
+    } catch (e) {
+        // Already enabled or html renderer
+    }
+}
+
+export async function clickDetailActionButton(page: Page, action: 'edit' | 'delete') {
+    const cancelBtn = page.getByRole('button', { name: 'Annuler la transaction' });
+    const buttons = page.getByRole('button');
+    const count = await buttons.count();
+    let cancelIndex = -1;
+    for (let i = 0; i < count; i++) {
+        const name = await buttons.nth(i).getAttribute('aria-label') || await buttons.nth(i).innerText() || '';
+        if (name.includes('Annuler la transaction')) {
+            cancelIndex = i;
+            break;
+        }
+    }
+    if (cancelIndex !== -1) {
+        if (action === 'edit') {
+            console.log('Clicking Edit button on Details screen...');
+            await buttons.nth(cancelIndex - 1).click();
+        } else if (action === 'delete') {
+            console.log('Clicking Delete button on Details screen...');
+            await buttons.nth(cancelIndex + 1).click();
+        }
+    } else {
+        console.error('Could not find "Annuler la transaction" button to position edit/delete clicks.');
+        if (action === 'edit') {
+            await page.locator('button').nth(1).click();
+        } else {
+            await page.locator('button').nth(3).click();
+        }
     }
 }

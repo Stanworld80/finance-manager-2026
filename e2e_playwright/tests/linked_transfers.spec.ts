@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { ensureAuthenticated, confirmDateIfDialogPresent } from './auth_helper';
+import { ensureAuthenticated, confirmDateIfDialogPresent, enableAccessibility, clickDetailActionButton } from './auth_helper';
 
 test.describe('Linked Transfers E2E', () => {
 
     test.beforeEach(async ({ page }) => {
+        test.setTimeout(240000); // 4 minutes timeout per test to support older hardware
         await ensureAuthenticated(page);
     });
 
@@ -16,6 +17,7 @@ test.describe('Linked Transfers E2E', () => {
         const newTxButton = page.locator('button', { hasText: /Nouvelle|Transaction/i }).first();
         await newTxButton.waitFor({ state: 'attached', timeout: 10000 }).catch(() => {});
         await newTxButton.click().catch(() => page.mouse.click(page.viewportSize()!.width - 50, page.viewportSize()!.height - 50));
+        await enableAccessibility(page);
         await page.waitForTimeout(2000);
 
         // Select 'Transfert' SegmentedButton
@@ -47,16 +49,15 @@ test.describe('Linked Transfers E2E', () => {
         // --- 2. UPDATE TRANSFER (Cascade) ---
         console.log('Modifying the transfer...');
         await page.getByText(labelOut).first().click();
+        await enableAccessibility(page);
         await page.waitForTimeout(2000);
 
         // Check if "Virement Lié" is displayed in the transaction detail
         await expect(page.getByText('Virement Lié').first()).toBeVisible({ timeout: 5000 });
 
-        const editBtn = page.getByRole('button', { name: /Modifier|Edit/i }).first();
-        if (await editBtn.isVisible()) {
-            await editBtn.click();
-            await page.waitForTimeout(1000);
-        }
+        await clickDetailActionButton(page, 'edit');
+        await enableAccessibility(page);
+        await page.waitForTimeout(1000);
 
         const modifiedLabel = `${uniqueLabel} Modified`;
         const modifiedLabelOut = `[Transfert Out] ${modifiedLabel}`;
@@ -90,6 +91,7 @@ test.describe('Linked Transfers E2E', () => {
         // --- 3. UNLINK TRANSFER ---
         console.log('Unlinking the transfer...');
         await page.getByText(modifiedLabelOut).first().click();
+        await enableAccessibility(page);
         await page.waitForTimeout(2000);
 
         // Click Unlink Button (Assuming it has a tooltip "Délier le virement") Let's use getByRole for safety if Tooltip is elusive
@@ -129,9 +131,10 @@ test.describe('Linked Transfers E2E', () => {
         // --- 4. DELETE (Should only delete one if they are unlinked) ---
         console.log('Deleting the unlinked transfer...');
         await page.getByText(modifiedLabel).first().click();
+        await enableAccessibility(page);
         await page.waitForTimeout(2000);
 
-        await page.getByRole('button', { name: /Supprimer|Delete/i }).first().click();
+        await clickDetailActionButton(page, 'delete');
         await page.waitForTimeout(1000);
         const confirmDelete = page.getByRole('button', { name: /Confirmer|Oui/, exact: false }).first();
         if (await confirmDelete.isVisible()) {
@@ -146,6 +149,7 @@ test.describe('Linked Transfers E2E', () => {
         console.log('Creating transfer to test cascade delete...');
         await newTxButton.waitFor({ state: 'attached', timeout: 10000 }).catch(() => {});
         await newTxButton.click().catch(() => page.mouse.click(page.viewportSize()!.width - 50, page.viewportSize()!.height - 50));
+        await enableAccessibility(page);
         await page.waitForTimeout(2000);
         await page.getByText('Transfert', { exact: true }).click();
         await page.waitForTimeout(1000);
@@ -164,9 +168,10 @@ test.describe('Linked Transfers E2E', () => {
 
         // Click to delete
         await page.getByText(cascadeOut).first().click();
+        await enableAccessibility(page);
         await page.waitForTimeout(2000);
         
-        await page.getByRole('button', { name: /Supprimer|Delete/i }).first().click();
+        await clickDetailActionButton(page, 'delete');
         await page.waitForTimeout(1000);
         const confirmDeleteCascade = page.getByRole('button', { name: /Confirmer|Oui/, exact: false }).first();
         if (await confirmDeleteCascade.isVisible()) {

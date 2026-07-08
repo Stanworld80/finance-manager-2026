@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# build_deploy.sh - Script de Build et Déploiement pour ColorsNotes
+# build_deploy.sh - Script de Build et Déploiement pour FinanceManager2026
 #
 # Ce script gère la compilation, les tests et le déploiement de l'application
 # sur différents environnements (dev, staging, prod) et plateformes (web, android).
@@ -11,9 +11,9 @@
 
 # --- Configuration des Environnements ---
 # IDs de projet Firebase
-FIREBASE_PROJECT_ID_DEV="colors-notes-dev"
-FIREBASE_PROJECT_ID_STAGING="colors-notes-staging"
-FIREBASE_PROJECT_ID_PROD="colors-notes-prod"
+FIREBASE_PROJECT_ID_DEV="finance-manager-2026-dev"
+FIREBASE_PROJECT_ID_STAGING="finance-manager-2026-stg"
+FIREBASE_PROJECT_ID_PROD="finance-manager-2026"
 
 # Fichiers de configuration Firebase pour le déploiement Hosting/Functions
 FIREBASE_CONFIG_FILE_DEV="firebase.dev.json"
@@ -22,9 +22,9 @@ FIREBASE_CONFIG_FILE_PROD="firebase.prod.json"
 TARGET_FIREBASE_JSON_PATH="firebase.json"
 
 # IDs Client Web Google Sign-In par environnement
-GOOGLE_SIGNIN_CLIENT_ID_WEB_DEV="83241971458-14tiragdibb39tnm9op5nd6fqnm4ct53.apps.googleusercontent.com"
-GOOGLE_SIGNIN_CLIENT_ID_WEB_STAGING="344541548510-k1vncr9ufjii7r3k4425p8sqgq5p47r6.apps.googleusercontent.com"
-GOOGLE_SIGNIN_CLIENT_ID_WEB_PROD="48301164525-6lqqh5tc0m0jpsm4ovdpgalosve17a1m.apps.googleusercontent.com"
+GOOGLE_SIGNIN_CLIENT_ID_WEB_DEV="549484887171-rofcs6v6rmds7m9fsovfkejjm3umeei0.apps.googleusercontent.com"
+GOOGLE_SIGNIN_CLIENT_ID_WEB_STAGING="YOUR_STAGING_WEB_CLIENT_ID.apps.googleusercontent.com"
+GOOGLE_SIGNIN_CLIENT_ID_WEB_PROD="YOUR_PROD_WEB_CLIENT_ID.apps.googleusercontent.com"
 
 # Fichiers google-services.json pour Android par environnement
 GOOGLE_SERVICES_JSON_DEV_PATH="android/app/google-services.dev.json"
@@ -33,9 +33,9 @@ GOOGLE_SERVICES_JSON_PROD_PATH="android/app/google-services.prod.json"
 ANDROID_TARGET_GOOGLE_SERVICES_PATH="android/app/google-services.json"
 
 # IDs d'application Android Firebase par environnement
-FIREBASE_ANDROID_APP_ID_DEV="1:83241971458:android:dde10259edb60d45711c1b"
-FIREBASE_ANDROID_APP_ID_STAGING="1:344541548510:android:631fa078fb9926677d174f"
-FIREBASE_ANDROID_APP_ID_PROD="1:48301164525:android:c3713960cdefdbb28589e4"
+FIREBASE_ANDROID_APP_ID_DEV="1:549484887171:android:79d75ab3e8fd67cbee6fb6"
+FIREBASE_ANDROID_APP_ID_STAGING="1:420654277416:android:4b750e6abdb68a7150661d"
+FIREBASE_ANDROID_APP_ID_PROD="1:599792752048:android:0c9d7449fce60754c07275"
 
 # Groupes de testeurs pour Firebase App Distribution
 TESTER_GROUPS_DEV="dev-testers"
@@ -259,15 +259,15 @@ for PLATFORM in "${PLATFORMS[@]}"; do
             echo "      -> Construction de l'APK Android..."
             execute_verbose "Build APK" flutter build apk --"$BUILD_TYPE" --dart-define=APP_ENV="$ENVIRONMENT" --build-name "$VERSION_NAME" --build-number "$NEW_BUILD_NUMBER"
             if [ $? -ne 0 ]; then echo "ERREUR : La compilation APK a échoué."; exit 1; fi
-            execute_verbose "Renommage APK" mv "build/app/outputs/flutter-apk/app-$BUILD_TYPE.apk" "build/app/outputs/flutter-apk/ColorsNotes-$TAG_NAME.apk"
-            echo "      APK construit : build/app/outputs/flutter-apk/ColorsNotes-$TAG_NAME.apk"
+            execute_verbose "Renommage APK" mv "build/app/outputs/flutter-apk/app-$BUILD_TYPE.apk" "build/app/outputs/flutter-apk/FinanceManager2026-$TAG_NAME.apk"
+            echo "      APK construit : build/app/outputs/flutter-apk/FinanceManager2026-$TAG_NAME.apk"
         fi
         if [[ "$BUILD_TYPE" == "release" && (-z "$SPECIFIC_ANDROID_BUILD" || "$SPECIFIC_ANDROID_BUILD" == "aab") ]]; then
             echo "      -> Construction de l'Android App Bundle (AAB)..."
             execute_verbose "Build AAB" flutter build appbundle --"$BUILD_TYPE" --dart-define=APP_ENV="$ENVIRONMENT" --build-name "$VERSION_NAME" --build-number "$NEW_BUILD_NUMBER"
             if [ $? -ne 0 ]; then echo "ERREUR : La compilation AAB a échoué."; exit 1; fi
-            execute_verbose "Renommage AAB" mv "build/app/outputs/bundle/$BUILD_TYPE/app-$BUILD_TYPE.aab" "build/app/outputs/bundle/$BUILD_TYPE/ColorsNotes-$TAG_NAME.aab"
-            echo "      AAB construit : build/app/outputs/bundle/$BUILD_TYPE/ColorsNotes-$TAG_NAME.aab"
+            execute_verbose "Renommage AAB" mv "build/app/outputs/bundle/$BUILD_TYPE/app-$BUILD_TYPE.aab" "build/app/outputs/bundle/$BUILD_TYPE/FinanceManager2026-$TAG_NAME.aab"
+            echo "      AAB construit : build/app/outputs/bundle/$BUILD_TYPE/FinanceManager2026-$TAG_NAME.aab"
         fi
     else
         echo "AVERTISSEMENT : Plateforme non supportée '$PLATFORM'."
@@ -315,7 +315,7 @@ fi
 
 if [[ " ${PLATFORMS[*]} " =~ " android " ]]; then
     if [[ "$ENVIRONMENT" == "dev" || "$ENVIRONMENT" == "staging" ]]; then
-        ANDROID_ARTIFACT_PATH_FOR_DEPLOY="build/app/outputs/flutter-apk/ColorsNotes-$TAG_NAME.apk"
+        ANDROID_ARTIFACT_PATH_FOR_DEPLOY="build/app/outputs/flutter-apk/FinanceManager2026-$TAG_NAME.apk"
         if [ -f "$ANDROID_ARTIFACT_PATH_FOR_DEPLOY" ]; then
             echo "   - Déploiement Android APK vers Firebase App Distribution (Projet: $CURRENT_FIREBASE_PROJECT_ID)..."
             execute_verbose "Distribution App Android" firebase appdistribution:distribute "$ANDROID_ARTIFACT_PATH_FOR_DEPLOY" --app "$CURRENT_FIREBASE_ANDROID_APP_ID" --project "$CURRENT_FIREBASE_PROJECT_ID" --release-notes "Build $TAG_NAME pour $ENVIRONMENT ($BUILD_TYPE)" --groups "$CURRENT_TESTER_GROUPS"
@@ -325,7 +325,7 @@ if [[ " ${PLATFORMS[*]} " =~ " android " ]]; then
         fi
     elif [ "$ENVIRONMENT" == "prod" ]; then
         echo "   - Déploiement Android pour 'prod' : l'artefact AAB est prêt pour une publication manuelle."
-        echo "     Chemin de l'AAB : build/app/outputs/bundle/release/ColorsNotes-$TAG_NAME.aab"
+        echo "     Chemin de l'AAB : build/app/outputs/bundle/release/FinanceManager2026-$TAG_NAME.aab"
     fi
 fi
 

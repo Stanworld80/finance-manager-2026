@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { ensureAuthenticated, confirmDateIfDialogPresent } from './auth_helper';
+import { ensureAuthenticated, confirmDateIfDialogPresent, enableAccessibility, clickDetailActionButton } from './auth_helper';
 
 test.describe('Transactions CRUD E2E', () => {
 
     test.beforeEach(async ({ page }) => {
+        test.setTimeout(240000); // 4 minutes timeout per test to support older hardware
         await ensureAuthenticated(page);
     });
 
@@ -12,7 +13,8 @@ test.describe('Transactions CRUD E2E', () => {
         console.log(`Creating expense: ${uniqueLabel}`);
 
         // Click 'Dépense' button in top bar
-        await page.getByRole('button', { name: 'Dépense' }).click();
+        await page.getByRole('button', { name: 'Dépense', exact: true }).click();
+        await enableAccessibility(page);
         await page.waitForTimeout(1000);
 
         // Verify we are on Add Transaction page with Dépense selected
@@ -42,6 +44,7 @@ test.describe('Transactions CRUD E2E', () => {
         // --- VERIFY DETAILS ---
         console.log('Verifying the expense details...');
         await page.getByText(uniqueLabel).first().click();
+        await enableAccessibility(page);
         await page.waitForTimeout(2000);
 
         // Verify Amount and Type
@@ -51,7 +54,8 @@ test.describe('Transactions CRUD E2E', () => {
 
         // --- MODIFY ---
         console.log('Modifying the expense...');
-        await page.locator('button i').filter({ hasText: 'edit' }).first().click().catch(() => page.getByRole('button', { name: 'Modifier' }).click());
+        await clickDetailActionButton(page, 'edit');
+        await enableAccessibility(page);
         await page.waitForTimeout(1000);
 
         const modifiedLabel = `${uniqueLabel} MOD`;
@@ -79,9 +83,7 @@ test.describe('Transactions CRUD E2E', () => {
 
         // --- DELETE ---
         console.log('Deleting the transaction...');
-        await page.getByText(modifiedLabel).first().click();
-        await page.waitForTimeout(1000);
-        await page.locator('button i').filter({ hasText: 'delete' }).first().click().catch(() => page.getByRole('button', { name: 'Supprimer' }).click());
+        await clickDetailActionButton(page, 'delete');
         await page.waitForTimeout(1000);
         await page.getByRole('button', { name: /Supprimer|Confirmer|Oui/, exact: false }).first().click();
         await page.waitForTimeout(4000);
@@ -94,7 +96,8 @@ test.describe('Transactions CRUD E2E', () => {
         const uniqueLabel = `Revenu TEST ${Date.now()}`;
         console.log(`Creating income: ${uniqueLabel}`);
 
-        await page.getByRole('button', { name: 'Revenu' }).click();
+        await page.getByRole('button', { name: 'Revenu', exact: true }).click();
+        await enableAccessibility(page);
         await page.waitForTimeout(1000);
 
         await page.getByLabel('Montant Total', { exact: false }).click();
@@ -111,9 +114,10 @@ test.describe('Transactions CRUD E2E', () => {
 
         // Verify and delete
         await page.getByText(uniqueLabel).first().click();
+        await enableAccessibility(page);
         await expect(page.getByText('1500.00').first()).toBeVisible();
         
-        await page.locator('button i').filter({ hasText: 'delete' }).first().click();
+        await clickDetailActionButton(page, 'delete');
         await page.waitForTimeout(500);
         await page.getByRole('button', { name: /Supprimer|Confirmer|Oui/, exact: false }).first().click();
         await page.waitForTimeout(4000);
@@ -125,7 +129,8 @@ test.describe('Transactions CRUD E2E', () => {
         console.log(`Creating transfer: ${uniqueLabel}`);
 
         // Click 'Virement' (Transfer) button
-        await page.getByRole('button', { name: 'Virement' }).click();
+        await page.getByRole('button', { name: 'Virement', exact: true }).click();
+        await enableAccessibility(page);
         await page.waitForTimeout(1000);
 
         await page.getByLabel('Montant Total', { exact: false }).click();
@@ -145,13 +150,14 @@ test.describe('Transactions CRUD E2E', () => {
 
         // Verify details
         await page.getByText(uniqueLabel).first().click();
+        await enableAccessibility(page);
         await page.waitForTimeout(1000);
         await expect(page.getByText('50.00').first()).toBeVisible();
         // Check "Virement Lié" or specific labels if applicable
         
         // --- DELETE ---
         console.log('Deleting transfer...');
-        await page.locator('button i').filter({ hasText: 'delete' }).first().click();
+        await clickDetailActionButton(page, 'delete');
         await page.waitForTimeout(500);
         await page.getByRole('button', { name: /Supprimer|Confirmer|Oui/, exact: false }).first().click();
         await page.waitForTimeout(4000);
