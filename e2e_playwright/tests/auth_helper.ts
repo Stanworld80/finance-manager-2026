@@ -24,8 +24,7 @@ export async function ensureAuthenticated(page: Page) {
 
     // Check if we are on the dashboard
     const isDashboardVisible = await page.getByText('Solde Total Disponible', { exact: false }).isVisible() ||
-                               await page.locator('flt-semantics-host').getByText('Solde Total Disponible', { exact: false }).isVisible() ||
-                               await page.locator('flt-semantics-host').getByText('Actions Rapides', { exact: false }).isVisible();
+                               await page.locator('flt-semantics-host').getByText('Solde Total Disponible', { exact: false }).isVisible();
 
     if (isDashboardVisible) {
         console.log('Already authenticated and on Dashboard.');
@@ -69,8 +68,7 @@ export async function ensureAuthenticated(page: Page) {
             await page.waitForTimeout(1000);
         }
         const visible = await page.getByText('Solde Total Disponible', { exact: false }).isVisible() ||
-                        await page.locator('flt-semantics-host').getByText('Solde Total Disponible', { exact: false }).isVisible() ||
-                        await page.locator('flt-semantics-host').getByText('Actions Rapides', { exact: false }).isVisible();
+                        await page.locator('flt-semantics-host').getByText('Solde Total Disponible', { exact: false }).isVisible();
         expect(visible).toBe(true);
     }).toPass({ timeout: 25000 });
 

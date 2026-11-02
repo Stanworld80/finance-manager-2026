@@ -12,6 +12,7 @@ import '../../../../core/presentation/utils/decimal_text_input_formatter.dart';
 import '../../../../core/presentation/utils/dialog_utils.dart';
 import '../../../../core/presentation/widgets/custom_date_picker.dart';
 import 'widgets/searchable_account_selector.dart';
+import '../data/transaction_repository.dart';
 
 import 'models/transaction_ui_models.dart';
 
@@ -58,6 +59,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
   // Used for pre-filling origin/destination in build when list is available
   bool _isInitialized = false;
   int _formResetKeyIndex = 0;
+  TransactionModel? _linkedTransaction;
 
   @override
   void initState() {
@@ -82,6 +84,9 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
           _isSplitMode = true;
         }
       }
+      if (tx.type == TransactionType.transfer && tx.linkedTransactionId != null) {
+        _loadLinkedTransaction();
+      }
     } else {
       // Handle query parameters if creating a new transaction
       if (widget.initialType != null) {
@@ -89,6 +94,22 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
         if (widget.initialType == 'debit') _type = TransactionType.debit;
         if (widget.initialType == 'transfer') _type = TransactionType.transfer;
       }
+    }
+  }
+
+  Future<void> _loadLinkedTransaction() async {
+    final tx = widget.transactionToEdit!;
+    try {
+      final repository = ref.read(transactionRepositoryProvider);
+      final linked = await repository.getTransactionById(tx.ownerId, tx.linkedTransactionId!);
+      if (linked != null && mounted) {
+        setState(() {
+          _linkedTransaction = linked;
+          _isInitialized = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading linked transaction: $e");
     }
   }
 
@@ -959,10 +980,21 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
         }
       }
     } else if (tx.type == TransactionType.transfer) {
-      final sourceSplit = tx.splits.firstWhere((s) => s.amount < 0, orElse: () => tx.splits.first);
-      final targetSplit = tx.splits.firstWhere((s) => s.amount > 0, orElse: () => tx.splits.last);
-      _origin = items.firstWhere((i) => i.id == sourceSplit.virtualAccountId, orElse: () => items.first);
-      _destination = items.firstWhere((i) => i.id == targetSplit.virtualAccountId, orElse: () => items.first);
+      if (tx.linkedTransactionId != null && _linkedTransaction != null) {
+        final sourceSplit = tx.amount < 0
+            ? tx.splits.firstWhere((s) => s.virtualAccountId != SystemAccounts.transferTransit, orElse: () => tx.splits.first)
+            : _linkedTransaction!.splits.firstWhere((s) => s.virtualAccountId != SystemAccounts.transferTransit, orElse: () => _linkedTransaction!.splits.first);
+        final targetSplit = tx.amount > 0
+            ? tx.splits.firstWhere((s) => s.virtualAccountId != SystemAccounts.transferTransit, orElse: () => tx.splits.first)
+            : _linkedTransaction!.splits.firstWhere((s) => s.virtualAccountId != SystemAccounts.transferTransit, orElse: () => _linkedTransaction!.splits.first);
+        _origin = items.firstWhere((i) => i.id == sourceSplit.virtualAccountId, orElse: () => items.first);
+        _destination = items.firstWhere((i) => i.id == targetSplit.virtualAccountId, orElse: () => items.first);
+      } else {
+        final sourceSplit = tx.splits.firstWhere((s) => s.amount < 0, orElse: () => tx.splits.first);
+        final targetSplit = tx.splits.firstWhere((s) => s.amount > 0, orElse: () => tx.splits.last);
+        _origin = items.firstWhere((i) => i.id == sourceSplit.virtualAccountId, orElse: () => items.first);
+        _destination = items.firstWhere((i) => i.id == targetSplit.virtualAccountId, orElse: () => items.first);
+      }
     }
   }
 

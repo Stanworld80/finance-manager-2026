@@ -13,26 +13,32 @@ test.describe('Linked Transfers E2E', () => {
         const uniqueLabel = `Playwright Transfer ${Date.now()}`;
         console.log(`Creating transfer: ${uniqueLabel}`);
 
-        // Click New Transaction
-        const newTxButton = page.locator('button', { hasText: /Nouvelle|Transaction/i }).first();
-        await newTxButton.waitFor({ state: 'attached', timeout: 10000 }).catch(() => {});
-        await newTxButton.click().catch(() => page.mouse.click(page.viewportSize()!.width - 50, page.viewportSize()!.height - 50));
+        // Click 'Virement' button in top bar
+        await page.getByRole('button', { name: 'Virement', exact: true }).click();
         await enableAccessibility(page);
         await page.waitForTimeout(2000);
 
-        // Select 'Transfert' SegmentedButton
-        await page.getByText('Transfert', { exact: true }).click();
-        await page.waitForTimeout(1000);
-
         // Fill Amount
-        await page.getByLabel('Montant', { exact: false }).click().catch(() => page.locator('input[type="text"]').first().click());
+        await page.getByLabel('Montant Total', { exact: false }).click();
+        await page.waitForTimeout(300);
         await page.keyboard.type('150.00', { delay: 10 });
 
         // Fill Label
         await page.getByLabel('Libellé', { exact: false }).click().catch(() => page.locator('input[type="text"]').nth(1).click());
+        await page.waitForTimeout(300);
         await page.keyboard.type(uniqueLabel, { delay: 10 });
 
-        // Let's assume default origin and destination are fine (we are inside full E2E environment with populated accounts)
+        // Explicitly select CA CATE as origin and Compte Test as destination to force a cross-account transfer
+        await page.getByRole('button', { name: /De \(Origine\)/i }).click();
+        await page.waitForTimeout(1000);
+        await page.getByText('CA CATE', { exact: false }).first().click();
+        await page.waitForTimeout(1000);
+
+        await page.getByRole('button', { name: /À \(Destination\)/i }).click();
+        await page.waitForTimeout(1000);
+        await page.getByText('Compte Test', { exact: false }).first().click();
+        await page.waitForTimeout(1000);
+
         // Click Save
         await page.getByRole('button', { name: /Ajouter|Enregistrer|Save/i }).first().click();
         await confirmDateIfDialogPresent(page);
@@ -65,6 +71,7 @@ test.describe('Linked Transfers E2E', () => {
 
         // Change label in form
         await page.getByLabel('Libellé', { exact: false }).click().catch(() => page.locator('input[type="text"]').nth(1).click());
+        await page.waitForTimeout(300);
         await page.keyboard.down('Control');
         await page.keyboard.press('A');
         await page.keyboard.up('Control');
@@ -72,7 +79,8 @@ test.describe('Linked Transfers E2E', () => {
         await page.keyboard.type(modifiedLabel, { delay: 10 });
 
         // Change Amount to 200.00
-        await page.getByLabel('Montant', { exact: false }).click().catch(() => page.locator('input[type="text"]').first().click());
+        await page.getByLabel('Montant Total', { exact: false }).click();
+        await page.waitForTimeout(300);
         await page.keyboard.down('Control');
         await page.keyboard.press('A');
         await page.keyboard.up('Control');
@@ -83,6 +91,10 @@ test.describe('Linked Transfers E2E', () => {
         await page.getByRole('button', { name: /Sauvegarder|Enregistrer|Update/i }).first().click();
         await confirmDateIfDialogPresent(page);
         await page.waitForTimeout(4000);
+
+        // Go back to the dashboard
+        await page.getByRole('button', { name: 'Back' }).first().click();
+        await page.waitForTimeout(2000);
 
         // Both labels should reflect the modified name
         await expect(page.getByText(modifiedLabelOut).first()).toBeVisible({ timeout: 10000 });
@@ -124,7 +136,14 @@ test.describe('Linked Transfers E2E', () => {
         }
         await page.waitForTimeout(4000);
 
-        // After unlink, the prefixes [Transfert Out/In] are removed. 
+        // Go back to the dashboard
+        const backBtn = page.getByRole('button', { name: 'Back' }).first();
+        if (await backBtn.isVisible()) {
+            await backBtn.click();
+        }
+        await page.waitForTimeout(2000);
+
+        // After unlink, the prefixes [Transfert Out/In] remain but we are on Dashboard. 
         // It becomes just "modifiedLabel" twice (one credit, one debit with external transit)
         await expect(page.getByText(modifiedLabel).first()).toBeVisible({ timeout: 10000 });
 
@@ -147,15 +166,25 @@ test.describe('Linked Transfers E2E', () => {
         // --- 5. CREATE NEW FOR DELETE CASCADE ---
         const cascadeLabel = `Transfer Cascade Delete ${Date.now()}`;
         console.log('Creating transfer to test cascade delete...');
-        await newTxButton.waitFor({ state: 'attached', timeout: 10000 }).catch(() => {});
-        await newTxButton.click().catch(() => page.mouse.click(page.viewportSize()!.width - 50, page.viewportSize()!.height - 50));
+        await page.getByRole('button', { name: 'Virement', exact: true }).click();
         await enableAccessibility(page);
         await page.waitForTimeout(2000);
-        await page.getByText('Transfert', { exact: true }).click();
+
+        // Select CA CATE as origin and Compte Test as destination
+        await page.getByRole('button', { name: /De \(Origine\)/i }).click();
         await page.waitForTimeout(1000);
-        await page.getByLabel('Montant', { exact: false }).click().catch(() => page.locator('input[type="text"]').first().click());
+        await page.getByText('CA CATE', { exact: false }).first().click();
+        await page.waitForTimeout(1000);
+
+        await page.getByRole('button', { name: /À \(Destination\)/i }).click();
+        await page.waitForTimeout(1000);
+        await page.getByText('Compte Test', { exact: false }).first().click();
+        await page.waitForTimeout(1000);
+        await page.getByLabel('Montant Total', { exact: false }).click();
+        await page.waitForTimeout(300);
         await page.keyboard.type('75.00', { delay: 10 });
         await page.getByLabel('Libellé', { exact: false }).click().catch(() => page.locator('input[type="text"]').nth(1).click());
+        await page.waitForTimeout(300);
         await page.keyboard.type(cascadeLabel, { delay: 10 });
         await page.getByRole('button', { name: /Ajouter|Enregistrer|Save/i }).first().click();
         await confirmDateIfDialogPresent(page);

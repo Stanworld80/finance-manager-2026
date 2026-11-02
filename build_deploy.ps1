@@ -45,6 +45,7 @@ $Config = @{
         Flavor             = "dev" # Default flavor for non-prod
         EntryPoint         = "lib/main_dev.dart" # Might need another entry point eventually
         GoogleServicesPath = "android/app/google-services.dev.json"
+        TesterGroups       = "dev-testers"
     }
     staging = @{
         ProjectId          = "finance-manager-2026-stg"
@@ -53,6 +54,7 @@ $Config = @{
         Flavor             = "dev"
         EntryPoint         = "lib/main_dev.dart"
         GoogleServicesPath = "android/app/google-services.staging.json"
+        TesterGroups       = "uat-testers"
     }
     prod    = @{
         ProjectId          = "finance-manager-2026"
@@ -61,6 +63,7 @@ $Config = @{
         Flavor             = "prod"
         EntryPoint         = "lib/main.dart"
         GoogleServicesPath = "android/app/google-services.prod.json"
+        TesterGroups       = "prod-final-checkers"
     }
 }
 
@@ -94,9 +97,11 @@ $VersionName = $CurrentVersion.Split("+")[0]
 # We use Git commit count as the Build Number
 $NewBuildNumber = (git rev-list --count HEAD).Trim()
 $NewVersion = "$VersionName+$NewBuildNumber"
+$BuildDate = (Get-Date -Format "dd/MM/yyyy HH:mm")
 
 Write-Host "   Version: $VersionName" -ForegroundColor Green
 Write-Host "   Build Number (Git): $NewBuildNumber" -ForegroundColor Green
+Write-Host "   Build Date: $BuildDate" -ForegroundColor Green
 
 # 3. Tests
 if ($Environment -eq "prod" -or (-not $BypassTest)) {
@@ -129,6 +134,9 @@ $CommonArgs = @(
     "--$BuildMode",
     "-t", $EnvConfig.EntryPoint,
     "--dart-define", $EnvConfig.DartDefines,
+    "--dart-define", "APP_VERSION=$VersionName",
+    "--dart-define", "BUILD_NUMBER=$NewBuildNumber",
+    "--dart-define", "BUILD_DATE=$BuildDate",
     "--build-name", $VersionName,
     "--build-number", $NewBuildNumber.ToString()
 )
@@ -200,7 +208,7 @@ if ($Platform -eq "android" -or $Platform -eq "all") {
         $ApkPath = "build/app/outputs/flutter-apk/app-$($EnvConfig.Flavor)-$BuildMode.apk"
         if (Test-Path $ApkPath) {
             Write-Host "   Uploading APK to App Distribution..."
-            firebase appdistribution:distribute "$ApkPath" --app $EnvConfig.AndroidAppId --release-notes "Ver $NewVersion" --groups "testers"
+            firebase appdistribution:distribute "$ApkPath" --app $EnvConfig.AndroidAppId --release-notes "Ver $NewVersion" --groups $EnvConfig.TesterGroups
         }
     }
     else {

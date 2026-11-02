@@ -2,7 +2,7 @@ import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:firebase_ui_oauth_google/firebase_ui_oauth_google.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/providers.dart';
+import '../../../core/presentation/widgets/app_footer.dart';
 import '../data/auth_providers.dart';
 
 // Google Web Client ID for Staging
@@ -42,23 +42,8 @@ class AuthGate extends ConsumerWidget {
                 ),
               );
             },
-            footerBuilder: (context, action) {
-              final packageInfoAsync = ref.watch(packageInfoProvider);
-              return packageInfoAsync.when(
-                data: (info) => Padding(
-                  padding: const EdgeInsets.only(top: 24),
-                  child: Center(
-                    child: Text(
-                      'v${info.version} (${info.buildNumber})',
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  ),
-                ),
-                loading: () => const SizedBox.shrink(),
-                error: (_, _) => const SizedBox.shrink(),
-              );
-            },
           ),
+          bottomNavigationBar: const AppFooter(),
         );
       },
       loading: () =>

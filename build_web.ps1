@@ -21,8 +21,9 @@ if ($content -match "version: (\d+\.\d+\.\d+)\+(\d+)") {
     Write-Warning "Version pattern not found in pubspec.yaml. Skipping increment."
 }
 
-Write-Host "Building Flutter Web..." -ForegroundColor Cyan
-flutter build web
+$buildDate = (Get-Date -Format "dd/MM/yyyy HH:mm")
+Write-Host "Building Flutter Web ($buildDate)..." -ForegroundColor Cyan
+flutter build web --dart-define="BUILD_DATE=$buildDate"
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Build Successful!" -ForegroundColor Green

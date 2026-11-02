@@ -20,6 +20,7 @@ import 'features/transactions/presentation/add_transaction_page.dart';
 import 'features/transactions/presentation/transaction_detail_screen.dart';
 import 'features/bank_sync/presentation/link_bank_screen.dart';
 import 'features/help/presentation/help_screen.dart';
+import 'features/legal/presentation/legal_screen.dart';
 import 'features/accounts/presentation/account_detail_screen.dart';
 import 'features/projects/presentation/projects_dashboard_screen.dart';
 import 'features/projects/presentation/project_detail_screen.dart';
@@ -135,11 +136,24 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/link-bank',
-            builder: (context, state) => const LinkBankScreen(),
+            builder: (context, state) => LinkBankScreen(
+              initialAuthCode: state.uri.queryParameters['code'],
+              initialAuthError:
+                  state.uri.queryParameters['error_description'] ??
+                  state.uri.queryParameters['error'],
+            ),
           ),
           GoRoute(
             path: '/help',
             builder: (context, state) => const HelpScreen(),
+          ),
+          GoRoute(
+            path: '/legal',
+            builder: (context, state) {
+              final section =
+                  state.uri.queryParameters['section'] ?? 'mentions';
+              return LegalScreen(initialSection: section);
+            },
           ),
           GoRoute(
             path: '/preferences',

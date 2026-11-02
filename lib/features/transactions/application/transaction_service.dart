@@ -465,6 +465,14 @@ class TransactionService {
         break;
     }
 
+    String finalLabel = label;
+    if (originalTransaction.linkedTransactionId != null) {
+      String rawLabel = label;
+      if (rawLabel.startsWith("[Transfert Out] ")) rawLabel = rawLabel.substring(16);
+      if (rawLabel.startsWith("[Transfert In] ")) rawLabel = rawLabel.substring(15);
+      finalLabel = "[Transfert ${realAmountSigned > 0 ? 'In' : 'Out'}] $rawLabel";
+    }
+
     final updatedTransaction = TransactionModel(
       id: originalTransaction.id, // Keep same ID
       ownerId: user.uid,
@@ -472,7 +480,7 @@ class TransactionService {
       amount: realAmountSigned,
       type: type,
       transactionDate: date,
-      label: label,
+      label: finalLabel,
       category: category,
       note: note,
       status: originalTransaction.status,

@@ -22,10 +22,12 @@ test.describe('Transactions CRUD E2E', () => {
 
         // Fill Montant Total
         await page.getByLabel('Montant Total', { exact: false }).click();
+        await page.waitForTimeout(300);
         await page.keyboard.type('42.50', { delay: 10 });
 
         // Fill Libellé
         await page.getByLabel('Libellé', { exact: false }).click();
+        await page.waitForTimeout(300);
         await page.keyboard.type(uniqueLabel, { delay: 10 });
 
         // Select an origin account (e.g., first non-external)
@@ -60,6 +62,7 @@ test.describe('Transactions CRUD E2E', () => {
 
         const modifiedLabel = `${uniqueLabel} MOD`;
         await page.getByLabel('Libellé', { exact: false }).click();
+        await page.waitForTimeout(300);
         await page.keyboard.down('Control');
         await page.keyboard.press('A');
         await page.keyboard.up('Control');
@@ -68,6 +71,7 @@ test.describe('Transactions CRUD E2E', () => {
 
         // Change amount
         await page.getByLabel('Montant Total', { exact: false }).click();
+        await page.waitForTimeout(300);
         await page.keyboard.down('Control');
         await page.keyboard.press('A');
         await page.keyboard.up('Control');
@@ -101,9 +105,11 @@ test.describe('Transactions CRUD E2E', () => {
         await page.waitForTimeout(1000);
 
         await page.getByLabel('Montant Total', { exact: false }).click();
+        await page.waitForTimeout(300);
         await page.keyboard.type('1500.00', { delay: 10 });
 
         await page.getByLabel('Libellé', { exact: false }).click();
+        await page.waitForTimeout(300);
         await page.keyboard.type(uniqueLabel, { delay: 10 });
 
         await page.getByRole('button', { name: /Ajouter|Enregistrer|Save/i }).first().click();
@@ -134,9 +140,11 @@ test.describe('Transactions CRUD E2E', () => {
         await page.waitForTimeout(1000);
 
         await page.getByLabel('Montant Total', { exact: false }).click();
+        await page.waitForTimeout(300);
         await page.keyboard.type('50.00', { delay: 10 });
 
         await page.getByLabel('Libellé', { exact: false }).click();
+        await page.waitForTimeout(300);
         await page.keyboard.type(uniqueLabel, { delay: 10 });
 
         // By default, Virement should have two internal accounts. 
